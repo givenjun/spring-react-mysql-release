@@ -447,7 +447,7 @@ const getRandomGlobalHeartStyle = (): React.CSSProperties => {
                 </div>
             </div>
             <div className='board-detail-bottom-button-group'>
-                <div className='board-detail-bottom-button-text'>{`조회`}</div>
+                <div className='board-detail-bottom-button-text'>{`조회수`}</div>
                 <InitRollingNumber
                   initVal={viewCount-1}
                   value={viewCount}

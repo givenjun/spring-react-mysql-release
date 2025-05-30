@@ -4,6 +4,7 @@
     display: flex;
     justify-content: center;
     background-color: #f2daff;
+    
 }
 
 .board-top-container {
@@ -64,6 +65,8 @@
 }
 
 #board-bottom-wrapper {
+    border-top: 2px solid #333;
+
     padding: 40px 0;
 
     display: flex;
