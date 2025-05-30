@@ -37,6 +37,8 @@ public class WebSecurityConfig {
 //     private String allowedOrigin;
     @Value("${cors.allowed-origin}")
     private String frontOrigin;
+    @Value("http://routepick.kro.kr")
+    private String domainOrigin;
 
     @Bean
     protected SecurityFilterChain configure(HttpSecurity httpSecurity) throws Exception {
@@ -68,6 +70,7 @@ public class WebSecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         //  configuration.addAllowedOrigin("http://localhost:3000");
         configuration.addAllowedOrigin(frontOrigin);
+        configuration.addAllowedOrigin(domainOrigin);
         configuration.setAllowCredentials(true);
         configuration.addAllowedMethod("*");
         configuration.addExposedHeader("*");

@@ -133,8 +133,8 @@ export default function Board() {
     //          render: 게시판 화면 하단 컴포넌트 렌더링          //
     return (
       <div id='board-bottom-wrapper'>
-        <div className='board-bottom-devider'></div>
         <div className='board-bottom-container'>
+          <div className='board-bottom-devider'></div>
           <div className='board-bottom-title'>{'최신 게시물'}</div>
           <div className='board-bottom-contents-box'>
             <div className='board-bottom-current-contents'>
