@@ -1,0 +1,45 @@
+version: "3.8"
+
+services:
+
+  db:
+    image: mysql:8.0
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: board
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./initdb:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p1234"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+
+  frontend:
+    build: ./board-front
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+  backend:
+    build: ./board-back
+    ports:
+      - "4000:4000"
+    depends_on:
+      db:
+        condition: service_healthy  # db가 healthcheck 통과해야 backend 실행
+    volumes:
+      - ./upload:/fileUpload/
+    environment:
+      TZ: Asia/Seoul
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/board?serverTimezone=UTC&characterEncoding=utf8
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 1234
+    restart: on-failure
+volumes:
+  mysql-data:

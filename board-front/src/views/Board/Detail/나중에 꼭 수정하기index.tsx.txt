@@ -1,0 +1,314 @@
+import {
+  useEffect,
+  useState,
+  useRef,
+  ChangeEvent
+} from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useCookies } from 'react-cookie';
+import dayjs from 'dayjs';
+import { toast } from 'react-toastify';
+
+import './style.css';
+import defaultProfileImage from 'assets/image/default-profile-image.png';
+
+import { useLoginUserStore } from 'stores';
+import { usePagination } from 'hooks';
+
+import {
+  getBoardRequest,
+  increaseViewCountRequest,
+  getFavoriteListRequest,
+  getCommentListRequest,
+  putFavoriteRequest,
+  postCommentRequest,
+  deleteCommentRequest,
+  deleteBoardRequest
+} from 'apis';
+
+import {
+  GetBoardResponseDto,
+  GetFavoriteListResponseDto,
+  GetCommentListResponseDto,
+  PostCommentResponseDto,
+  PutFavoriteResponseDto,
+  DeleteBoardResponseDto,
+  IncreaseViewCountResponseDto
+} from 'apis/response/board';
+
+import { PostCommentRequestDto } from 'apis/request/board';
+import { Board, FavoriteListItem, CommentListItem } from 'types/interface';
+
+import {
+  BOARD_PATH,
+  BOARD_UPDATE_PATH,
+  MAIN_PATH,
+  USER_PATH
+} from 'constant';
+
+import FavoriteItem from 'components/FavoriteItem';
+import CommentItem from 'components/CommentItem';
+import Pagination from 'components/Pagination';
+import RollingNumber from 'components/Rolling/RollingNumber';
+import InitRollingNumber from 'components/Rolling/initRolling/InitRollingNumber';
+
+export default function BoardDetail() {
+  const { boardNumber } = useParams();
+  const navigate = useNavigate();
+  const { loginUser } = useLoginUserStore();
+  const [cookies] = useCookies();
+
+  const [board, setBoard] = useState<Board | null>(null);
+  const [isWriter, setIsWriter] = useState(false);
+  const [viewCount, setViewCount] = useState(0);
+
+  const [favoriteList, setFavoriteList] = useState<FavoriteListItem[]>([]);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [showFavorite, setShowFavorite] = useState(false);
+
+  const [commentList, setCommentList] = useState<CommentListItem[]>([]);
+  const [totalCommentCount, setTotalCommentCount] = useState(0);
+  const [showComment, setShowComment] = useState(false);
+  const [comment, setComment] = useState('');
+  const commentRef = useRef<HTMLTextAreaElement>(null);
+
+  //          state: 애니메이트 상태          //
+  const [animate, setAnimate] = useState(false);
+  //          state: 하트 플로팅 상태          //
+  const [showFloatingHeart, setShowFloatingHeart] = useState(false);
+
+  const {
+    currentPage,
+    setCurrentPage,
+    currentSection,
+    setCurrentSection,
+    viewList,
+    viewPageList,
+    totalSection,
+    setTotalList
+  } = usePagination<CommentListItem>(3);
+
+  // 게시물 데이터 가져오기
+  const fetchBoard = async () => {
+    if (!boardNumber) return;
+
+    const boardRes = await getBoardRequest(boardNumber);
+    if (!boardRes || boardRes.code !== 'SU') {
+      toast('게시물을 불러오지 못했습니다.');
+      navigate(MAIN_PATH());
+      return;
+    }
+
+    const boardData = boardRes as GetBoardResponseDto;
+    setBoard(boardData);
+    setViewCount(boardData.viewCount);
+
+    if (loginUser?.email === boardData.writerEmail) {
+      setIsWriter(true);
+    }
+  };
+
+  // 조회수 증가
+  const increaseView = async () => {
+    if (!boardNumber) return;
+    await increaseViewCountRequest(boardNumber).then(res => {
+      if (res?.code !== 'SU') console.warn('조회수 증가 실패');
+    });
+  };
+
+  // 좋아요 목록
+  const fetchFavoriteList = async () => {
+    if (!boardNumber) return;
+    const res = await getFavoriteListRequest(boardNumber);
+    if (!res || res.code !== 'SU') return;
+    const list = (res as GetFavoriteListResponseDto).favoriteList;
+    setFavoriteList(list);
+    setIsFavorite(!!loginUser && list.some(item => item.email === loginUser.email));
+  };
+
+  // 댓글 목록
+  const fetchCommentList = async () => {
+    if (!boardNumber) return;
+    const res = await getCommentListRequest(boardNumber);
+    if (!res || res.code !== 'SU') return;
+    const list = (res as GetCommentListResponseDto).commentList;
+    setTotalList(list);
+    setTotalCommentCount(list.length);
+    setShowComment(list.length > 0);
+  };
+
+  useEffect(() => {
+    if (!boardNumber) return;
+    increaseView();
+    fetchBoard();
+    fetchFavoriteList();
+    fetchCommentList();
+  }, [boardNumber]);
+
+  const handleFavoriteToggle = async () => {
+    if (!loginUser || !cookies.accessToken) return;
+    await putFavoriteRequest(boardNumber!, cookies.accessToken);
+    fetchFavoriteList();
+  };
+
+  const handleDeleteBoard = async () => {
+    if (!cookies.accessToken || !boardNumber) return;
+    const res = await deleteBoardRequest(boardNumber, cookies.accessToken);
+    if (res?.code === 'SU') navigate(MAIN_PATH());
+  };
+
+  const handleCommentSubmit = async () => {
+    if (!comment || !boardNumber || !loginUser || !cookies.accessToken) return;
+    const body: PostCommentRequestDto = { content: comment };
+    await postCommentRequest(boardNumber, body, cookies.accessToken);
+    setComment('');
+    fetchCommentList();
+  };
+
+  const handleCommentDelete = async (commentNumber: number) => {
+    if (!cookies.accessToken) return;
+    await deleteCommentRequest(commentNumber, cookies.accessToken);
+    fetchCommentList();
+  };
+
+  const formatDate = (datetime: string) => dayjs(datetime).format('YYYY. MM. DD.');
+
+  if (!board) return null;
+
+  return (
+    <div id="board-datail-wrapper">
+      <div className="board-datail-container">
+
+        {/* Top */}
+        <div id="board-detail-top">
+          <div className="board-detail-top-header">
+            <div className="board-detail-title">{board.title}</div>
+            <div className="board-detail-top-sub-box">
+              <div className="board-detail-write-info-box">
+                <div
+                  className="board-detail-writer-profile-image"
+                  style={{
+                    backgroundImage: `url(${board.writerProfileImage || defaultProfileImage})`
+                  }}
+                ></div>
+                <div
+                  className="board-detail-writer-nickname"
+                  onClick={() => navigate(USER_PATH(board.writerEmail))}
+                >
+                  {board.writerNickname}
+                </div>
+                <div className="board-detail-info-divider">|</div>
+                <div className="board-detail-write-date">{formatDate(board.writeDatetime)}</div>
+              </div>
+              {isWriter && (
+                <div className="icon-button">
+                  <div className="icon more-icon" onClick={handleDeleteBoard}></div>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="divider"></div>
+          <div className="board-detail-top-main">
+            <div className="board-detail-main-text">{board.content}</div>
+            {board.boardImageList.map((img, idx) => (
+              <img key={idx} className="board-detail-main-image" src={img} />
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom */}
+        <div id="board-detail-bottom">
+          <div className="board-detail-bottom-button-box">
+            {/* 좋아요 */}
+            <div className="board-detail-bottom-button-group">
+              <div className="icon-button" onClick={handleFavoriteToggle}>
+                {isFavorite ? (
+                  <>
+                    <div className={`icon favorite-fill-icon ${animate ? 'pop' : ''}`}></div>
+                    {showFloatingHeart && <div className="floating-heart">❤️</div>}
+                  </>
+                ) : (
+                  <div className={`icon favorite-light-icon ${animate ? 'pop' : ''}`}></div>
+                )}
+              </div>
+              <div className="board-detail-bottom-button-text">좋아요</div>
+              <RollingNumber value={favoriteList.length} type="slide" className="board-detail-bottom-button-rolling" />
+            </div>
+
+            {/* 댓글 */}
+            <div className="board-detail-bottom-button-group">
+              <div className="icon-button" onClick={() => setShowComment(prev => !prev)}>
+                <div className="icon comment-fill-icon"></div>
+              </div>
+              <div className="board-detail-bottom-button-text">댓글</div>
+              <RollingNumber value={totalCommentCount} type="slide" className="board-detail-bottom-button-rolling" />
+            </div>
+
+            {/* 조회수 */}
+            <div className="board-detail-bottom-button-group">
+              <div className="board-detail-bottom-button-text">조회수</div>
+              <InitRollingNumber
+                initVal={viewCount - 1}
+                value={viewCount}
+                type="slide"
+                speed={400}
+                delay={500}
+                className="board-detail-bottom-button-rolling"
+              />
+            </div>
+          </div>
+
+          {/* 좋아요 목록 */}
+          {showFavorite && (
+            <div className="board-detail-bottom-favorite-box">
+              <div className="board-detail-bottom-favorite-container">
+                {favoriteList.map(item => (
+                  <FavoriteItem key={item.email} favoriteListItem={item} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 댓글 목록 */}
+          {showComment && (
+            <div className="board-detail-bottom-comment-box">
+              <div className="board-detail-bottom-comment-container">
+                {viewList.map(comment => (
+                  <CommentItem
+                    key={comment.commentNumber}
+                    commentListItem={comment}
+                    onDeleteComment={handleCommentDelete}
+                  />
+                ))}
+              </div>
+              <Pagination
+                currentPage={currentPage}
+                currentSection={currentSection}
+                setCurrentPage={setCurrentPage}
+                setCurrentSection={setCurrentSection}
+                viewPageList={viewPageList}
+                totalSection={totalSection}
+              />
+              {loginUser && (
+                <div className="board-detail-bottom-comment-input-box">
+                  <textarea
+                    ref={commentRef}
+                    className="board-detail-bottom-comment-textarea"
+                    placeholder="댓글을 작성해주세요."
+                    value={comment}
+                    onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setComment(e.target.value)}
+                  />
+                  <div className="board-detail-bottom-comment-button-box">
+                    <div className={comment ? 'black-button' : 'disable-button'} onClick={handleCommentSubmit}>
+                      댓글달기
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
