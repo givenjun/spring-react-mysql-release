@@ -32,7 +32,7 @@ export default function Board() {
       slidesToScroll: 1,
       arrows: false,
       autoplay: true,
-      autoplaySpeed: 2000
+      autoplaySpeed: 4000
     };
     //          state: 주간 top3 게시물 리스트 상태           //
     const [top3BoardList, setTop3BoardList] = useState<BoardListItem[]>([]);
@@ -133,6 +133,7 @@ export default function Board() {
     //          render: 게시판 화면 하단 컴포넌트 렌더링          //
     return (
       <div id='board-bottom-wrapper'>
+        <div className='board-bottom-devider'></div>
         <div className='board-bottom-container'>
           <div className='board-bottom-title'>{'최신 게시물'}</div>
           <div className='board-bottom-contents-box'>

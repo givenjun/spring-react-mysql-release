@@ -1,5 +1,5 @@
 #board-top-wrapper {
-    padding: 100px 0 40px;
+    padding: 100px 0 50px;
 
     display: flex;
     justify-content: center;
@@ -65,13 +65,19 @@
 }
 
 #board-bottom-wrapper {
-    border-top: 2px solid #333;
-
-    padding: 40px 0;
+    padding: 0 0 40px;
 
     display: flex;
     justify-content: center;
     background-color: #f2daff;
+}
+
+.board-bottom-devider {
+    border-top: 1px solid rgba(0, 0, 0, 0.2);
+
+    width: 1200px;
+    min-width: 1200px;
+    height: 40px;
 }
 
 .board-bottom-container {
