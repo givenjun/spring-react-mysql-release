@@ -24,7 +24,7 @@ export default function CommentItem({ commentListItem, onDeleteComment }: Props)
         const now = dayjs() // 한국 시간 기준으로 보정 (필요시)
         const writeTime = dayjs(writeDatetime);
 
-        const gap = now.diff(writeTime, 's');
+        const gap = now.diff(writeTime, 's')+2;
         if (gap < 60) return `${gap}초 전`;
         if (gap < 3600) return `${Math.floor(gap / 60)}분 전`;
         if (gap < 86400) return `${Math.floor(gap / 3600)}시간 전`;
