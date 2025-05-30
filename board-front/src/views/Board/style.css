@@ -3,7 +3,7 @@
 
     display: flex;
     justify-content: center;
-    background-color: #e4b3ff;
+    background-color: #f2daff;
 }
 
 .board-top-container {
@@ -68,7 +68,7 @@
 
     display: flex;
     justify-content: center;
-    background-color: rgb(216, 184, 253);
+    background-color: #f2daff;
 }
 
 .board-bottom-container {
@@ -138,6 +138,8 @@
 
     background-color: rgba(255, 255, 255, 1);
 
+    box-shadow: 2px 0 6px rgba(0, 0, 0, 0.2);
+
     cursor: pointer;
 }
 
@@ -164,6 +166,8 @@
     padding: 24px;
 
     background-color: rgba(255, 255, 255, 1);
+
+    box-shadow: 2px 0 6px rgba(0, 0, 0, 0.2);
 
 }
 

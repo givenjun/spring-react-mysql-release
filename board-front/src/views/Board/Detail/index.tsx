@@ -66,7 +66,7 @@ export default function BoardDetail() {
     if(code === 'NB') toast('존재하지 않는 게시물입니다.');
     if(code === 'DBE') toast('데이터베이스 오류입니다.');
     if(code !== 'SU') {
-      navigate(MAIN_PATH());
+      navigate(BOARD_PATH());
       return;
     }
     const board: Board = {...responseBody as GetBoardResponseDto}
@@ -95,7 +95,7 @@ export default function BoardDetail() {
     if(code ==='DBE') toast('데이터베이스 오류입니다.');
     if(code !=='SU') return;
     
-    navigate(MAIN_PATH());
+    navigate(BOARD_PATH());
   }
 
   //         event handler: more 버튼 상태 클릭 이벤트 처리     //
@@ -125,7 +125,7 @@ export default function BoardDetail() {
   //          effect 게시물 번호 path variable이 바뀔때 마다 게시물 불러오기          //
   useEffect(() => {
   if (!boardNumber) {
-    navigate(MAIN_PATH());  
+    navigate(BOARD_PATH());  
     return;
   }
 

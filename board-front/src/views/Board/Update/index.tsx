@@ -2,7 +2,7 @@ import { ChangeEvent, useEffect, useRef, useState } from 'react'
 import './style.css'
 import useBoardStore from 'stores/board.store';
 import { useNavigate, useParams } from 'react-router-dom';
-import { MAIN_PATH } from 'constant';
+import { BOARD_PATH, MAIN_PATH } from 'constant';
 import { useCookies } from 'react-cookie';
 import { useLoginUserStore } from 'stores';
 import { getBoardRequest } from 'apis';
@@ -47,7 +47,7 @@ export default function BoardUpdate() {
     if (code === 'NB') customErrToast('존재하지 않는 게시물입니다.');
     if (code === 'DBE') customErrToast('데이터베이스 오류입니다.');
     if (code !== 'SU') {
-      navigate(MAIN_PATH());
+      navigate(BOARD_PATH());
       return;
     }
 
@@ -58,7 +58,7 @@ export default function BoardUpdate() {
     convertUrlsToFile(boardImageList).then(boardImageFileList => setBoardImageFileList(boardImageFileList));
 
     if (!loginUser || loginUser.email !== writerEmail) {
-      navigate(MAIN_PATH());
+      navigate(BOARD_PATH());
       return;
     }
 

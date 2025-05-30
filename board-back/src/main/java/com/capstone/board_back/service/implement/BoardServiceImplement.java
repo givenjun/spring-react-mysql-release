@@ -270,7 +270,7 @@ public class BoardServiceImplement implements BoardService{
             String sevenDaysAgo = simpleDateFormat.format(beforeWeek);
 
             List<BoardListViewEntity> boardListViewEntities =
-                    boardListViewRepository.findTop3ByWriteDatetimeGreaterThanOrderByFavoriteCountDescCommentCountDescViewCountDescWriteDatetimeDesc(sevenDaysAgo);
+                    boardListViewRepository.findTop10ByWriteDatetimeGreaterThanOrderByFavoriteCountDescCommentCountDescViewCountDescWriteDatetimeDesc(sevenDaysAgo);
 
             // ✨ 각 BoardListViewEntity에 대해 imageCount를 조회하고 BoardListItemResponseDto로 변환
             for (BoardListViewEntity boardListViewEntity : boardListViewEntities) {

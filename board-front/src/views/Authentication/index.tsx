@@ -6,7 +6,7 @@ import { signInRequest, signUpRequest } from 'apis';
 import { SignInResponseDto, SingUpResponseDto } from 'apis/response/auth';
 import { ResponseDto } from 'apis/response';
 import { useCookies } from 'react-cookie';
-import { MAIN_PATH } from 'constant';
+import { BOARD_PATH, MAIN_PATH } from 'constant';
 import { useNavigate } from 'react-router-dom';
 import { Address, useDaumPostcodePopup } from 'react-daum-postcode';
 import SignUpRequestDto from 'apis/request/auth/sign-up.request.dto';
@@ -59,7 +59,7 @@ export default function Authentication() {
       const expires = new Date(now + expirationTime * 1000);
 
       setCookie('accessToken', token, { expires, path: MAIN_PATH() });
-      navigate(MAIN_PATH());
+      navigate(BOARD_PATH());
 
     }
 

@@ -22,6 +22,8 @@ public class BoardEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int boardNumber;
     private String title;
+    @Lob
+    @Column(columnDefinition = "TEXT")
     private String content;
     private String writeDatetime;
     private int favoriteCount;
