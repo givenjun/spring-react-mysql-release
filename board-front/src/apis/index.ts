@@ -8,7 +8,7 @@ import { DeleteBoardResponseDto, DeleteCommentResponseDto, GetBoardResponseDto, 
 import { GetPopularListResponseDto, GetRelationListResponseDto } from './response/search';
 import { PatchNicknameRequestDto, PatchProfileImageRequestDto } from './request/user';
 
-const DOMAIN = 'http://52.79.235.59:4000';
+const DOMAIN = 'http://13.209.72.52:4000';
 // const DOMAIN = process.env.REACT_APP_API_URL;
 const API_DOMAIN = `${DOMAIN}/api/v1`;
 
