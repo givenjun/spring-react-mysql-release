@@ -10,6 +10,8 @@
 .board-top-container {
     width: 1200px;
     min-width: 1200px;
+    background-color: white;
+    padding: 20px 20px 40px 40px;
 
     display: flex;
     flex-direction: column;
@@ -75,6 +77,8 @@
 .board-bottom-container {
     width: 1200px;
     min-width: 1200px;
+    background-color: white;
+    padding: 20px 20px 40px 40px;
 
     display: flex;
     flex-direction: column;
