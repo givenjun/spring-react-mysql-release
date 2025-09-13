@@ -1,7 +1,9 @@
 #footer {
     min-width: 1200px;
     padding: 40px 0 50px 0;
-    background-color: #9a5abf;
+    background-image: url(../assets/purple-image.png);
+    background-position: 50% 50%;
+    background-size: 100%;
 
     display: flex;
     justify-content: center;
@@ -22,19 +24,15 @@
 }
 
 .footer-logo-box {
+    width: 190px;
+    height: 60px;
+
+    background-image: url(../assets/logo-light.png);
+    background-position: 50% 50%;
+    background-size: 100% 100%;
+
     display: flex;
     align-items: center;
-    gap: 10px;
-}
-
-.footer-logo-text {
-    color: rgba(255, 255, 255, 1);
-
-    font-family: 'GimhaeGaya';
-    font-size: 20px;
-    font-weight: 400;
-    line-height: 140%;
-    letter-spacing: -0.4px;
 }
 
 .footer-link-box {

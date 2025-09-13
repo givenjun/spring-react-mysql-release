@@ -20,12 +20,7 @@ export default function Footer() {
     <div id='footer'>
         <div className='footer-container' >
             <div className='footer-top'>
-                <div className='footer-logo-box'>
-                    <div className='icon-box'>
-                        <div className='icon logo-light-icon'></div>
-                    </div>
-                    <div className='footer-logo-text'>{'Hanbat Board'}</div>
-                </div>
+                <div className='footer-logo-box'> </div>
                 <div className='footer-link-box'>
                     <div className='footer-email-link'>{'wjdwns0531@naver.com'}</div>
                     <div className='icon-button' onClick={onInstaIconButtonClickHandler}>

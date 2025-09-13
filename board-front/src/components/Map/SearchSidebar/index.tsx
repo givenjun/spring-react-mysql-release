@@ -63,7 +63,7 @@ export default function SearchSidebar({
 
       {/* 사이드바 내용 */}
       <div className="sidebar-content" >
-        <div className="sidebar-title">{`Hanbat Map`}</div>
+        <div className="sidebar-title"></div>
 
         {/* 검색창 */}
         <div className="sidebar-search-input-box">

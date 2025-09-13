@@ -8,8 +8,8 @@ import { DeleteBoardResponseDto, DeleteCommentResponseDto, GetBoardResponseDto, 
 import { GetPopularListResponseDto, GetRelationListResponseDto } from './response/search';
 import { PatchNicknameRequestDto, PatchProfileImageRequestDto } from './request/user';
 
-const DOMAIN = 'http://13.209.72.52:4000';
-// const DOMAIN = process.env.REACT_APP_API_URL;
+// const DOMAIN = 'http://13.209.72.52:4000';  도메인 배포
+const DOMAIN = 'http://localhost:4000';
 const API_DOMAIN = `${DOMAIN}/api/v1`;
 
 const authorization = (accessToken: string) => {
@@ -244,7 +244,6 @@ export const deleteBoardRequest = async (boardNumber: number | string, accessTok
         return result;
 }
 
-// 댓글 삭제 요청 함수
 export const deleteCommentRequest = async (commentNumber: string | number, accessToken: string) => {
     const result = await axios.delete(DELETE_COMMENT_URL(commentNumber), authorization(accessToken))
         .then(response => {

@@ -290,10 +290,10 @@ export default function Header() {
     <div id='header' className={showHeader ? 'visible' : 'hidden'}>
       <div className='header-container'> 
         <div className='header-left-box' onClick={onLogoClickHandler}>
-          <div className='icon-box'>
-            <div className='icon logo-dark-icon'> </div>
-          </div>
-          <div className='header-logo'>{'Hanbat Board'}</div>
+          {/* <div className='icon-box'>
+            <div className='icon logo-light-icon'> </div>
+          </div> */}
+          {/* <div className='header-logo'>{'Hanbat Board'}</div> */}
         </div>
         <div className='header-route-box'>
           <div className='header-route' onClick={onMainClickHandler}>{'   홈   '}</div>

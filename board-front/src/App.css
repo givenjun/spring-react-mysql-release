@@ -46,7 +46,7 @@
 }
 
 .black-button:hover {
-    background-color: rgba(0, 0, 0, 0.9);
+    background-color:  rgba(32, 32, 32, 1);
 }
 
 .black-large-full-button {
@@ -112,7 +112,7 @@
 }
 
 .white-button:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: rgba(223, 223, 223, 1);
 }
 
 .icon-box {

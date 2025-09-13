@@ -3,7 +3,11 @@
   display: flex;
   justify-content: center;
   /* background-color: rgb(216, 184, 253); */
-  background-color: #9a5abf;
+  /* background-color: #9a5abf; */
+  background-image: url(../assets/purple-image.png);
+  /* background-position: 50% 50%; */
+  background-size: 100%;
+
   box-shadow: 0 0 5px rgba(0,0,0,0.5);
   position: fixed;
   top: 0;
@@ -29,15 +33,21 @@
 }
 
 .header-left-box {
+    width: 155px;
+    height: 50px;
+
+    background-image: url(../assets/logo-light.png);
+    background-position: 50% 50%;
+    background-size: 100% 100%;
+
     display: flex;
     align-items: center;
-    gap: 10px;
 
     cursor: pointer;
 }
 
 .header-logo {
-    color: rgba(0, 0, 0, 1);
+    color: rgba(255, 255, 255, 1);
 
     font-size: 20px;
     font-weight: 400;
@@ -46,12 +56,12 @@
 }
 
 .header-logo:hover {
-    color: rgba(0, 0, 0, 1);
+    color: rgba(0, 0, 0, 0.75);
 
-    font-size: 20px;
+    /* font-size: 18px; */
     font-weight: 600;
     line-height: 140%;
-    letter-spacing: -0.4px;
+    /* letter-spacing: 0px; */
 }
 
 .header-route-box {
@@ -62,7 +72,7 @@
 }
 
 .header-route {
-    color: rgba(0, 0, 0, 1);
+    color: rgba(255, 255, 255, 1);
 
     font-size: 16px;
     font-weight: 400;
@@ -73,12 +83,12 @@
 }
 
 .header-route:hover {
-    color: rgba(0, 0, 0, 1);
+    color: rgba(0, 0, 0, 0.75);
 
-    font-size: 18px;
+    /* font-size: 18px; */
     font-weight: 600;
     line-height: 140%;
-    letter-spacing: 0px;
+    /* letter-spacing: 0px; */
 }
 
 .header-right-box {
@@ -88,7 +98,7 @@
 }
 
 .header-search-input-box {
-    border: 1px solid rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.5);
     border-radius: 43px;
     padding: 0 10px 0 12px;
 
@@ -107,7 +117,7 @@
     background: none;
     outline: none;
 
-    color: rgba(0, 0, 0, 1);
+    color: rgba(255, 255, 255, 1);
 
     font-size: 14px;
     font-weight: 400;

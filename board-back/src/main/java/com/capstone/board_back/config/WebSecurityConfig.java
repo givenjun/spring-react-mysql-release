@@ -33,8 +33,6 @@ public class WebSecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-//     @Value("${cors.allowed-origin}")
-//     private String allowedOrigin;
     @Value("${cors.allowed-origin}")
     private String frontOrigin;
     @Value("http://routepick.kro.kr")
@@ -68,7 +66,7 @@ public class WebSecurityConfig {
     protected CorsConfigurationSource corsConfigurationSource() {
 
         CorsConfiguration configuration = new CorsConfiguration();
-        //  configuration.addAllowedOrigin("http://localhost:3000");
+          configuration.addAllowedOrigin("http://localhost:3000");
         configuration.addAllowedOrigin(frontOrigin);
         configuration.addAllowedOrigin(domainOrigin);
         configuration.setAllowCredentials(true);
