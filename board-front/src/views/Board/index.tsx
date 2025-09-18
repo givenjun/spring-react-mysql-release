@@ -134,7 +134,7 @@ export default function Board() {
     return (
       <div id='board-bottom-wrapper'>
         <div className='board-bottom-container'>
-          <div className='board-bottom-devider'></div>
+          {/* <div className='board-bottom-devider'></div> */}
           <div className='board-bottom-title'>{'최신 게시물'}</div>
           <div className='board-bottom-contents-box'>
             <div className='board-bottom-current-contents'>

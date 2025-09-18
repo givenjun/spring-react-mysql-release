@@ -1,17 +1,24 @@
 #board-datail-wrapper {
-    background-color: #D4C5EA;
-    padding: 100px 0;
+    /* background-color: #D4C5EA; */
+    background-image: url(../../../assets/image/background-image.png);
+    background-position: 50% 50%;
+    padding: 140px 0 50px;
 
     display: flex;
     justify-content: center;
 }
 
 .board-datail-container {
+
+    background-color: white;
+    padding: 150px 75px;
     width: 996px;
 
     display: flex;
     flex-direction: column;
     gap: 20px;
+    box-shadow: 2px 0 6px rgba(0, 0, 0, 0.2);
+    border-radius: 20px;
 }
 
 #board-detail-top {

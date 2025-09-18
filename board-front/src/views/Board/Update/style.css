@@ -5,14 +5,19 @@
     justify-content: center;
 
     background-color: rgba(0, 0, 0, 0.05);
+    padding: 140px 0px 50px;
+    background-image: url(../../../assets/image/background-image.png);
 }
 
 .board-update-container {
-    padding: 100px 24px;
-    width: 996px;
+    padding: 50px 30px;
+    width: 1200px;
     min-height: 1952px;
 
     background-color: rgba(255, 255, 255, 1);
+
+    box-shadow: 2px 0 6px rgba(0, 0, 0, 0.2);
+    border-radius: 20px;
 }
 
 .board-update-box {
