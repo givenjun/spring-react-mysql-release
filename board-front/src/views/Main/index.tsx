@@ -441,7 +441,6 @@ import RelatedPostsSidebar from 'components/RelatedPostsSidebar';
 import { BoardListItem } from 'types/interface';
 import { getSearchBoardListRequest } from 'apis';
 import './style.css';
-import ChatBotButton from 'components/ChatBot/ChatBotButton';
 
 // 게시글 상세 경로
 const BOARD_DETAIL_PATH = '/board/detail';
@@ -861,9 +860,6 @@ export default function Main() {
           />
         )}
       </Map>
-      <div>
-        <ChatBotButton/>
-      </div>
     </div>
   );
 }
