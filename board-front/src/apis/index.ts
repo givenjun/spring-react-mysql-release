@@ -7,6 +7,7 @@ import { PatchBoardRequestDto, PostBoardRequestDto, PostCommentRequestDto } from
 import { DeleteBoardResponseDto, DeleteCommentResponseDto, GetBoardResponseDto, GetCommentListResponseDto, GetFavoriteListResponseDto, GetLatestBoardListResponseDto, GetSearchBoardListResponseDto, GetTop3BoardListResponseDto, GetUserBoardListResponseDto, IncreaseViewCountResponseDto, PatchBoardResponseDto, PostBoardResponseDto, PostCommentResponseDto, PutFavoriteResponseDto } from './response/board';
 import { GetPopularListResponseDto, GetRelationListResponseDto } from './response/search';
 import { PatchNicknameRequestDto, PatchProfileImageRequestDto } from './request/user';
+import { GeminiRequestDto } from './request/gemini';
 
 // const DOMAIN = 'http://13.209.72.52:4000';  도메인 배포
 const DOMAIN = 'http://localhost:4000';
@@ -368,3 +369,23 @@ export const fileUploadRequest = async (data: FormData) => {
     return result;
 }
 
+const ASK_GEMINI_URL = () => `${API_DOMAIN}/gemini/ask`;
+
+export const askGeminiRequest = async (requestBody: GeminiRequestDto) => {
+    const result = await axios.post(ASK_GEMINI_URL(), requestBody)
+        .then(response => {
+            const responseBody: string = response.data;
+            return responseBody;
+        })
+        .catch(error => {
+            if (!error.response || !error.response.data) {
+                return "failed to call API";
+            }
+            const responseBody: ResponseDto | string = error.response.data;
+            if (typeof responseBody === 'object' && responseBody.message) {
+                return responseBody.message;
+            }
+            return String(responseBody);
+        })
+        return result;
+}
