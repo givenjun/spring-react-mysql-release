@@ -100,33 +100,55 @@
   box-sizing: border-box;
 }
 
+/* 탭 영역: 4개 탭을 항상 같은 너비로 */
 .button-group {
-  display: flex;
-  width: 100%;
-  height: 40px;
-  justify-content: space-around;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
-  margin-top: 0px;
+  width: 100%;
+  margin-top: 0;
 }
 
+/* 탭 버튼: 높이/패딩/보더 고정 → 크기 변화 없음 */
 .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;               /* 고정 높이 */
+  padding: 0 10px;            /* 고정 패딩 */
+  box-sizing: border-box;     /* 보더 포함해서 계산 */
+  width: 100%;
+
   color: rgba(255, 255, 255, 1);
   font-size: 14px;
-  font-weight: 500;
-  line-height: 140%;
-  text-shadow: 0 0 5px rgba(0,0,0,0.2);
-  width: 100%;
-  background: none;
-  border:none;
+  font-weight: 600;           /* 가독성 ↑ */
+  line-height: 1;
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
 
+  background: transparent;
+  border: 1px solid transparent; /* 항상 보더 존재 → 크기 안 바뀜 */
+  border-radius: 8px;
   cursor: pointer;
+  transition: background-color .15s ease, outline-color .15s ease;
 }
 
-.button:hover {
-  background-color: rgba(0,0,0,0.2);
-  border:none;
+/* 활성 탭: 배경만 살짝 강조 (보더 두께는 그대로) */
+/* .button.active {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.22);
+} */
 
-}
+/* 호버: 배경만 살짝, 보더 두께 변화 없음 */
+/* .button:hover {
+  background: rgba(255, 255, 255, 0.12);
+} */
+
+/* 포커스 접근성 */
+/* .button:focus-visible {
+  outline: 2px solid rgba(255,255,255,0.5);
+  outline-offset: 2px;
+} */
+
 
 .sidebar-search-input-box {
   width: 100%;
@@ -216,3 +238,39 @@
   color: #888;
   margin-top: 2px;
 }
+
+/* 선택: 길찾기 단독 화면 보조 스타일 */
+.route-only-wrap { padding: 10px 12px; display: grid; gap: 10px; }
+.route-header { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; }
+.route-back { background: transparent; border: 0; color: #374151; cursor: pointer; }
+.route-title { text-align: center; font-weight: 700; }
+.route-form { display: grid; gap: 8px; }
+.route-form input { height: 40px; padding: 0 12px; border: 1px solid #e5e7eb; border-radius: 10px; }
+.route-submit { height: 40px; border-radius: 10px; border: 0; background: #4f46e5; color: #fff; cursor: pointer; }
+.route-submit:hover { filter: brightness(0.95); }
+
+/* 길찾기 전용 UI */
+.route-only-wrap { padding: 10px 12px; display: grid; gap: 10px; }
+.route-header { display: grid; grid-template-columns: auto 1fr auto; align-items: center; }
+.route-back { background: transparent; border: 0; color: #374151; cursor: pointer; }
+.route-title { text-align: center; font-weight: 700; }
+
+.route-form { display: grid; gap: 10px; }
+.route-field { position: relative; }
+.route-input-wrap { position: relative; }
+.route-input-wrap input { width: 100%; height: 40px;  border: 1px solid #e5e7eb; border-radius: 10px; }
+.route-valid { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 18px; }
+
+.route-suggest {
+  position: absolute; left: 0; right: 0; top: 44px;
+  max-height: 220px; overflow: auto;
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.08);
+  z-index: 5;
+}
+.route-suggest li { padding: 10px 12px; cursor: pointer; }
+.route-suggest li:hover { background: #f9fafb; }
+.sg-name { font-weight: 600; }
+.sg-addr { font-size: 12px; color: #6b7280; }
+
+.route-submit { height: 40px; border-radius: 10px; border: 0; background: #4f46e5; color: #fff; cursor: pointer; }
+.route-submit:disabled { opacity: .45; cursor: not-allowed; }

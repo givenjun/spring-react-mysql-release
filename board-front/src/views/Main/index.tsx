@@ -443,10 +443,8 @@ import { getSearchBoardListRequest } from 'apis';
 import './style.css';
 import ChatBotButton from 'components/ChatBot/ChatBotButton';
 
-// 게시글 상세 경로
 const BOARD_DETAIL_PATH = '/board/detail';
 
-// -------------------- 공통 유틸 --------------------
 function deg2rad(deg: number) { return deg * (Math.PI / 180); }
 function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371;
@@ -460,7 +458,6 @@ function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon
 }
 type LatLng = { lat: number; lng: number };
 
-// 응답 → BoardListItem[]
 function toBoardListItems(res: any): BoardListItem[] {
   if (!res) return [];
   const payload = (res && typeof res === 'object' && 'code' in res && 'data' in res) ? (res as any).data : res;
@@ -484,21 +481,18 @@ function toBoardListItems(res: any): BoardListItem[] {
   })) as BoardListItem[];
 }
 
-// -------------------- 메인 --------------------
 export default function Main() {
   const { searchResults, center, searchPlaces } = useKakaoSearch();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-
-  // kakao Map 인스턴스 저장
   const mapRef = useRef<kakao.maps.Map | null>(null);
 
-  // 일직선 거리
+  // ===== 직선거리 =====
   const [isDistanceMode, setIsDistanceMode] = useState(false);
   const [distancePoints, setDistancePoints] = useState<kakao.maps.LatLng[]>([]);
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
 
-  // 경로(보행자)
+  // ===== 두 지점 경로(지도에서 클릭) — 기존 기능 =====
   const [isRouteMode, setIsRouteMode] = useState(false);
   const [routeSelectPoints, setRouteSelectPoints] = useState<kakao.maps.LatLng[]>([]);
   const [routePath, setRoutePath] = useState<LatLng[]>([]);
@@ -506,7 +500,14 @@ export default function Main() {
   const [routeLoading, setRouteLoading] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
 
-  // 연관 게시물
+  // ===== 사이드바 경로 보기 — 새 기능 (완전히 분리) =====
+  const [autoRoutePath, setAutoRoutePath] = useState<LatLng[]>([]);
+  const [autoRouteInfo, setAutoRouteInfo] = useState<{ totalDistance?: number; totalTime?: number } | null>(null);
+  const [autoRouteEndpoints, setAutoRouteEndpoints] = useState<{ start?: LatLng; end?: LatLng } | null>(null);
+  const [autoRouteLoading, setAutoRouteLoading] = useState(false);
+  const [autoRouteError, setAutoRouteError] = useState<string | null>(null);
+
+  // ===== 연관 게시물 =====
   const [showRelatedPosts, setShowRelatedPosts] = useState(false);
   const [relatedPosts, setRelatedPosts] = useState<BoardListItem[]>([]);
   const [selectedPlace, setSelectedPlace] = useState<any | null>(null);
@@ -516,15 +517,13 @@ export default function Main() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ---------- 뒤로가기 복원: sessionStorage ----------
+  // 뒤로가기 복원
   const RESTORE_KEY = 'map:restore';
   const restoreRef = useRef<{ keyword: string } | null>(null);
 
   const saveBeforeGoDetail = useCallback(() => {
     const keyword = selectedPlace?.place_name;
-    if (keyword) {
-      sessionStorage.setItem(RESTORE_KEY, JSON.stringify({ keyword }));
-    }
+    if (keyword) sessionStorage.setItem(RESTORE_KEY, JSON.stringify({ keyword }));
   }, [selectedPlace]);
 
   const tryRestoreOnMount = useCallback(() => {
@@ -534,30 +533,23 @@ export default function Main() {
       const parsed = JSON.parse(raw) as { keyword?: string };
       if (parsed?.keyword) {
         restoreRef.current = { keyword: parsed.keyword };
-        searchPlaces(parsed.keyword); // 저장된 키워드로 검색
+        searchPlaces(parsed.keyword);
         return true;
       }
       return false;
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   }, [searchPlaces]);
 
-  // 최초 마운트
   useEffect(() => {
     const restored = tryRestoreOnMount();
-    if (!restored) {
-      searchPlaces('한밭대학교');
-    }
+    if (!restored) searchPlaces('한밭대학교');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 검색 결과가 바뀌면 복원
   useEffect(() => {
     if (!restoreRef.current) return;
     const { keyword } = restoreRef.current;
     if (!keyword) { restoreRef.current = null; return; }
-
     const found = searchResults.find((p: any) => p?.place_name === keyword);
     if (found) {
       handlePlaceClick(found);
@@ -566,7 +558,6 @@ export default function Main() {
     }
   }, [searchResults]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 검색
   const handleSearch = (start: string) => {
     if (start) searchPlaces(start);
     setShowRelatedPosts(false);
@@ -574,14 +565,12 @@ export default function Main() {
     setRelatedError(null);
   };
 
-  // 연관 게시물 로드
   const loadRelatedPosts = async (keyword: string) => {
     setRelatedLoading(true);
     setRelatedError(null);
     try {
       const res = await getSearchBoardListRequest(keyword.trim(), null);
-      const list = toBoardListItems(res);
-      setRelatedPosts(list);
+      setRelatedPosts(toBoardListItems(res));
       setShowRelatedPosts(true);
     } catch {
       setRelatedError('연관 게시물을 불러오지 못했습니다.');
@@ -592,46 +581,121 @@ export default function Main() {
     }
   };
 
-  // 마커/리스트 클릭 + 지도 panTo
   const handlePlaceClick = (place: any) => {
     const idx = searchResults.indexOf(place);
     setSelectedIndex(idx);
     setSelectedPlace(place);
 
-    // 지도 자연스러운 이동
     try {
       const lat = Number(place?.y);
       const lng = Number(place?.x);
-      if (!Number.isNaN(lat) && !Number.isNaN(lng) && mapRef.current && (window as any).kakao?.maps) {
-        const panLatLng = new (window as any).kakao.maps.LatLng(lat, lng);
-        mapRef.current.panTo(panLatLng); // 부드러운 이동
-        // 레벨 조정이 필요하면 아래 주석 해제 (애니메이션은 브라우저/SDK가 처리)
-        // mapRef.current.setLevel(3);
+      if (!Number.isNaN(lat) && !Number.isNaN(lng) && mapRef.current) {
+        mapRef.current.panTo(new kakao.maps.LatLng(lat, lng));
       }
-    } catch {
-      // ignore
-    }
+    } catch {/* ignore */}
 
     if (place?.place_name) loadRelatedPosts(place.place_name);
   };
 
-  // 게시글 열기(라우트 이동 전 상태 저장)
   const handleOpenPost = useCallback((boardNumber: string | number) => {
     if (boardNumber === undefined || boardNumber === null) return;
     saveBeforeGoDetail();
     navigate(`${BOARD_DETAIL_PATH}/${boardNumber}`, {
-      state: {
-        from: location.pathname,
-        fromMap: true,
-        fromSearch: selectedPlace?.place_name ?? null,
-      },
+      state: { from: location.pathname, fromMap: true, fromSearch: selectedPlace?.place_name ?? null },
     });
   }, [navigate, location.pathname, selectedPlace, saveBeforeGoDetail]);
 
-  // 모드 전환/리셋
+  // ====== 공통 리셋 ======
   const resetDistanceState = () => { setDistancePoints([]); setDistanceKm(null); };
   const resetRouteState = () => { setRouteSelectPoints([]); setRoutePath([]); setRouteInfo(null); setRouteLoading(false); setRouteError(null); };
+  const resetAutoRoute = () => { setAutoRouteEndpoints(null); setAutoRoutePath([]); setAutoRouteInfo(null); setAutoRouteLoading(false); setAutoRouteError(null); };
 
+  // ====== Tmap 호출 (공용) ======
+  const callTmap = (start: LatLng, end: LatLng) =>
+    fetch('http://127.0.0.1:4000/api/tmap/pedestrian', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ start, end })
+    }).then(async (r) => {
+      if (!r.ok) throw new Error(`HTTP ${r.status} ${await r.text()}`);
+      return r.json();
+    });
+
+  // ====== 두 지점 경로(지도 클릭) 전용 ======
+  const runManualRoute = (sLL: kakao.maps.LatLng, eLL: kakao.maps.LatLng) => {
+    setIsRouteMode(true);              // ← 지도 클릭 모드만 활성화
+    setIsDistanceMode(false);
+    resetDistanceState();
+
+    setRouteSelectPoints([sLL, eLL]);
+    setRouteLoading(true);
+    setRouteError(null);
+    setRoutePath([]);
+    setRouteInfo(null);
+
+    callTmap({ lat: sLL.getLat(), lng: sLL.getLng() }, { lat: eLL.getLat(), lng: eLL.getLng() })
+      .then((geojson) => {
+        const features = geojson?.features ?? [];
+        const lineFeatures = features.filter((f: any) => f?.geometry?.type === 'LineString');
+        const coords: LatLng[] = lineFeatures.flatMap((f: any) =>
+          (f.geometry.coordinates ?? []).map(([lng, lat]: [number, number]) => ({ lat, lng }))
+        );
+        const summaryFeature = features.find((f: any) => f?.properties?.totalDistance || f?.properties?.totalTime);
+        const summary = summaryFeature?.properties
+          ? { totalDistance: summaryFeature.properties.totalDistance, totalTime: summaryFeature.properties.totalTime }
+          : undefined;
+
+        setRoutePath(coords);
+        setRouteInfo(summary ?? null);
+
+        if (mapRef.current && coords.length > 0) {
+          const bounds = new kakao.maps.LatLngBounds();
+          coords.forEach(c => bounds.extend(new kakao.maps.LatLng(c.lat, c.lng)));
+          mapRef.current.setBounds(bounds);
+        }
+      })
+      .catch(() => setRouteError('경로를 불러오지 못했습니다.'))
+      .finally(() => setRouteLoading(false));
+  };
+
+  // ====== 사이드바 경로 보기 전용 ======
+  const handleRouteByCoords = useCallback(
+    (start: { lat: number; lng: number; name: string }, end: { lat: number; lng: number; name: string }) => {
+      // ⚠️ manual 모드(isRouteMode) 건드리지 않음 — 완전 분리
+      setAutoRouteLoading(true);
+      setAutoRouteError(null);
+      setAutoRoutePath([]);
+      setAutoRouteInfo(null);
+      setAutoRouteEndpoints({ start: { lat: start.lat, lng: start.lng }, end: { lat: end.lat, lng: end.lng } });
+
+      callTmap({ lat: start.lat, lng: start.lng }, { lat: end.lat, lng: end.lng })
+        .then((geojson) => {
+          const features = geojson?.features ?? [];
+          const lineFeatures = features.filter((f: any) => f?.geometry?.type === 'LineString');
+          const coords: LatLng[] = lineFeatures.flatMap((f: any) =>
+            (f.geometry.coordinates ?? []).map(([lng, lat]: [number, number]) => ({ lat, lng }))
+          );
+          const summaryFeature = features.find((f: any) => f?.properties?.totalDistance || f?.properties?.totalTime);
+          const summary = summaryFeature?.properties
+            ? { totalDistance: summaryFeature.properties.totalDistance, totalTime: summaryFeature.properties.totalTime }
+            : undefined;
+
+          setAutoRoutePath(coords);
+          setAutoRouteInfo(summary ?? null);
+
+          if (mapRef.current && coords.length > 0) {
+            const bounds = new kakao.maps.LatLngBounds();
+            coords.forEach(c => bounds.extend(new kakao.maps.LatLng(c.lat, c.lng)));
+            mapRef.current.setBounds(bounds);
+          }
+        })
+        .catch(() => setAutoRouteError('경로를 불러오지 못했습니다.'))
+        .finally(() => setAutoRouteLoading(false));
+    },
+    []
+  );
+
+  // ====== 토글 ======
   const toggleDistanceMode = () => {
     setIsDistanceMode(prev => {
       const n = !prev;
@@ -653,74 +717,32 @@ export default function Main() {
 
     if (isDistanceMode) {
       const newPts = [...distancePoints, clickedLatLng];
-      if (newPts.length === 1) {
-        setDistancePoints(newPts);
-        setDistanceKm(null);
-        return;
-      }
+      if (newPts.length === 1) { setDistancePoints(newPts); setDistanceKm(null); return; }
       if (newPts.length === 2) {
         const [p1, p2] = newPts;
         const km = getDistanceFromLatLonInKm(p1.getLat(), p1.getLng(), p2.getLat(), p2.getLng());
-        setDistancePoints(newPts);
-        setDistanceKm(km);
-        return;
+        setDistancePoints(newPts); setDistanceKm(km); return;
       }
-      setDistancePoints([clickedLatLng]);
-      setDistanceKm(null);
-      return;
+      setDistancePoints([clickedLatLng]); setDistanceKm(null); return;
     }
 
     if (isRouteMode) {
       const next = [...routeSelectPoints, clickedLatLng];
       if (next.length === 1) {
         setRouteSelectPoints(next);
-        setRouteError(null);
-        setRoutePath([]);
-        setRouteInfo(null);
+        setRouteError(null); setRoutePath([]); setRouteInfo(null);
         return;
       }
       if (next.length === 2) {
-        setRouteSelectPoints(next);
-        setRouteLoading(true);
-        setRouteError(null);
-        setRoutePath([]);
-        setRouteInfo(null);
-
         const [s, e] = next;
-        const start = { lat: s.getLat(), lng: s.getLng() };
-        const end = { lat: e.getLat(), lng: e.getLng() };
-
-        fetch('http://127.0.0.1:4000/api/tmap/pedestrian', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ start, end })
-        })
-          .then(async (r) => {
-            if (!r.ok) throw new Error(`HTTP ${r.status} ${await r.text()}`);
-            return r.json();
-          })
-          .then((geojson) => {
-            const features = geojson?.features ?? [];
-            const lineFeatures = features.filter((f: any) => f?.geometry?.type === 'LineString');
-            const coords: LatLng[] = lineFeatures.flatMap((f: any) =>
-              (f.geometry.coordinates ?? []).map(([lng, lat]: [number, number]) => ({ lat, lng }))
-            );
-            const summaryFeature = features.find((f: any) => f?.properties?.totalDistance || f?.properties?.totalTime);
-            const summary = summaryFeature?.properties
-              ? { totalDistance: summaryFeature.properties.totalDistance, totalTime: summaryFeature.properties.totalTime }
-              : undefined;
-
-            setRoutePath(coords);
-            setRouteInfo(summary ?? null);
-          })
-          .catch(() => setRouteError('경로를 불러오지 못했습니다.'))
-          .finally(() => setRouteLoading(false));
+        runManualRoute(
+          new kakao.maps.LatLng(s.getLat(), s.getLng()),
+          new kakao.maps.LatLng(e.getLat(), e.getLng())
+        );
         return;
       }
       setRouteSelectPoints([clickedLatLng]);
-      setRoutePath([]);
-      setRouteInfo(null);
-      setRouteError(null);
+      setRoutePath([]); setRouteInfo(null); setRouteError(null);
       return;
     }
   };
@@ -730,7 +752,6 @@ export default function Main() {
   const formatMinutes = (sec?: number) => (sec == null ? '' : `${Math.round(sec / 60)} min`);
   const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
   const rightBase = showRelatedPosts ? 320 : 10;
-
   const currentKeyword = useMemo(() => selectedPlace?.place_name ?? '', [selectedPlace]);
 
   return (
@@ -742,6 +763,8 @@ export default function Main() {
         isOpen={isSidebarOpen}
         toggleOpen={toggleSidebar}
         onSearch={handleSearch}
+        // ✅ 사이드바 경로 보기(완전 분리)
+        onRouteByCoords={handleRouteByCoords}
       />
 
       {selectedPlace && (
@@ -756,6 +779,7 @@ export default function Main() {
         />
       )}
 
+      {/* 오른쪽 상단 토글 버튼들(두 지점 경로 전용) */}
       <button
         className={`distance-toggle-button ${isDistanceMode ? 'active' : ''}`}
         onClick={toggleDistanceMode}
@@ -772,10 +796,9 @@ export default function Main() {
         {isRouteMode ? '경로 보기 종료' : '두 지점 경로'}
       </button>
 
+      {/* 오버레이: 두 지점 경로 / 직선 */}
       {isDistanceMode && distanceKm !== null && (
-        <div className="distance-overlay">
-          선택된 두 지점 사이의 직선 거리는 약 {formatDistance(distanceKm)} 입니다.
-        </div>
+        <div className="distance-overlay">선택된 두 지점 사이의 직선 거리는 약 {formatDistance(distanceKm)} 입니다.</div>
       )}
       {isRouteMode && (routeLoading || routeError || routeInfo) && (
         <div className="distance-overlay">
@@ -791,12 +814,25 @@ export default function Main() {
         </div>
       )}
 
+      {/* 사이드바 경로 보기 상태 배지(지우기) */}
+      {autoRoutePath.length > 0 && (
+        <div className="distance-overlay" style={{ top: 60 }}>
+          사이드바 경로 표시 중&nbsp;
+          {autoRouteInfo?.totalDistance != null && <>거리: {formatMeters(autoRouteInfo.totalDistance)}&nbsp;</>}
+          {autoRouteInfo?.totalTime != null && <>시간: {formatMinutes(autoRouteInfo.totalTime)}</>}
+          &nbsp;|&nbsp;
+          <button onClick={resetAutoRoute} style={{ textDecoration: 'underline' }}>경로 지우기</button>
+        </div>
+      )}
+      {autoRouteLoading && <div className="distance-overlay" style={{ top: 60 }}>경로 계산 중…</div>}
+      {autoRouteError && <div className="distance-overlay" style={{ top: 60 }}>{autoRouteError}</div>}
+
       <Map
         center={center}
         style={{ width: '100%', height: '100vh' }}
         level={4}
         onClick={handleMapClick}
-        onCreate={(map) => { mapRef.current = map; }} // ✅ kakao Map 인스턴스 확보
+        onCreate={(map) => { mapRef.current = map; }}
         className="map"
       >
         <MapTypeControl position="TOPRIGHT" />
@@ -810,13 +846,12 @@ export default function Main() {
             clickable={true}
           >
             {selectedIndex === index && (
-              <div className="marker-info">
-                <strong>{place.place_name}</strong>
-              </div>
+              <div className="marker-info"><strong>{place.place_name}</strong></div>
             )}
           </MapMarker>
         ))}
 
+        {/* 직선 거리 포인트/라인 */}
         {isDistanceMode && distancePoints.map((p, idx) => (
           <MapMarker
             key={`distpoint-${idx}`}
@@ -828,7 +863,6 @@ export default function Main() {
             }}
           />
         ))}
-
         {isDistanceMode && distancePoints.length === 2 && (
           <Polyline
             path={distancePoints.map(p => ({ lat: p.getLat(), lng: p.getLng() }))}
@@ -839,6 +873,7 @@ export default function Main() {
           />
         )}
 
+        {/* 두 지점 경로(지도 클릭) 마커/라인 — 파랑 */}
         {isRouteMode && routeSelectPoints.map((p, idx) => (
           <MapMarker
             key={`routepick-${idx}`}
@@ -850,20 +885,41 @@ export default function Main() {
             }}
           />
         ))}
-
         {isRouteMode && routePath.length > 1 && (
           <Polyline
             path={routePath}
             strokeWeight={5}
-            strokeColor={'#2E86DE'}
+            strokeColor={'#2E86DE'}   // 파랑
             strokeOpacity={0.8}
             strokeStyle={'solid'}
           />
         )}
+
+        {/* 사이드바 경로 보기 — 초록 */}
+        {autoRouteEndpoints?.start && (
+          <MapMarker
+            key="auto-start"
+            position={{ lat: autoRouteEndpoints.start.lat, lng: autoRouteEndpoints.start.lng }}
+          />
+        )}
+        {autoRouteEndpoints?.end && (
+          <MapMarker
+            key="auto-end"
+            position={{ lat: autoRouteEndpoints.end.lat, lng: autoRouteEndpoints.end.lng }}
+          />
+        )}
+        {autoRoutePath.length > 1 && (
+          <Polyline
+            path={autoRoutePath}
+            strokeWeight={6}
+            strokeColor={'#10B981'}   // 초록 (teal)
+            strokeOpacity={0.9}
+            strokeStyle={'solid'}
+          />
+        )}
       </Map>
-      <div>
-        <ChatBotButton/>
-      </div>
+
+      <div><ChatBotButton/></div>
     </div>
   );
 }
