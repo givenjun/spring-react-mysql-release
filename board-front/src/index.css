@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
+
 @font-face {
   font-family: 'Pretendard';
   src: url('https://fastly.jsdelivr.net/gh/Project-Noonnu/noonfonts_2107@1.1/Pretendard-Regular.woff') format('woff');
@@ -12,15 +14,23 @@
   font-style: normal;
 }
 
+@font-face { 
+  font-family: 'noto-sans';
+  src: url('//fonts.googleapis.com/earlyaccess/notosanskr.css');
+  font-weight: normal;
+  font-style: normal;
+}
+
 body {
   margin: 0;
-  min-width: 1440px;
-  font-family: 'Pretendard';
+  min-width: 100%; 
+   /* 1440px -> 100% 변경.  */
+  font-family: 'Noto Sans KR', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 textarea {
-  font-family: 'Pretendard';
+  font-family: 'Noto Sans KR';
   font-weight: 400;
 }
