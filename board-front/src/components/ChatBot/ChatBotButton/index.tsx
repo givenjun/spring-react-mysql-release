@@ -20,12 +20,12 @@ export default function ChatBotButton() {
   return (
     <>
     {isOpen && <ChatWindow/>}
-    <div className='chat-bot-button-container' onClick={onClickHandler}>
+    <div className='chat-bot-button-container' style={{ backgroundColor: isOpen ? '#ffffff' : '#978FF9' }} onClick={onClickHandler}>
       <img className='chat-bot-button-icon'
         src={isOpen ? CloseButtonIcon : ChatBotIcon}
         style={{
-          width: isOpen ? '50%' : '75%'
-        }}
+          width: isOpen ? '50%' : '75%',
+          }}
       />
     </div>
     </>
