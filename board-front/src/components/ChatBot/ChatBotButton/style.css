@@ -5,7 +5,6 @@
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background-color: #b8f8fb;
   border: none;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   cursor: pointer;
@@ -15,6 +14,10 @@
   justify-content: center;/* ✅ 세로 중앙 정렬 (이 줄 추가) */
   transition: background-color 0.3s ease;
   z-index: 1000;
+  -webkit-user-select:none;
+  -moz-user-select:none;
+  -ms-user-select:none;
+  user-select:none
 }
 
 .chat-bot-button-container:hover {
