@@ -1,0 +1,234 @@
+[33mcommit 70241830186c5576b6251236c692b22d592e9926[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/maps-route-search[m[33m)[m
+Author: dlao09 <tkfka0860@gmail.com>
+Date:   Sat Sep 27 00:19:03 2025 +0900
+
+    출발지 도착지 검색한후 경로검색기능 추가
+
+[33mcommit 63bebc52dcb4f4d4bc3efd8ecee54ea567f260e1[m
+Author: dlao09 <tkfka0860@gmail.com>
+Date:   Fri Sep 26 22:54:01 2025 +0900
+
+    두 지점 경로 불러오기 오류 해결
+
+[33mcommit 87fc281243880f6546b69b131f8cfd7f871429cb[m
+Author: dlao09 <tkfka0860@gmail.com>
+Date:   Fri Sep 26 22:33:06 2025 +0900
+
+    테스트용
+
+[33mcommit e1fbaab17fb49232506ba7c29d3703963499f7cc[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/feature/ui-layout-maps[m[33m, [m[1;31morigin/feature/maps-poi-in-route[m[33m, [m[1;31morigin/feature/auth-sns-login[m[33m, [m[1;31morigin/feature/auth-email-verification[m[33m, [m[1;31morigin/feature/auth-admin[m[33m, [m[1;31morigin/feature/ai-chat-bootstrap[m[33m, [m[1;31morigin/feature/ai-chat-advanced[m[33m, [m[1;31morigin/epic/ui-ux[m[33m, [m[1;31morigin/epic/maps[m[33m, [m[1;31morigin/epic/infra[m[33m, [m[1;31morigin/epic/community[m[33m, [m[1;31morigin/epic/auth[m[33m, [m[1;31morigin/epic/ai-chat[m[33m, [m[1;31morigin/develop[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m, [m[1;32mdevelop[m[33m)[m
+Author: givenjun <152844483+givenjun@users.noreply.github.com>
+Date:   Fri Sep 26 20:54:37 2025 +0900
+
+    Update application.properties
+
+[33mcommit b28b94c41441da02173b497d95e523d6c2e8e1ac[m
+Merge: c726e85 2a5dc23
+Author: thadus2 <seunghoon3753@gmail.com>
+Date:   Fri Sep 26 20:52:55 2025 +0900
+
+    Merge branch 'main' of https://github.com/givenjun/spring-react-mysql-release
+
+[33mcommit 2a5dc2362505923bf7a11a7542b1f1b947ba9066[m
+Author: 정준 <wjdwns0531@gmail.com>
+Date:   Fri Sep 26 20:49:51 2025 +0900
+
+    DB 정보 수정 (#2)
+
+[33mcommit 1ba792cb0e012149393e86104775be92737d167e[m
+Author: 정준 <wjdwns0531@gmail.com>
+Date:   Fri Sep 26 20:46:26 2025 +0900
+
+    DB 정보 수정
+
+[33mcommit c726e85d715ef7bcdf18a03bf2d71b05c7be9e8d[m
+Merge: b122d80 e6e64ba
+Author: thadus2 <seunghoon3753@gmail.com>
+Date:   Fri Sep 26 20:41:40 2025 +0900
+
+    Merge branch 'main' of https://github.com/givenjun/spring-react-mysql-release
+
+[33mcommit b122d80707d2c1c28ad42816721e8b0132874c67[m
+Author: thadus2 <seunghoon3753@gmail.com>
+Date:   Fri Sep 26 20:33:34 2025 +0900
+
+    Reapply "Feature/ai chat"
+    
+    This reverts commit f0d3bb518a69980db351d0199a4b76080a090794.
+
+[33mcommit e6e64bac7e3cb384aeeac962b91282112b0e91f7[m
+Merge: f9a6739 c5c9c25
+Author: 정준 <wjdwns0531@gmail.com>
+Date:   Fri Sep 26 20:32:01 2025 +0900
+
+    Merge branch 'main' of https://github.com/givenjun/spring-react-mysql-release
+
+[33mcommit f9a673922e781b94b529031888d526bb3e493cba[m
+Author: 정준 <wjdwns0531@gmail.com>
+Date:   Fri Sep 26 20:27:28 2025 +0900
+
+    .
+
+[33mcommit 6dd5cb89ca90058ef1fde8d8ac7a8ae10ff191be[m
+Author: thadus2 <152844617+thadus2@users.noreply.github.com>
+Date:   Fri Sep 26 02:03:47 2025 +0900
+
+    Revert "Feature/ai chat"
+
+[33mcommit c5c9c2504a36ca8e73e867391ed1ed85c72d19c2[m
+Merge: 782eadc ec4a5a5
+Author: 정준 <wjdwns0531@gmail.com>
+Date:   Fri Sep 26 20:19:19 2025 +0900
+
+    Merge branch 'develop'
+
+[33mcommit 782eadc16d5948db915c60831eb1efaaf4b37cfd[m
+Author: givenjun <152844483+givenjun@users.noreply.github.com>
+Date:   Fri Sep 26 20:15:29 2025 +0900
+
+    승훈 코드 통합
+
+[33mcommit ec4a5a509a7a64e19a5970f6655ce066908d6b16[m
+Author: 정준 <wjdwns0531@gmail.com>
+Date:   Fri Sep 26 20:12:26 2025 +0900
+
+    chore: update application.properties
+
+[33mcommit 13fe79615d04d87742805e9695f464b90c5ca344[m
+Merge: 0bd7ee3 f0d3bb5
+Author: thadus2 <152844617+thadus2@users.noreply.github.com>
+Date:   Fri Sep 26 02:04:11 2025 +0900
+
+    Merge pull request #3 from givenjun/revert-2-feature/ai-chat
+    
+    Revert "Feature/ai chat"
+
+[33mcommit f0d3bb518a69980db351d0199a4b76080a090794[m
+Author: thadus2 <152844617+thadus2@users.noreply.github.com>
+Date:   Fri Sep 26 02:03:47 2025 +0900
+
+    Revert "Feature/ai chat"
+
+[33mcommit 0bd7ee39958d9d30435016dea499eef4892d450a[m
+Merge: f147d3d 683f8e2
+Author: thadus2 <152844617+thadus2@users.noreply.github.com>
+Date:   Fri Sep 26 02:02:08 2025 +0900
+
+    Merge pull request #2 from givenjun/feature/ai-chat
+    
+    Feature/ai chat
+
+[33mcommit 683f8e240ca36b56ef0cc69157d9216b222c71ec[m
+Author: thadus2 <seunghoon3753@gmail.com>
+Date:   Fri Sep 26 02:00:32 2025 +0900
+
+    프론트엔드 챗봇 버튼, 대화창, 응답 호출 구현
+
+[33mcommit 5ef710c476e90c41824740978a06ca95f8f05917[m
+Merge: e688923 082281e
+Author: thadus2 <seunghoon3753@gmail.com>
+Date:   Fri Sep 26 01:56:50 2025 +0900
+
+    Merge branch 'feature/ai-chat' of https://github.com/givenjun/spring-react-mysql-release into feature/ai-chat
+
+[33mcommit e688923178a68d26759456f5eb2babd44e51ace5[m
+Author: thadus2 <seunghoon3753@gmail.com>
+Date:   Fri Sep 26 01:54:26 2025 +0900
+
+    백엔드 Gemini api 호출 구현
+
+[33mcommit 082281e674eee30ff0681b338c183ab6b39f5af5[m
+Author: givenjun <152844483+givenjun@users.noreply.github.com>
+Date:   Fri Sep 26 01:05:59 2025 +0900
+
+    지도 화면 사이드바 보완 (#1)
+
+[33mcommit f147d3d08682ea8f539ab3f1d572022f86270a34[m
+Author: 정준 <wjdwns0531@gmail.com>
+Date:   Fri Sep 26 01:01:12 2025 +0900
+
+    지도 화면 사이드바 보완
+
+[33mcommit 6ba3a979afcf7e343f5a0700813b4eb290b9ea1b[m
+Author: 정준 <wjdwns0531@gmail.com>
+Date:   Thu Sep 25 23:48:03 2025 +0900
+
+    채훈이형 코드 통합
+
+[33mcommit 3fd90ea57177c8a41e10bb6d6f5d5c102fa49fac[m
+Author: 정준 <wjdwns0531@gmail.com>
+Date:   Wed Sep 24 21:13:14 2025 +0900
+
+    icon 변경
+
+[33mcommit 32771aa67218d6b963372a75a477d01921f35bdc[m
+Author: 정준 <wjdwns0531@gmail.com>
+Date:   Thu Sep 18 22:20:58 2025 +0900
+
+    2025-09-18 게시물 종류 화면, 마이페이지 화면 디자인
+
+[33mcommit f166b9420cdb94ceec883c1b40f75ae2303f96cb[m
+Author: 정준 <wjdwns0531@gmail.com>
+Date:   Sat Sep 13 20:00:40 2025 +0900
+
+    2025-09-13 api 여러번 요청하던 문제 수정
+
+[33mcommit e068bb38b8b50928443cc79974324527138e36e2[m
+Author: 정준 <wjdwns0531@gmail.com>
+Date:   Sat Sep 13 18:29:15 2025 +0900
+
+    2025-09-13
+
+[33mcommit 3a2e6403f952dcec630cc1aed1807113b11fcd14[m
+Author: 정준 <wjdwns0531@gmail.com>
+Date:   Sat May 31 00:14:30 2025 +0900
+
+    2025-05-31 00:13 게시물 상세 디자인인 / 도메인 cors 추가 & 아이콘 변경
+
+[33mcommit 8b8689232ac2ef3526e2e86998bfa328a0a4d8d1[m
+Author: 정준 <wjdwns0531@gmail.com>
+Date:   Fri May 30 18:48:15 2025 +0900
+
+    2025-05-30 18:48 공인아이피 변경
+
+[33mcommit 67f87051bcfc3dcca5e2e2ee7c876065e6784416[m
+Author: 정준 <wjdwns0531@gmail.com>
+Date:   Fri May 30 18:46:50 2025 +0900
+
+    2025-05-30 댓글 시간 & 게시판 페이지 디자인인
+
+[33mcommit 051f46eb8efbdb8d1aa5fa917a0d62ffd2a6e3ef[m
+Author: 정준 <wjdwns0531@gmail.com>
+Date:   Fri May 30 17:46:43 2025 +0900
+
+    2025-05-30 17:45 간단한 디자인 & 수정 & 댓글 시간
+
+[33mcommit 05219e175f923a6ff88074ec6d1ca38e668be27c[m
+Author: 정준 <wjdwns0531@gmail.com>
+Date:   Fri May 30 17:17:32 2025 +0900
+
+    2025-05-30 17:17 댓글 작성 경과시간 임시 수정
+
+[33mcommit f34073d27e88f7c606bdce35df39423e97ae2ebc[m
+Author: 정준 <wjdwns0531@gmail.com>
+Date:   Fri May 30 17:16:03 2025 +0900
+
+    2025-05-30 17:15 디자인 수정 & 글자 수 제한 해결
+
+[33mcommit bcf9d8bd4c9f3f316aceabf7c0aa865e29398940[m
+Author: 정준 <wjdwns0531@gmail.com>
+Date:   Fri May 30 14:20:20 2025 +0900
+
+    2025-05-30 docker-compose.yml 수정
+
+[33mcommit 5967163504b6f5188971b0c7aebf727b65569cbf[m
+Author: 정준 <wjdwns0531@gmail.com>
+Date:   Fri May 30 14:15:17 2025 +0900
+
+    Update: 전체 파일 추가 및 설정 파일 수정
+
+[33mcommit 3735e1c2e77ab52d7d961d70469a477101345c61[m
+Author: givenjun <152844483+givenjun@users.noreply.github.com>
+Date:   Fri May 30 13:48:24 2025 +0900
+
+    Initial commit
