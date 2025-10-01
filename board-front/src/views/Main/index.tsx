@@ -365,9 +365,7 @@ export default function Main() {
           />
         )}
       </Map>
-      <div>
-        <MenuButton/>
-      </div>
+      <MenuButton/>
     </div>
   );
 }
