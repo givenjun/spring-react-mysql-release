@@ -40,6 +40,7 @@ export default function MenuWindow() {
     const [relatedPosts, setRelatedPosts] = useState<BoardListItem[]>([]);
     const [relatedLoading, setRelatedLoading] = useState<boolean>(false);
     const [relatedError, setRelatedError] = useState<string | null>(null);
+    const [isOpened, setIsOpened] = useState<boolean>(false);
  
     const loadRelatedPosts = useCallback(async (keyword: string) =>  {
         if (!keyword) return;
@@ -58,12 +59,13 @@ export default function MenuWindow() {
         }
     }, []);
 
-    // useEffect(() => {
-    //     if (selectedPlaceName) {
-    //         setActiveTab('relatedPost');
-    //         loadRelatedPosts(selectedPlaceName);
-    //     }
-    // }, [selectedPlaceName, loadRelatedPosts]);
+    useEffect(() => {
+        if (selectedPlaceName && isOpened) {
+            setActiveTab('relativePost');
+            loadRelatedPosts(selectedPlaceName);
+        }
+        else (setIsOpened(true));
+    }, [selectedPlaceName, loadRelatedPosts]);
 
     const handleOpenPost = useCallback((boardNumber: string | number) => {
         if (boardNumber === undefined || boardNumber === null) return;
@@ -80,17 +82,15 @@ export default function MenuWindow() {
     
     const relatedPostHandler =() => {
         setActiveTab('relativePost');
-
-        if (selectedPlaceName) {
-            loadRelatedPosts(selectedPlaceName);
-        }
     }
     
     return (
         <div className='menu-window-container'>
-            <div className='menu-window-header'>
-                <p>Route Pick</p>
-            </div>
+            {activeTab !== 'home' &&
+                <div className='menu-window-header'>
+                    <p>Route Pick</p>
+                </div>
+            }
             {activeTab === 'home' && <MenuHome/>}
             {activeTab === 'chat' && <ChatWindow/>}
             {activeTab === 'relativePost' && (
@@ -106,7 +106,7 @@ export default function MenuWindow() {
             )}
             <div className='menu-window-footer'>
                 <div className='navigate-menu-home' onClick={homeClickHandler}>
-                    <img src={HomeIcon} style={{width:'16px', height:'auto'}}></img>
+                    <img src={HomeIcon} style={{width:'16px'}}></img>
                     <div>홈</div>
                 </div>
                 <div className='navigate-menu-chat' onClick={chatClickHandler}>
@@ -118,6 +118,6 @@ export default function MenuWindow() {
                     <p style={{margin:0}}>게시물</p>
                 </div>
             </div>
-        </div>
+        </div>        
     )
 }

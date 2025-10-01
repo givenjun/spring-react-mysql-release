@@ -1,11 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Map, MapMarker, MapTypeControl, Polyline, ZoomControl } from 'react-kakao-maps-sdk';
 import { useNavigate, useLocation } from 'react-router-dom';
 import SearchSidebar from 'components/Map/SearchSidebar';
 import useKakaoSearch from 'hooks/Map/useKakaoSearch.hock';
-import RelatedPostsSidebar from 'components/RelatedPostsSidebar';
-import { BoardListItem } from 'types/interface';
-import { getSearchBoardListRequest } from 'apis';
 import './style.css';
 import MenuButton from 'components/Menu/MenuButton';
 import useRelativeStore from 'stores/relativeStore';
@@ -26,30 +23,6 @@ function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon
   return R * c;
 }
 type LatLng = { lat: number; lng: number };
-
-// 응답 → BoardListItem[]
-function toBoardListItems(res: any): BoardListItem[] {
-  if (!res) return [];
-  const payload = (res && typeof res === 'object' && 'code' in res && 'data' in res) ? (res as any).data : res;
-
-  const list =
-    (Array.isArray(payload?.boardList) && payload.boardList) ||
-    (Array.isArray(payload?.searchList) && payload.searchList) ||
-    (Array.isArray(payload?.list) && payload.list) ||
-    (Array.isArray(payload?.result) && payload.result) ||
-    (Array.isArray(payload?.rows) && payload.rows) ||
-    (Array.isArray(payload?.data) && payload.data) ||
-    (Array.isArray(payload) && payload) ||
-    [];
-
-  return (list as any[]).map((it: any) => ({
-    boardNumber: it.boardNumber ?? it.id ?? it.board_id,
-    title: it.title ?? '(제목 없음)',
-    content: typeof it?.content === 'string'
-      ? it.content
-      : (typeof it?.text === 'string' ? it.text : ''),
-  })) as BoardListItem[];
-}
 
 // -------------------- 메인 --------------------
 export default function Main() {
@@ -161,17 +134,17 @@ export default function Main() {
   };
 
   // 게시글 열기(라우트 이동 전 상태 저장)
-  const handleOpenPost = useCallback((boardNumber: string | number) => {
-    if (boardNumber === undefined || boardNumber === null) return;
-    saveBeforeGoDetail();
-    navigate(`${BOARD_DETAIL_PATH}/${boardNumber}`, {
-      state: {
-        from: location.pathname,
-        fromMap: true,
-        fromSearch: selectedPlace?.place_name ?? null,
-      },
-    });
-  }, [navigate, location.pathname, selectedPlace, saveBeforeGoDetail]);
+  // const handleOpenPost = useCallback((boardNumber: string | number) => {
+  //   if (boardNumber === undefined || boardNumber === null) return;
+  //   saveBeforeGoDetail();
+  //   navigate(`${BOARD_DETAIL_PATH}/${boardNumber}`, {
+  //     state: {
+  //       from: location.pathname,
+  //       fromMap: true,
+  //       fromSearch: selectedPlace?.place_name ?? null,
+  //     },
+  //   });
+  // }, [navigate, location.pathname, selectedPlace, saveBeforeGoDetail]);
 
   // 모드 전환/리셋
   const resetDistanceState = () => { setDistancePoints([]); setDistanceKm(null); };
@@ -274,10 +247,7 @@ export default function Main() {
   const formatMeters = (m?: number) => (m == null ? '' : m < 1000 ? `${m} m` : `${(m / 1000).toFixed(2)} km`);
   const formatMinutes = (sec?: number) => (sec == null ? '' : `${Math.round(sec / 60)} min`);
   const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
-  // const rightBase = showRelatedPosts ? 320 : 10;
   const rightBase = 10;
-
-  const currentKeyword = useMemo(() => selectedPlace?.place_name ?? '', [selectedPlace]);
 
   return (
     <div className='main-wrapper'>
@@ -289,18 +259,6 @@ export default function Main() {
         toggleOpen={toggleSidebar}
         onSearch={handleSearch}
       />
-
-      {/* {selectedPlace && (
-        <RelatedPostsSidebar
-          placeName={currentKeyword}
-          relatedPosts={relatedPosts}
-          loading={relatedLoading}
-          error={relatedError}
-          open={showRelatedPosts}
-          onClose={() => setShowRelatedPosts(false)}
-          onClickPost={handleOpenPost}
-        />
-      )} */}
 
       <button
         className={`distance-toggle-button ${isDistanceMode ? 'active' : ''}`}
