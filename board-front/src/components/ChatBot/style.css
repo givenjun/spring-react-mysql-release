@@ -47,6 +47,7 @@
   margin-bottom: 10px;
   max-width: 80%;
   word-wrap: break-word; /* 긴 단어가 있어도 줄바꿈 */
+  white-space: pre-wrap;
 }
 
 .message-bubble.received {
