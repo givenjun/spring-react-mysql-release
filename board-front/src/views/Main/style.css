@@ -120,6 +120,14 @@
     line-height: 140%;
 }
 
+.marker-info {
+    width: 400px;
+    height: 200px;
+    padding: 20px;
+    border-radius: 50%;
+    background-color: rgba(0,0,0,);
+}
+
 .main-bottom-popular-card-contens {
     display: flex;
     flex-wrap: wrap;
@@ -189,4 +197,7 @@
   transform: translateX(0);
 }
 
-.main-wrapper { position: relative; }
+.main-wrapper { 
+    position: relative; 
+    overflow: hidden;
+}

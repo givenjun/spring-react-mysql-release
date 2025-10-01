@@ -47,7 +47,7 @@ type Props = {
   // 게시글 상세로 이동
   onClickPost?: (boardNumber: string | number) => void;
   // 글쓰기 이동 (우측 하단 + 버튼)
-  onClickCompose?: (placeName: string) => void;
+  // onClickCompose?: (placeName: string) => void;
 };
 
 export default function RelatedPostsSidebar({
@@ -58,14 +58,14 @@ export default function RelatedPostsSidebar({
   open,
   onClose,
   onClickPost,
-  onClickCompose,
+  // onClickCompose,
 }: Props) {
   return (
     <aside className={`related-posts-sidebar ${open ? 'open' : ''}`}>
-      <header className="related-header">
+      {/* <header className="related-header">
         <strong className="related-header-title">연관 게시물</strong>
         <button type="button" className="close-btn" onClick={onClose} aria-label="닫기">✕</button>
-      </header>
+      </header> */}
 
       <div className="related-caption">
         <b>{placeName}</b>과(와) 연관된 게시물이 {relatedPosts.length}개 있습니다.
@@ -93,7 +93,7 @@ export default function RelatedPostsSidebar({
       )}
 
       {/* 우측 하단 + FAB */}
-      <button
+      {/* <button
         type="button"
         className="related-fab"
         title="이 장소에 대해 글쓰기"
@@ -101,7 +101,7 @@ export default function RelatedPostsSidebar({
         onClick={() => onClickCompose?.(placeName)}
       >
         +
-      </button>
+      </button> */}
     </aside>
   );
 }
