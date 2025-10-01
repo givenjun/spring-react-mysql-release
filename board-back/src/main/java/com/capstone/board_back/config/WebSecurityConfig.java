@@ -52,7 +52,7 @@ public class WebSecurityConfig {
                         .requestMatchers("/", "/api/v1/auth/**", "/api/v1/search/**", "/file/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/board/**", "/api/v1/user/*").permitAll()
                         .requestMatchers("/api/v1/gemini/ask").permitAll()
-                        .requestMatchers("/api/dev/**").permitAll()   // ✅ 개발용 메일 테스트 허용
+                         .requestMatchers("/api/dev/**").permitAll()   // ✅ 개발용 메일 테스트 허용
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exceptionHandling -> exceptionHandling
