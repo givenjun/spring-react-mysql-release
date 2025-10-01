@@ -433,17 +433,21 @@
 
 
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { Map, MapMarker, MapTypeControl, Polyline, ZoomControl } from 'react-kakao-maps-sdk';
+import { Map, MapMarker, MapTypeControl, Polyline, ZoomControl, CustomOverlayMap } from 'react-kakao-maps-sdk';
 import { useNavigate, useLocation } from 'react-router-dom';
 import SearchSidebar from 'components/Map/SearchSidebar';
 import useKakaoSearch from 'hooks/Map/useKakaoSearch.hock';
 import RelatedPostsSidebar from 'components/RelatedPostsSidebar';
 import { BoardListItem } from 'types/interface';
 import { getSearchBoardListRequest } from 'apis';
+import { usePlacesAlongPath } from 'hooks/Map/usePlacesAlongPath';
 import './style.css';
+import 'components/Map/marker-label.css';
 import ChatBotButton from 'components/ChatBot/ChatBotButton';
 
 const BOARD_DETAIL_PATH = '/board/detail';
+declare global { interface Window { kakao: any } }
+const kakao = (typeof window !== 'undefined' ? (window as any).kakao : undefined);
 
 function deg2rad(deg: number) { return deg * (Math.PI / 180); }
 function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -481,11 +485,18 @@ function toBoardListItems(res: any): BoardListItem[] {
   })) as BoardListItem[];
 }
 
+// ★ routePlaces 포커스용 키 생성: id가 없으면 lat,lng로 합성
+const toNum = (v: any) => typeof v === 'string' ? Number(v) : v;
+const makeRouteKey = (p: any) => (p?.id && `${p.id}`) || `${toNum(p?.lat)},${toNum(p?.lng)}`;
+
 export default function Main() {
   const { searchResults, center, searchPlaces } = useKakaoSearch();
+
+  // ★ 탐색 탭과 동일: map 인스턴스를 state로 보관 (ref 대신)
+  const [map, setMap] = useState<kakao.maps.Map | null>(null);
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const mapRef = useRef<kakao.maps.Map | null>(null);
 
   // ===== 직선거리 =====
   const [isDistanceMode, setIsDistanceMode] = useState(false);
@@ -500,12 +511,24 @@ export default function Main() {
   const [routeLoading, setRouteLoading] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
 
-  // ===== 사이드바 경로 보기 — 새 기능 (완전히 분리) =====
+  // ===== 사이드바 경로 보기 — 자동 경로(메인에서 그려줌) =====
   const [autoRoutePath, setAutoRoutePath] = useState<LatLng[]>([]);
   const [autoRouteInfo, setAutoRouteInfo] = useState<{ totalDistance?: number; totalTime?: number } | null>(null);
   const [autoRouteEndpoints, setAutoRouteEndpoints] = useState<{ start?: LatLng; end?: LatLng } | null>(null);
   const [autoRouteLoading, setAutoRouteLoading] = useState(false);
   const [autoRouteError, setAutoRouteError] = useState<string | null>(null);
+
+  // ===== 경로 주변 맛집 검색 =====
+  const {
+    places: routePlaces,
+    loading: routePlacesLoading,
+    error: routePlacesError,
+    search: searchAlongPath,
+    reset: resetRoutePlaces,
+  } = usePlacesAlongPath();
+
+  // ★ 경로 주변 맛집 라벨 포커스 상태
+  const [focusedRouteKey, setFocusedRouteKey] = useState<string | null>(null);
 
   // ===== 연관 게시물 =====
   const [showRelatedPosts, setShowRelatedPosts] = useState(false);
@@ -517,7 +540,7 @@ export default function Main() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 뒤로가기 복원
+  // 복원
   const RESTORE_KEY = 'map:restore';
   const restoreRef = useRef<{ keyword: string } | null>(null);
 
@@ -558,7 +581,8 @@ export default function Main() {
     }
   }, [searchResults]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSearch = (start: string) => {
+  // 검색
+  const handleSearch = (start: string, _goal?: string) => {
     if (start) searchPlaces(start);
     setShowRelatedPosts(false);
     setRelatedPosts([]);
@@ -581,6 +605,26 @@ export default function Main() {
     }
   };
 
+  // ★ 탐색 탭과 동일: 부드러운 이동 전용 함수
+  const panToPlace = useCallback((lat: number, lng: number, zoomLevel: number | null = 3) => {
+    if (!map) return;
+    const pos = new kakao.maps.LatLng(lat, lng);
+    map.panTo(pos); // ✅ 부드러운 패닝
+
+    // 확대는 패닝 종료 후(=idle) 적용 → 가장 자연스러움
+    if (zoomLevel != null) {
+      const once = kakao.maps.event.addListener(map, 'idle', () => {
+        kakao.maps.event.removeListener(map, 'idle', once);
+        // 지원 시 animate 옵션 사용, 미지원이면 그냥 setLevel
+        try {
+          (map as any).setLevel(zoomLevel, { animate: true });
+        } catch {
+          map.setLevel(zoomLevel);
+        }
+      });
+    }
+  }, [map]);
+
   const handlePlaceClick = (place: any) => {
     const idx = searchResults.indexOf(place);
     setSelectedIndex(idx);
@@ -589,10 +633,10 @@ export default function Main() {
     try {
       const lat = Number(place?.y);
       const lng = Number(place?.x);
-      if (!Number.isNaN(lat) && !Number.isNaN(lng) && mapRef.current) {
-        mapRef.current.panTo(new kakao.maps.LatLng(lat, lng));
+      if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+        panToPlace(lat, lng, 3);
       }
-    } catch {/* ignore */}
+    } catch {/* ignore */ }
 
     if (place?.place_name) loadRelatedPosts(place.place_name);
   };
@@ -605,12 +649,32 @@ export default function Main() {
     });
   }, [navigate, location.pathname, selectedPlace, saveBeforeGoDetail]);
 
-  // ====== 공통 리셋 ======
+  // 리셋
   const resetDistanceState = () => { setDistancePoints([]); setDistanceKm(null); };
   const resetRouteState = () => { setRouteSelectPoints([]); setRoutePath([]); setRouteInfo(null); setRouteLoading(false); setRouteError(null); };
-  const resetAutoRoute = () => { setAutoRouteEndpoints(null); setAutoRoutePath([]); setAutoRouteInfo(null); setAutoRouteLoading(false); setAutoRouteError(null); };
+  const resetAutoRoute = () => { setAutoRouteEndpoints(null); setAutoRoutePath([]); setAutoRouteInfo(null); setAutoRouteLoading(false); setAutoRouteError(null); resetRoutePlaces?.(); setFocusedRouteKey(null); };
 
-  // ====== Tmap 호출 (공용) ======
+  // 모드 토글
+  const toggleDistanceMode = () => {
+    setIsDistanceMode(prev => {
+      const next = !prev;
+      if (next) { setIsRouteMode(false); resetRouteState(); }
+      else resetDistanceState();
+      setFocusedRouteKey(null);
+      return next;
+    });
+  };
+  const toggleRouteMode = () => {
+    setIsRouteMode(prev => {
+      const next = !prev;
+      if (next) { setIsDistanceMode(false); resetDistanceState(); }
+      else resetRouteState();
+      setFocusedRouteKey(null);
+      return next;
+    });
+  };
+
+  // Tmap 공용
   const callTmap = (start: LatLng, end: LatLng) =>
     fetch('http://127.0.0.1:4000/api/tmap/pedestrian', {
       method: 'POST',
@@ -621,9 +685,9 @@ export default function Main() {
       return r.json();
     });
 
-  // ====== 두 지점 경로(지도 클릭) 전용 ======
+  // 두 지점 경로(지도 클릭) 전용
   const runManualRoute = (sLL: kakao.maps.LatLng, eLL: kakao.maps.LatLng) => {
-    setIsRouteMode(true);              // ← 지도 클릭 모드만 활성화
+    setIsRouteMode(true);
     setIsDistanceMode(false);
     resetDistanceState();
 
@@ -648,72 +712,77 @@ export default function Main() {
         setRoutePath(coords);
         setRouteInfo(summary ?? null);
 
-        if (mapRef.current && coords.length > 0) {
+        if (map && coords.length > 0) {
           const bounds = new kakao.maps.LatLngBounds();
           coords.forEach(c => bounds.extend(new kakao.maps.LatLng(c.lat, c.lng)));
-          mapRef.current.setBounds(bounds);
+          map.setBounds(bounds);
         }
       })
       .catch(() => setRouteError('경로를 불러오지 못했습니다.'))
       .finally(() => setRouteLoading(false));
   };
 
-  // ====== 사이드바 경로 보기 전용 ======
+  // 사이드바 경로 보기 + 경로 주변 맛집 검색
   const handleRouteByCoords = useCallback(
-    (start: { lat: number; lng: number; name: string }, end: { lat: number; lng: number; name: string }) => {
-      // ⚠️ manual 모드(isRouteMode) 건드리지 않음 — 완전 분리
+    async (start: { lat: number; lng: number; name: string }, end: { lat: number; lng: number; name: string }) => {
       setAutoRouteLoading(true);
       setAutoRouteError(null);
       setAutoRoutePath([]);
       setAutoRouteInfo(null);
       setAutoRouteEndpoints({ start: { lat: start.lat, lng: start.lng }, end: { lat: end.lat, lng: end.lng } });
+      resetRoutePlaces?.();
+      setFocusedRouteKey(null);
 
-      callTmap({ lat: start.lat, lng: start.lng }, { lat: end.lat, lng: end.lng })
-        .then((geojson) => {
-          const features = geojson?.features ?? [];
-          const lineFeatures = features.filter((f: any) => f?.geometry?.type === 'LineString');
-          const coords: LatLng[] = lineFeatures.flatMap((f: any) =>
-            (f.geometry.coordinates ?? []).map(([lng, lat]: [number, number]) => ({ lat, lng }))
-          );
-          const summaryFeature = features.find((f: any) => f?.properties?.totalDistance || f?.properties?.totalTime);
-          const summary = summaryFeature?.properties
-            ? { totalDistance: summaryFeature.properties.totalDistance, totalTime: summaryFeature.properties.totalTime }
-            : undefined;
+      try {
+        const geojson = await callTmap({ lat: start.lat, lng: start.lng }, { lat: end.lat, lng: end.lng });
+        const features = geojson?.features ?? [];
+        const lineFeatures = features.filter((f: any) => f?.geometry?.type === 'LineString');
+        const coords: LatLng[] = lineFeatures.flatMap((f: any) =>
+          (f.geometry.coordinates ?? []).map(([lng, lat]: [number, number]) => ({ lat, lng }))
+        );
+        const summaryFeature = features.find((f: any) => f?.properties?.totalDistance || f?.properties?.totalTime);
+        const summary = summaryFeature?.properties
+          ? { totalDistance: summaryFeature.properties.totalDistance, totalTime: summaryFeature.properties.totalTime }
+          : undefined;
 
-          setAutoRoutePath(coords);
-          setAutoRouteInfo(summary ?? null);
+        setAutoRoutePath(coords);
+        setAutoRouteInfo(summary ?? null);
 
-          if (mapRef.current && coords.length > 0) {
-            const bounds = new kakao.maps.LatLngBounds();
-            coords.forEach(c => bounds.extend(new kakao.maps.LatLng(c.lat, c.lng)));
-            mapRef.current.setBounds(bounds);
-          }
-        })
-        .catch(() => setAutoRouteError('경로를 불러오지 못했습니다.'))
-        .finally(() => setAutoRouteLoading(false));
+        // 경로 주변 맛집 검색
+        if (coords.length > 0) await searchAlongPath(coords);
+
+        if (map && coords.length > 0) {
+          const bounds = new kakao.maps.LatLngBounds();
+          coords.forEach(c => bounds.extend(new kakao.maps.LatLng(c.lat, c.lng)));
+          map.setBounds(bounds);
+        }
+      } catch {
+        setAutoRouteError('경로를 불러오지 못했습니다.');
+      } finally {
+        setAutoRouteLoading(false);
+      }
     },
-    []
+    [searchAlongPath, resetRoutePlaces, map]
   );
 
-  // ====== 토글 ======
-  const toggleDistanceMode = () => {
-    setIsDistanceMode(prev => {
-      const n = !prev;
-      if (n) { setIsRouteMode(false); resetRouteState(); } else { resetDistanceState(); }
-      return n;
-    });
-  };
-  const toggleRouteMode = () => {
-    setIsRouteMode(prev => {
-      const n = !prev;
-      if (n) { setIsDistanceMode(false); resetDistanceState(); } else { resetRouteState(); }
-      return n;
-    });
-  };
+  // ★ 사이드바 맛집 더블클릭 → 탐색 탭과 동일한 부드러운 이동 + 라벨 오픈
+  const focusRoutePlaceOnMap = useCallback((p: { id?: string; name?: string; lat: number|string; lng: number|string }) => {
+    if (!p) return;
+    const lat = typeof p.lat === 'string' ? parseFloat(p.lat) : p.lat;
+    const lng = typeof p.lng === 'string' ? parseFloat(p.lng) : p.lng;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
-  // 지도 클릭
+    const key = makeRouteKey({ ...p, lat, lng });
+    setFocusedRouteKey(key);
+
+    // 탐색 탭과 동일 로직: panTo 후 idle 때 확대 (자연스러움)
+    panToPlace(lat, lng, 3);
+  }, [panToPlace]);
+
+  // 지도 클릭 시 라벨 닫기(선택)
   const handleMapClick = (_: kakao.maps.Map, mouseEvent: kakao.maps.event.MouseEvent) => {
     const clickedLatLng = mouseEvent.latLng;
+    setFocusedRouteKey(null);
 
     if (isDistanceMode) {
       const newPts = [...distancePoints, clickedLatLng];
@@ -763,8 +832,12 @@ export default function Main() {
         isOpen={isSidebarOpen}
         toggleOpen={toggleSidebar}
         onSearch={handleSearch}
-        // ✅ 사이드바 경로 보기(완전 분리)
         onRouteByCoords={handleRouteByCoords}
+        // 경로 주변 맛집 리스트 전달
+        routePlaces={routePlaces}
+        routeLoading={routePlacesLoading}
+        routeError={routePlacesError ?? null}
+        onFocusRoutePlace={focusRoutePlaceOnMap} // ★ 더블클릭 연결
       />
 
       {selectedPlace && (
@@ -779,7 +852,7 @@ export default function Main() {
         />
       )}
 
-      {/* 오른쪽 상단 토글 버튼들(두 지점 경로 전용) */}
+      {/* 오른쪽 상단 토글 버튼들 */}
       <button
         className={`distance-toggle-button ${isDistanceMode ? 'active' : ''}`}
         onClick={toggleDistanceMode}
@@ -814,7 +887,7 @@ export default function Main() {
         </div>
       )}
 
-      {/* 사이드바 경로 보기 상태 배지(지우기) */}
+      {/* 사이드바 경로 보기 상태 배지 */}
       {autoRoutePath.length > 0 && (
         <div className="distance-overlay" style={{ top: 60 }}>
           사이드바 경로 표시 중&nbsp;
@@ -828,16 +901,17 @@ export default function Main() {
       {autoRouteError && <div className="distance-overlay" style={{ top: 60 }}>{autoRouteError}</div>}
 
       <Map
-        center={center}
+        center={center}                        // ⚠ center는 외부에서만 관리 (panTo 중에는 바꾸지 않음)
         style={{ width: '100%', height: '100vh' }}
         level={4}
         onClick={handleMapClick}
-        onCreate={(map) => { mapRef.current = map; }}
+        onCreate={(m) => setMap(m)}            // ★ 탐색 탭과 동일: map state 보관
         className="map"
       >
         <MapTypeControl position="TOPRIGHT" />
         <ZoomControl position="RIGHT" />
 
+        {/* 일반 검색 결과 마커 */}
         {searchResults.map((place, index) => (
           <MapMarker
             key={`search-${index}`}
@@ -873,7 +947,7 @@ export default function Main() {
           />
         )}
 
-        {/* 두 지점 경로(지도 클릭) 마커/라인 — 파랑 */}
+        {/* 두 지점 경로(지도 클릭) — 파랑 */}
         {isRouteMode && routeSelectPoints.map((p, idx) => (
           <MapMarker
             key={`routepick-${idx}`}
@@ -889,13 +963,13 @@ export default function Main() {
           <Polyline
             path={routePath}
             strokeWeight={5}
-            strokeColor={'#2E86DE'}   // 파랑
+            strokeColor={'#2E86DE'}
             strokeOpacity={0.8}
             strokeStyle={'solid'}
           />
         )}
 
-        {/* 사이드바 경로 보기 — 초록 */}
+        {/* 사이드바 경로 보기 — 초록 라인 */}
         {autoRouteEndpoints?.start && (
           <MapMarker
             key="auto-start"
@@ -912,15 +986,42 @@ export default function Main() {
           <Polyline
             path={autoRoutePath}
             strokeWeight={6}
-            strokeColor={'#10B981'}   // 초록 (teal)
+            strokeColor={'#10B981'}
             strokeOpacity={0.9}
             strokeStyle={'solid'}
           />
         )}
+
+        {/* ★ 경로 주변 맛집 마커 + 라벨 */}
+        {routePlaces && routePlaces.map((p, idx) => {
+          const lat = typeof (p as any).lat === 'string' ? parseFloat((p as any).lat) : (p as any).lat;
+          const lng = typeof (p as any).lng === 'string' ? parseFloat((p as any).lng) : (p as any).lng;
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+          const key = makeRouteKey({ ...p, lat, lng });
+          const isFocused = focusedRouteKey === key;
+
+          return (
+            <React.Fragment key={`routeplace-${key}-${idx}`}>
+              <MapMarker
+                position={{ lat, lng }}
+                onClick={() => {
+                  setFocusedRouteKey(key);
+                  panToPlace(lat, lng, 3);
+                }}
+                clickable
+              />
+              {isFocused && (
+                <CustomOverlayMap position={{ lat, lng }} yAnchor={1.25} zIndex={7}>
+                  <div className="km-label">{(p as any).name}</div>
+                </CustomOverlayMap>
+              )}
+            </React.Fragment>
+          );
+        })}
       </Map>
 
       <div><ChatBotButton/></div>
     </div>
   );
 }
-
