@@ -8,6 +8,7 @@ import { BoardListItem } from 'types/interface';
 import { getSearchBoardListRequest } from 'apis';
 import './style.css';
 import MenuButton from 'components/Menu/MenuButton';
+import useRelativeStore from 'stores/relativeStore';
 
 // 게시글 상세 경로
 const BOARD_DETAIL_PATH = '/board/detail';
@@ -52,6 +53,7 @@ function toBoardListItems(res: any): BoardListItem[] {
 
 // -------------------- 메인 --------------------
 export default function Main() {
+  const { setSelectedPlaceName } = useRelativeStore();
   const { searchResults, center, searchPlaces } = useKakaoSearch();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -73,11 +75,7 @@ export default function Main() {
   const [routeError, setRouteError] = useState<string | null>(null);
 
   // 연관 게시물
-  // const [showRelatedPosts, setShowRelatedPosts] = useState(false);
-  // const [relatedPosts, setRelatedPosts] = useState<BoardListItem[]>([]);
   const [selectedPlace, setSelectedPlace] = useState<any | null>(null);
-  // const [relatedLoading, setRelatedLoading] = useState(false);
-  // const [relatedError, setRelatedError] = useState<string | null>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -135,28 +133,7 @@ export default function Main() {
   // 검색
   const handleSearch = (start: string) => {
     if (start) searchPlaces(start);
-    // setShowRelatedPosts(false);
-    // setRelatedPosts([]);
-    // setRelatedError(null);
   };
-
-  // 연관 게시물 로드
-  // const loadRelatedPosts = async (keyword: string) => {
-  //   setRelatedLoading(true);
-  //   setRelatedError(null);
-  //   try {
-  //     const res = await getSearchBoardListRequest(keyword.trim(), null);
-  //     const list = toBoardListItems(res);
-  //     setRelatedPosts(list);
-  //     setShowRelatedPosts(true);
-  //   } catch {
-  //     setRelatedError('연관 게시물을 불러오지 못했습니다.');
-  //     setRelatedPosts([]);
-  //     setShowRelatedPosts(true);
-  //   } finally {
-  //     setRelatedLoading(false);
-  //   }
-  // };
 
   // 마커/리스트 클릭 + 지도 panTo
   const handlePlaceClick = (place: any) => {
@@ -178,7 +155,9 @@ export default function Main() {
       // ignore
     }
 
-    // if (place?.place_name) loadRelatedPosts(place.place_name);
+    if (place?.place_name) {
+      setSelectedPlaceName(place.place_name);
+    } 
   };
 
   // 게시글 열기(라우트 이동 전 상태 저장)

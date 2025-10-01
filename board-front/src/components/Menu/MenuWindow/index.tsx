@@ -8,6 +8,7 @@ import { BoardListItem } from 'types/interface';
 import { useNavigate } from 'react-router-dom';
 import { getSearchBoardListRequest } from 'apis';
 import RelatedPostsSidebar from 'components/RelatedPostsSidebar';
+import useRelativeStore from 'stores/relativeStore';
 
 const BOARD_DETAIL_PATH = '/board/detail';
 
@@ -32,9 +33,10 @@ function toBoardListItems(res: any): BoardListItem[] {
 
 export default function MenuWindow() {
 
+    const selectedPlaceName = useRelativeStore((state) => state.selectedPlaceName);
+
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<string>('home');
-    const [placeName, setPlaceName] = useState<string>('한밭대학교');
     const [relatedPosts, setRelatedPosts] = useState<BoardListItem[]>([]);
     const [relatedLoading, setRelatedLoading] = useState<boolean>(false);
     const [relatedError, setRelatedError] = useState<string | null>(null);
@@ -43,7 +45,6 @@ export default function MenuWindow() {
         if (!keyword) return;
         setRelatedLoading(true);
         setRelatedError(null);
-        setPlaceName(keyword);
         try {
             const res = await getSearchBoardListRequest(keyword.trim(), null);
             const list = toBoardListItems(res);
@@ -57,11 +58,12 @@ export default function MenuWindow() {
         }
     }, []);
 
-    useEffect(() => {
-        if(activeTab === 'relativePost') {
-            loadRelatedPosts(placeName);
-        }
-    }, [activeTab, placeName, loadRelatedPosts]);
+    // useEffect(() => {
+    //     if (selectedPlaceName) {
+    //         setActiveTab('relatedPost');
+    //         loadRelatedPosts(selectedPlaceName);
+    //     }
+    // }, [selectedPlaceName, loadRelatedPosts]);
 
     const handleOpenPost = useCallback((boardNumber: string | number) => {
         if (boardNumber === undefined || boardNumber === null) return;
@@ -78,6 +80,10 @@ export default function MenuWindow() {
     
     const relatedPostHandler =() => {
         setActiveTab('relativePost');
+
+        if (selectedPlaceName) {
+            loadRelatedPosts(selectedPlaceName);
+        }
     }
     
     return (
@@ -89,7 +95,7 @@ export default function MenuWindow() {
             {activeTab === 'chat' && <ChatWindow/>}
             {activeTab === 'relativePost' && (
                 <RelatedPostsSidebar
-                    placeName={placeName}
+                    placeName={selectedPlaceName}
                     relatedPosts={relatedPosts}
                     loading={relatedLoading}
                     error={relatedError}
