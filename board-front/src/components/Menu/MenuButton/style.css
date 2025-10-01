@@ -1,0 +1,43 @@
+.chat-bot-button-container {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: none;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;/* ✅ 세로 중앙 정렬 (이 줄 추가) */
+  transition: background-color 0.3s ease;
+  z-index: 1000;
+  -webkit-user-select:none;
+  -moz-user-select:none;
+  -ms-user-select:none;
+  user-select:none
+}
+
+.chat-bot-button-container:hover {
+  transform: scale(1.1);
+}
+
+.chat-bot-button-container:active {
+  transform: scale(1);
+}
+
+.chat-bot-button-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center; 
+}
+/* img 태그 대신 div에 배경 이미지를 적용하기 위한 스타일
+.chat-bot-button-icon {
+  width: 48px;
+  height: 48px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+} */
