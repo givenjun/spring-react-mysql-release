@@ -117,3 +117,31 @@ FROM board AS B
 
 
 alter table image add sequence int primary key auto_increment comment '이미지 번호';
+
+-- 2학기 이후
+ALTER TABLE user
+    ADD COLUMN email_verified TINYINT(1) NOT NULL DEFAULT 0,
+    ADD INDEX idx_user_email_verified (email_verified);
+
+-- 1) 이메일 인증 토큰 테이블 (유지보수/보안 고려: 토큰 원문은 저장하지 않고 해시만 저장)
+CREATE TABLE IF NOT EXISTS email_verification_token (
+                                                        id           BIGINT       NOT NULL AUTO_INCREMENT COMMENT '토큰 PK',
+                                                        user_email   VARCHAR(50)  NOT NULL COMMENT '대상 사용자 이메일 (user.email FK)',
+                                                        token_hash   CHAR(64)     NOT NULL COMMENT '원문 토큰의 SHA-256 해시',
+                                                        expires_at   DATETIME     NOT NULL COMMENT '만료 시각',
+                                                        used_at      DATETIME         NULL COMMENT '사용 완료 시각',
+                                                        created_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '발급 시각',
+                                                        PRIMARY KEY (id),
+                                                        CONSTRAINT FK_evt_user
+                                                            FOREIGN KEY (user_email) REFERENCES user (email) ON DELETE CASCADE,
+                                                        UNIQUE KEY uk_evt_token_hash (token_hash),
+                                                        KEY idx_evt_user_expires (user_email, expires_at)
+) COMMENT='이메일 인증 토큰';
+
+-- (선택) 재전송 쿨다운 체크용 뷰: 최근 발급 시각
+CREATE OR REPLACE VIEW v_latest_email_token AS
+SELECT
+    user_email,
+    MAX(created_at) AS last_issued_at
+FROM email_verification_token
+GROUP BY user_email;
