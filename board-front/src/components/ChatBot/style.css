@@ -2,13 +2,6 @@
 
 .chat-window-container {
   position: relative;
-  bottom: 100px; 
-  right: 24px;
-  width: 400px;
-  height: 650px;
-  background-color: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-grow: 1;
   flex-direction: column;

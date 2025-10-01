@@ -1,0 +1,62 @@
+.menu-window-container {
+  position: absolute;
+  bottom: 100px;
+  right: 24px;
+  width: 400px;
+  height: 650px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* 자식 요소가 둥근 모서리를 넘지 않도록 */
+  z-index: 999;
+}
+
+.menu-window-header {
+  padding: 6px;
+  text-align: center;
+  font-family: 'Noto Sans KR Bold';
+  font-size: 16px;
+}
+
+.menu-window-footer {
+    bottom: 0;
+    padding: 0 15%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.navigate-menu-home,
+.navigate-menu-chat,
+.navigate-menu-config {
+  display: flex;
+  flex-direction: column; /* 자식 요소를 세로로 쌓기 */
+  align-items: center;   /* 가로축 중앙 정렬 */
+  justify-content: center; /* 세로축 중앙 정렬 */
+  padding: 8px 0; /* 위아래 여백 추가 */
+  font-size: 12px; /* 폰트 크기 통일 */
+  cursor: pointer;
+}
+
+.navigate-menu-home:hover,
+.navigate-menu-chat:hover,
+.navigate-menu-config:hover {
+  font-weight: 600;
+}
+.nagivate-menu-chat {
+  display: flex;
+  align-items: center;
+}
+
+/* 아이콘과 텍스트 사이 여백 추가 */
+.navigate-menu-home > img,
+.navigate-menu-chat > img {
+    margin-bottom: 4px;
+}
+
+.navigate-menu-config {
+  margin: 0;
+}
