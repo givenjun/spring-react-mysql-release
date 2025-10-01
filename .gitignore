@@ -4,7 +4,87 @@
 # 빌드 산출물
 /board-back/target/
 /board-back/build/
+############################################################
+# === Backend (Spring Boot / Java) ===
+############################################################
+# 빌드 산출물
+/board-back/target/
+/board-back/build/
 *.class
+*.jar
+*.war
+*.ear
+
+# 로그 파일
+/board-back/logs/
+/board-back/*.log
+hs_err_pid*
+replay_pid*
+
+# 🔒 secrets / properties (민감 설정)
+# 로컬·배포 환경별 secrets 전용 properties
+*.secrets.properties
+board-*.properties
+/secrets/
+/config/*.properties
+
+############################################################
+# === Frontend (React / Node.js) ===
+############################################################
+# 패키지 모듈
+/board-front/node_modules/
+
+# 로그 파일
+/board-front/npm-debug.log*
+/board-front/yarn-debug.log*
+/board-front/yarn-error.log*
+/board-front/pnpm-debug.log*
+
+# 빌드 산출물 & 캐시
+/board-front/dist/
+/board-front/build/
+/board-front/.cache/
+/board-front/.next/
+/board-front/coverage/
+
+############################################################
+# === Environment files (공통 설정) ===
+############################################################
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+############################################################
+# === IDE / Editor 설정 파일 ===
+############################################################
+# VSCode
+.vscode/
+
+# IntelliJ / Eclipse
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+out/
+
+############################################################
+# === OS 생성 파일 ===
+############################################################
+.DS_Store
+Thumbs.db
+
+############################################################
+# === Misc (기타 불필요 파일) ===
+############################################################
+*.swp
+*.bak
+*.tmp
+*.orig
+
+# BlueJ
 *.jar
 *.war
 *.ear
@@ -78,7 +158,9 @@ Thumbs.db
 .mtj.tmp/
 
 # 압축/배포 파일
+# 압축/배포 파일
 *.nar
 *.zip
 *.tar.gz
 *.rar
+board-back/src/main/resources/
