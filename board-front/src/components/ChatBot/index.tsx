@@ -20,9 +20,6 @@ export default function ChatWindow() {
 
     return (
         <div className="chat-window-container">
-            <div className="chat-window-header">
-                <p className="chat-window-title">AI에게 물어보기</p>
-            </div>
             <div className="chat-window-messages">
                 {/* messages 배열을 순회하며 각 메시지를 화면에 렌더링 */}
                 {messages.map((msg, index) => (
