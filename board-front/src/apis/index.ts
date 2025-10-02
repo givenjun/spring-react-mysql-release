@@ -19,6 +19,7 @@ const authorization = (accessToken: string) => {
 
 const SIGN_IN_URL = () => `${API_DOMAIN}/auth/sign-in`;
 const SIGN_UP_URL = () => `${API_DOMAIN}/auth/sign-up`;
+const RESEND_VERIFY_EMAIL_URL = () => `${API_DOMAIN}/auth/email/send`;
 
 export const signInRequest = async (requestBody: SignInRequestDto) => {
     const result = await axios.post(SIGN_IN_URL(), requestBody)
@@ -47,6 +48,14 @@ export const signUpRequest = async (requestBody: SingUpRequestDto) => {
         })
     return result;
 }
+
+// 이메일 인증 메일 재전송
+export const resendVerifyEmailRequest = async (email: string) => {
+    const result = await axios.post(RESEND_VERIFY_EMAIL_URL(), { email })
+        .then(response => response.data as ResponseDto)
+        .catch(error => error.response?.data as ResponseDto ?? null);
+    return result;
+};
 
 const GET_BOARD_URL = (boardNumber: number | string) => `${API_DOMAIN}/board/${boardNumber}`;
 const GET_LATEST_BOARD_LIST_URL = () => `${API_DOMAIN}/board/latest-list`;

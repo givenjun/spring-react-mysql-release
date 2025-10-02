@@ -2,7 +2,7 @@ import React, { ChangeEvent, KeyboardEvent, useEffect, useRef, useState } from '
 import './style.css'
 import InputBox from 'components/InputBox';
 import { SignInRequestDto } from 'apis/request/auth';
-import { signInRequest, signUpRequest } from 'apis';
+import { resendVerifyEmailRequest, signInRequest, signUpRequest } from 'apis';
 import { SignInResponseDto, SingUpResponseDto } from 'apis/response/auth';
 import { ResponseDto } from 'apis/response';
 import { useCookies } from 'react-cookie';
@@ -16,7 +16,7 @@ import { customErrToast } from 'hooks';
 export default function Authentication() {
 
   //          state: 화면 상태          //
-  const [view, setView] = useState<'sign-in' | 'sign-up'>('sign-in')
+  const [view, setView] = useState<'sign-in' | 'sign-up' | 'resend'>('sign-in')
 
   //          state: 쿠키 상태          //
   const [ cookies, setCookie] = useCookies();
@@ -52,6 +52,7 @@ export default function Authentication() {
       const { code } = responseBody;
       if (code === 'DBE') customErrToast('데이터베이스 오류입니다.');
       if (code === 'SF' || code === 'VF') setError(true);
+      if (code === 'NEV') customErrToast('이메일 인증 후 로그인해주세요.');
       if (code !== 'SU') return;
 
       const { token, expirationTime } = responseBody as SignInResponseDto;
@@ -84,6 +85,11 @@ export default function Authentication() {
     const onSignUpLinkClickHandler = () => {
       setView('sign-up');
     }
+    const onResendVerifyEmailLinkClickHandler = () => {
+      setView('resend');
+    }
+    
+
     //          event handler: 패스워드 버튼 클릭 이벤트 처리 함수          //
     const onPasswordButtonClickHandler = () => {
       if(passwordType === 'text'){
@@ -101,6 +107,7 @@ export default function Authentication() {
       if (!passwordRef.current) return;
       passwordRef.current.focus();
     }
+
     //          event handler: 패스워드 인풋 키 다운 이벤트 처리 함수          //
     const onPasswordKeyDownHandler = (event: KeyboardEvent<HTMLInputElement>) => {
       if (event.key !== 'Enter') return;
@@ -130,6 +137,12 @@ export default function Authentication() {
             <div className='auth-description-box'>
               <div className='auth-description'>{'신규 사용자 이신가요? '}
                 <span className='auth-description-link' onClick={onSignUpLinkClickHandler}>{'회원가입'}</span>
+              </div>
+              <div className='auth-description'>
+                {'이메일 인증을 못 받으셨나요? '}
+                <span className='auth-description-link' onClick={onResendVerifyEmailLinkClickHandler}>
+                  {'인증 메일 재전송'}
+                </span>
               </div>
             </div>
           </div>
@@ -244,8 +257,11 @@ export default function Authentication() {
       if (code === 'DBE') {
         customErrToast('데이터베이스 오류입니다.');
       }
-      if (code !== 'SU') return;
-
+      if (code !== 'SU') {
+        return;
+      }
+      
+      customErrToast('회원가입 성공! \n이메일 인증 메일을 \n확인해주세요.');
       setView('sign-in');
     }
 
@@ -550,6 +566,86 @@ export default function Authentication() {
     );
   };
 
+    //          component: resend card 컴포넌트          //
+  const ResendCard = () => {
+
+    const [email, setEmail] = useState<string>('');
+    //          state: 이메일 요소 참조 상태          //
+    const emailRef = useRef<HTMLInputElement | null>(null);
+
+    //          function: sign up response 함수          //
+    // 인증메일 재전송 요청 핸들러
+    const onResendVerifyEmailClickHandler = async () => {
+      if (!email.trim()) {
+        customErrToast("이메일을 입력해주세요.");
+        return;
+      }
+      const response = await resendVerifyEmailRequest(email);
+      if (!response) {
+        customErrToast("네트워크 오류가 발생했습니다.");
+        return;
+      }
+      const { code } = response;
+      if (code === "SU") {
+        customErrToast("인증 메일을 재전송했습니다.\n메일함을 확인해주세요.");
+        setView('sign-in');
+      } else if (code === "NU") {
+        customErrToast("존재하지 않는 이메일입니다.");
+      } else if (code === "AV") {
+        customErrToast("이미 인증된 계정입니다.");
+      } else if (code === "DBE") {
+        customErrToast("데이터베이스 오류입니다.");
+      } else {
+        customErrToast("재전송에 실패했습니다. 다시 시도해주세요.");
+      }
+    };
+
+    // //          event handler: 로그인 버튼 클릭 이벤트 처리 함수          //
+    // const onSignInButtonClickHandler = () => {
+    //     const requestBody: SignInRequestDto = { email };
+    //     signInRequest(requestBody).then(signInResponse);
+    // }
+
+    //          event handler: 이메일 변경 이벤트 처리 함수          //
+    const onEmailChangeHandler = (event: ChangeEvent<HTMLInputElement>) => {
+      const { value } = event.target;
+      setEmail(value);
+    }
+
+    //          event handler: 회원가입 링크 클릭 이벤트 처리 함수          //
+    const onSignInLinkClickHandler = () => {
+      setView('sign-in');
+    }
+    //          event handler: 이메일 키 다운 이벤트 처리 함수          //
+    const onEmailKeyDownHandler = (event: KeyboardEvent<HTMLInputElement>) => {
+      if (event.key !== 'Enter') return;
+      onResendVerifyEmailClickHandler();
+    }
+
+    
+    //          render: resend 컴포넌트 렌더링          //  
+    return (
+      <div className='auth-card'>
+        <div className='auth-card-box'>
+          <div className='auth-card-top'>
+            <div className='auth-card-title-box'>
+              <div className='auth-card-title'>{'인증 메일 재전송'}</div>
+            </div>
+            <InputBox ref={emailRef} label='이메일 주소' type='text' placeholder='이메일 주소를 입력해주세요.' value={email} onChange={onEmailChangeHandler} onKeyDown={onEmailKeyDownHandler} error={false} />
+          </div>
+          <div className='auth-card-bottom'>
+            <div className='black-large-full-button' onClick={onResendVerifyEmailClickHandler}>{'인증 메일 재전송'}</div>
+            <div className='auth-description-box'>
+              <div className='auth-description'>{'인증 메일이 도착했나요? '}
+                <span className='auth-description-link' onClick={onSignInLinkClickHandler}>{'로그인'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   //          render: 인증 화면 컴포넌트 렌더링          //  
   return (
     <div id='auth-wrapper'>
@@ -559,13 +655,18 @@ export default function Authentication() {
             <div className='auth-logo-icon'></div>
             <div className='auth-jumbotron-text-box'>
               <div className='auth-jumbotron-text'>{'환영합니다'}</div>
-              <div className='auth-jumbotron-text'>{'Hanbat Board 입니다.'}</div>
+              <div className='auth-jumbotron-text'>{'RoutePick 입니다.'}</div>
             </div>
           </div>
         </div>
         {view === 'sign-in' && <SignInCard/>}
         {view === 'sign-up' && <SignUpCard/>}
+        {view === 'resend' && <ResendCard/>}
       </div>
     </div>
   )
+
+  
 };
+
+
