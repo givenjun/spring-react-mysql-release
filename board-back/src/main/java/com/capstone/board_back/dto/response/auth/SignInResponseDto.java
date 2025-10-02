@@ -32,4 +32,8 @@ public class SignInResponseDto extends ResponseDto {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(result);
     }
 
+    public static ResponseEntity<ResponseDto> emailNotVerified() {
+        ResponseDto result = new ResponseDto("NEV", "이메일 인증이 필요합니다.");
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(result);
+    }
 }
