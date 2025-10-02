@@ -40,17 +40,13 @@ public class EmailVerificationServiceImplement implements EmailVerificationServi
     }
 
     @Override
-    @Transactional
     public ResponseEntity<? super EmailSendResponseDto> issueToken(String email) {
         try {
             UserEntity user = userRepository.findByEmail(email);
             if (user == null) return EmailSendResponseDto.notExistUser();
             if (Boolean.TRUE.equals(user.getEmailVerified())) return EmailSendResponseDto.alreadyVerified();
 
-            // 기존 토큰 제거
-            tokenRepository.deleteByUserEmail(email);
-
-            // 새로운 토큰 생성
+            // 토큰 생성 및 저장
             String rawToken = UUID.randomUUID().toString();
             String hash = sha256(rawToken);
 
@@ -60,11 +56,10 @@ public class EmailVerificationServiceImplement implements EmailVerificationServi
             token.setExpiresAt(LocalDateTime.now().plusHours(24));
             tokenRepository.save(token);
 
-            // 📩 메일 발송만 비동기로
-            sendVerificationEmailAsync(email, rawToken);
+            // ✨ 비동기로 메일 발송
+            mailService.sendVerifyEmail(email, rawToken);
 
             return EmailSendResponseDto.success();
-
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseDto.databaseError();
