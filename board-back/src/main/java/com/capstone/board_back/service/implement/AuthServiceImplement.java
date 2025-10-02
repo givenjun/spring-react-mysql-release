@@ -9,6 +9,7 @@ import com.capstone.board_back.entity.UserEntity;
 import com.capstone.board_back.provider.JwtProvider;
 import com.capstone.board_back.repository.UserRepository;
 import com.capstone.board_back.service.AuthService;
+import com.capstone.board_back.service.EmailVerificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -21,6 +22,7 @@ public class AuthServiceImplement implements AuthService {
 
     private final UserRepository userRepository;
     private final JwtProvider jwtProvider;
+    private final EmailVerificationService emailVerificationService;
 
     private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -48,6 +50,9 @@ public class AuthServiceImplement implements AuthService {
             UserEntity userEntity = new UserEntity(dto);
             userRepository.save(userEntity);
 
+            // 이메일 인증 메일 자동 발송
+            emailVerificationService.issueToken(userEntity.getEmail());
+
 
         } catch (Exception exception) {
             exception.printStackTrace();
@@ -73,6 +78,11 @@ public class AuthServiceImplement implements AuthService {
             String encodedPassword = userEntity.getPassword();
             boolean isMatched = passwordEncoder.matches(password, encodedPassword);
             if (!isMatched) return SignInResponseDto.signInFail();
+
+            // ✅ 이메일 인증 여부 확인 추가
+            if (!userEntity.getEmailVerified()) {
+                return SignInResponseDto.emailNotVerified();
+            }
 
             token = jwtProvider.create(email);
 
