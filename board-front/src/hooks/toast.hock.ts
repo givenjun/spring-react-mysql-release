@@ -11,6 +11,7 @@ const customErrToast = (str: string) => {
         progress: undefined,
         theme: "dark",
         transition: Slide,
+        style: { whiteSpace: "pre-line" }  // ← 줄바꿈 반영
     });
 }
 
