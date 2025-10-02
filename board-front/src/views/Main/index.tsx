@@ -545,25 +545,35 @@ function slicePathRange(path: LatLng[], cum: number[], a: number, b: number): La
 }
 
 /** 개미행렬(테두리) 세그먼트 생성 */
-function makeAntSegments(path: LatLng[], cum: number[], phase: number, dashLen: number, gapLen: number, maxSeg = 200) {
-  const total = cum[cum.length - 1] || 0;
-  if (total <= 0 || path.length < 2) return [] as LatLng[][];
-  const period = dashLen + gapLen;
-  if (period <= 0) return [];
+  // 변경
+  function makeAntSegments(
+    path: LatLng[],
+    cum: number[],
+    phase: number,
+    dashLen: number,
+    gapLen: number,
+    cap = 2000 // 안전 상한 (원하면 더 키워도 됨)
+  ) {
+    const total = cum[cum.length - 1] || 0;
+    if (total <= 0 || path.length < 2) return [] as LatLng[][];
+    const period = dashLen + gapLen;
+    if (period <= 0) return [];
 
-  // phase를 [0, period)로 정규화
-  let startS = ((phase % period) + period) % period;
+    let startS = ((phase % period) + period) % period;
 
-  const segs: LatLng[][] = [];
-  // 루트 전체를 순회하며 [startS + k*period, startS + k*period + dashLen] 구간을 자름
-  for (let s = startS; s < total && segs.length < maxSeg; s += period) {
-    const a = s;
-    const b = Math.min(s + dashLen, total);
-    const seg = slicePathRange(path, cum, a, b);
-    if (seg.length >= 2) segs.push(seg);
+    // 총 길이에 필요한 대시 개수 추정 → cap과 비교하여 예산 결정
+    const needed = Math.ceil(total / period) + 2; // 여유분 +2
+    const budget = Math.min(cap, needed);
+
+    const segs: LatLng[][] = [];
+    for (let s = startS, n = 0; s < total && n < budget; s += period, n++) {
+      const a = s;
+      const b = Math.min(s + dashLen, total);
+      const seg = slicePathRange(path, cum, a, b);
+      if (seg.length >= 2) segs.push(seg);
+    }
+    return segs;
   }
-  return segs;
-}
 
 export default function Main() {
   const { searchResults, center, searchPlaces } = useKakaoSearch();
@@ -1006,12 +1016,13 @@ export default function Main() {
   }, [autoRoutePath, autoTotal]);
 
   // 테두리(대시) 세그먼트
+  // 변경 (cap을 넉넉히)
   const routeBorderSegs = useMemo(
-    () => makeAntSegments(routePath, routeCum, routePhase, DASH_LEN, GAP_LEN, 180),
+    () => makeAntSegments(routePath, routeCum, routePhase, DASH_LEN, GAP_LEN, 2000),
     [routePath, routeCum, routePhase]
   );
   const autoBorderSegs  = useMemo(
-    () => makeAntSegments(autoRoutePath, autoCum, autoPhase, DASH_LEN, GAP_LEN, 180),
+    () => makeAntSegments(autoRoutePath, autoCum, autoPhase, DASH_LEN, GAP_LEN, 2000),
     [autoRoutePath, autoCum, autoPhase]
   );
 
