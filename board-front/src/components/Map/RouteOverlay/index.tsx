@@ -125,7 +125,7 @@ export default function RouteOverlay({ center, level = 4, path, places, onMapCre
     >
       {/* 경로 라인 */}
       {linePath.length >= 2 && (
-        <Polyline path={[linePath]} strokeWeight={6} strokeOpacity={0.9} strokeColor="#7b5cff" />
+        <Polyline path={[linePath]} strokeWeight={6} strokeOpacity={0.9} strokeColor="#7b5cff" zIndex={9999} />//zIndex추가
       )}
 
       {/* 마커 + 라벨 */}

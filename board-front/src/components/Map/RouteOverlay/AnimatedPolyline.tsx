@@ -60,7 +60,7 @@ export default function AnimatedPolyline({
   speed = 60,
   loop = true,
   showMarker = true,
-  strokeColor = "#2E86DE",
+  strokeColor = "#7B5CFF", // 기본색을 보라색으로 변경
   strokeWeight = 5,
   strokeOpacity = 0.9,
   zIndex = 5,
