@@ -105,6 +105,12 @@
   border-radius: 10px; /* 둥글게 */
   cursor: pointer;
   transition: background-color .15s ease, outline-color .15s ease;
+
+   /* 🔒 여기 추가 */
+  white-space: nowrap;        /* 줄바꿈 금지 */
+  word-break: keep-all;       /* 한국어 글자 쪼개기 방지 */
+  overflow-wrap: normal;      /* 강제 줄바꿈 방지 */
+  flex: 0 0 auto;             /* 컨테이너에서 폭이 줄어들며 깨지는 것 방지 */
 }
 
 /* 검색 인풋 박스 */
