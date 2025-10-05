@@ -191,3 +191,100 @@
 
 .main-wrapper { position: relative; }
 
+/*3가지경로보기에대한 CSS 추가 나중에 문제될시 삭제 혹은 수정할예정*/
+/* ===== 3경로 카드 패널 ===== */
+.route-options-panel {
+  position: absolute;
+  left: 10px;
+  top: 100px;
+  width: 300px;
+  max-height: calc(100vh - 140px);
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #e9e9ef;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+}
+.route-options-title {
+  font-weight: 800;
+  font-size: 14px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #f0f0f5;
+}
+.route-options-list {
+  padding: 10px;
+  overflow-y: auto;
+}
+.route-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px 12px;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+.route-option.selected {
+  border-color: #8a2ea1;
+  box-shadow: 0 0 0 2px rgba(138,46,161,0.12) inset;
+}
+.route-option:hover { background: #faf7ff; }
+.route-option-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px;
+}
+.route-option-name { font-weight: 800; }
+.route-option-time { font-weight: 900; }
+.route-option-sub {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 4px; font-size: 12px; color: #555;
+  flex-wrap: wrap;
+}
+.route-option-delta { opacity: 0.85; }
+.route-option-badge {
+  margin-left: auto;
+  font-size: 11px; font-weight: 700;
+  padding: 2px 8px; border-radius: 999px;
+  background: rgba(79,70,229,0.08); color: #4f46e5;
+}
+.route-option-badge.쉬운길 { background: rgba(16,185,129,0.10); color: #059669; }
+.route-option-badge.빠른길 { background: rgba(99,102,241,0.12); color: #4f46e5; }
+.route-option-badge.권장길 { background: rgba(79,70,229,0.08); color: #4f46e5; }
+.route-options-help {
+  padding: 8px 12px; border-top: 1px dashed #eee; font-size: 12px; color: #666;
+}
+
+/* ===== 오른쪽 상세/맛집 패널 ===== */
+.route-detail-panel {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 340px;
+  transform: translateX(100%);
+  background: #fff;
+  border-left: 1px solid #eee;
+  box-shadow: -8px 0 24px rgba(0,0,0,0.06);
+  z-index: 25;
+  display: flex; flex-direction: column;
+  transition: transform .2s ease;
+}
+.route-detail-panel.open { transform: translateX(0); }
+.route-detail-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; border-bottom: 1px solid #f3f3f8;
+}
+.route-detail-title { font-weight: 800; }
+.route-detail-close {
+  width: 28px; height: 28px; border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid #eee; background: #fff; cursor: pointer;
+}
+.route-detail-summary { padding: 10px 14px; font-size: 13px; color:#333; }
+.route-detail-hint { margin-top: 4px; font-size: 12px; color:#666; }
+.route-detail-body { padding: 8px 12px 16px; overflow-y: auto; }
+.error-text { color: #d00; }
+/*3가지경로보기에대한 CSS 추가 나중에 문제될시 삭제 혹은 수정할예정*/
