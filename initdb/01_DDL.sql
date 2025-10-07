@@ -148,3 +148,27 @@ GROUP BY user_email;
 
 -- user 테이블에 role 컬럼 추가
 ALTER TABLE user ADD COLUMN role ENUM('USER', 'ADMIN') DEFAULT 'USER' NOT NULL;
+
+-- 1️⃣ 댓글 → 게시글 관계 CASCADE 적용
+ALTER TABLE comment DROP FOREIGN KEY FK_board_TO_comment;
+ALTER TABLE comment
+    ADD CONSTRAINT FK_board_TO_comment
+        FOREIGN KEY (board_number)
+            REFERENCES board(board_number)
+            ON DELETE CASCADE;
+
+-- 2️⃣ 좋아요 → 게시글 관계 CASCADE 적용
+ALTER TABLE favorite DROP FOREIGN KEY FK_board_TO_favorite;
+ALTER TABLE favorite
+    ADD CONSTRAINT FK_board_TO_favorite
+        FOREIGN KEY (board_number)
+            REFERENCES board(board_number)
+            ON DELETE CASCADE;
+
+-- 3️⃣ 이미지 → 게시글 관계 CASCADE 적용
+ALTER TABLE image DROP FOREIGN KEY FK_board_TO_image;
+ALTER TABLE image
+    ADD CONSTRAINT FK_board_TO_image
+        FOREIGN KEY (board_number)
+            REFERENCES board(board_number)
+            ON DELETE CASCADE;
