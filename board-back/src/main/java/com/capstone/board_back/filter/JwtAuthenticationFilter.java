@@ -49,7 +49,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // ✅ 새로 추가: role 추출 (없으면 기본 USER)
             Role role = jwtProvider.getRole(token);
             SimpleGrantedAuthority authority =
-                    new SimpleGrantedAuthority("ROLE_" + role.name());
+                    new SimpleGrantedAuthority("ROLE_" + role);
 
             // ✅ 기존 인증 객체 생성 방식 그대로, 권한만 추가
             AbstractAuthenticationToken authenticationToken =

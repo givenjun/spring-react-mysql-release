@@ -21,18 +21,18 @@ public class JwtProvider {
     @Value("${secret-key}")
     private String secretKey;
 
-    public String create(String email) {
-
-        Date expiredDate = Date.from(Instant.now().plus(1, ChronoUnit.HOURS));
-        Key key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
-
-        String jwt = Jwts.builder()
-                .signWith(key, SignatureAlgorithm.HS256)
-                .setSubject(email).setIssuedAt(new Date()).setExpiration(expiredDate)
-                .compact();
-
-        return jwt;
-    }
+//    public String create(String email) {
+//
+//        Date expiredDate = Date.from(Instant.now().plus(1, ChronoUnit.HOURS));
+//        Key key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
+//
+//        String jwt = Jwts.builder()
+//                .signWith(key, SignatureAlgorithm.HS256)
+//                .setSubject(email).setIssuedAt(new Date()).setExpiration(expiredDate)
+//                .compact();
+//
+//        return jwt;
+//    }
 
     // ✅ 관리자용 / role 포함 오버로딩
     public String create(String email, Role role) {
@@ -42,7 +42,7 @@ public class JwtProvider {
         String jwt = Jwts.builder()
                 .signWith(key, SignatureAlgorithm.HS256)
                 .setSubject(email)
-                .claim("role", role.name()) // 👈 추가된 부분 (role 정보 포함)
+                .claim("role", role) // 👈 추가된 부분 (role 정보 포함)
                 .setIssuedAt(new Date())
                 .setExpiration(expiredDate)
                 .compact();
@@ -72,8 +72,8 @@ public class JwtProvider {
 
     // ✅ role만 읽는 추가 메서드 (기존 코드에 영향 없음)
     public Role getRole(String jwt) {
+        Key key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
         try {
-            Key key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
             Claims claims = Jwts.parserBuilder()
                     .setSigningKey(key)
                     .build()
