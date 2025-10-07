@@ -1,7 +1,7 @@
 USE board;
 
 -- 회원가입
-INSERT INTO user (email, password, nickname, tel_number, address, address_detail, profile_image) 
+INSERT INTO user (email, password, nickname, tel_number, address, address_detail, profile_image)
 VALUES ('email@email.com', 'P!ssw0od', 'nickname', '01012345678', '대전광역시 유성구', '한밭대학교', NULL);
 
 -- 로그인
@@ -42,7 +42,7 @@ INSERT INTO image(board_number, image) VALUES (1, 'url');
 -- 게시물 삭제
 DELETE FROM comment WHERE board_number = 1;
 DELETE FROM favorite WHERE board_number = 1;
-DELETE FROM image WHERE board_number = 1; 
+DELETE FROM image WHERE board_number = 1;
 DELETE FROM board WHERE board_number = 1;
 
 -- 상세 게시물 불러오가
@@ -135,3 +135,49 @@ UPDATE user SET nickname = '수정 닉네임' WHERE email = 'email@email.com';
 -- 프로필 이미지 수정
 UPDATE user SET profile_image = 'url2' WHERE email = 'email@email.com';
 
+-- 2학기 이후
+-- A. 토큰 발급 (회원가입 직후 또는 "재전송" 클릭 시)
+--    - 앱에서 raw_token(UUID 등) 생성 → DB엔 해시만 저장
+--    - 필요 시 기존 토큰 삭제(가장 단순)
+INSERT INTO email_verification_token (user_email, token_hash, expires_at)
+VALUES (
+           :email,
+           SHA2(:raw_token, 256),
+           DATE_ADD(NOW(), INTERVAL 24 HOUR)   -- 만료 24h (운영에서 조정 가능)
+       );
+
+-- B. 인증 링크 클릭 시(검증)
+-- 1) 유효 토큰 확인
+SELECT id, user_email
+FROM email_verification_token
+WHERE token_hash = SHA2(:raw_token, 256)
+  AND used_at IS NULL
+  AND expires_at > NOW()
+LIMIT 1;
+
+-- 2) 계정 활성화
+UPDATE user
+SET email_verified = 1
+WHERE email = :user_email;
+
+-- 3) 토큰 사용 처리(1회성)
+UPDATE email_verification_token
+SET used_at = NOW()
+WHERE id = :id;
+
+-- C. 만료/사용 토큰 정리(배치, 예: 1일 1회)
+DELETE FROM email_verification_token
+WHERE used_at IS NOT NULL
+   OR expires_at < NOW();
+
+-- ============================================================
+-- 로그인/이용 제어 (권장: "이메일 미인증"은 로그인 자체 차단)
+-- ============================================================
+
+-- 로그인 SELECT 예시(실제는 비밀번호 해시 비교)
+-- 미인증은 로그인 실패 처리 → 프론트에 "이메일 인증 필요" 안내
+SELECT email, password /* + 기타 컬럼 */
+FROM user
+WHERE email = :email
+  AND password = :password_hash
+  AND email_verified = 1;

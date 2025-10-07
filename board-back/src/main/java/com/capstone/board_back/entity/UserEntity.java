@@ -24,6 +24,7 @@ public class UserEntity {
     private String addressDetail;
     private String profileImage;
     private boolean agreedPersonal;
+    private boolean emailVerified = false;
 
     public UserEntity(SignUpRequestDto dto) {
         this.email = dto.getEmail();
@@ -33,6 +34,7 @@ public class UserEntity {
         this.address = dto.getAddress();
         this.addressDetail = dto.getAddressDetail();
         this.agreedPersonal = dto.getAgreedPersonal();
+        this.emailVerified = false;
     }
 
     public void setNickname(String nickname) {
@@ -41,6 +43,14 @@ public class UserEntity {
 
     public void setProfileImage(String profileImage) {
         this.profileImage = profileImage;
+    }
+
+    public boolean getEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(boolean emailVerified) {
+        this.emailVerified = emailVerified;
     }
 
 }

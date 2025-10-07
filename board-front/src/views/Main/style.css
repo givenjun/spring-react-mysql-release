@@ -5,6 +5,7 @@
     justify-content: center;
 
     background-color: rgba(0,0,0,0.05);
+
 }
 
 .main-top-container {
@@ -189,4 +190,4 @@
   transform: translateX(0);
 }
 
-.main-wrapper { position: relative; }
+.main-wrapper { position: relative; overflow: hidden; }

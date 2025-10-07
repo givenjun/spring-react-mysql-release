@@ -33,7 +33,7 @@ public class WebSecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    @Value("${cors.allowed-origin}")
+    @Value("${cors.front-origin}")
     private String frontOrigin;
     @Value("http://routepick.kro.kr")
     private String domainOrigin;
@@ -51,7 +51,8 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(request -> request
                         .requestMatchers("/", "/api/v1/auth/**", "/api/v1/search/**", "/file/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/board/**", "/api/v1/user/*").permitAll()
-                        .requestMatchers("/api/v1/gemini/ask").permitAll() 
+                        .requestMatchers("/api/v1/gemini/ask").permitAll()
+                        .requestMatchers("/api/dev/**").permitAll()   // ✅ 개발용 메일 테스트 허용
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exceptionHandling -> exceptionHandling
@@ -67,7 +68,6 @@ public class WebSecurityConfig {
     protected CorsConfigurationSource corsConfigurationSource() {
 
         CorsConfiguration configuration = new CorsConfiguration();
-          configuration.addAllowedOrigin("http://localhost:3000");
         configuration.addAllowedOrigin(frontOrigin);
         configuration.addAllowedOrigin(domainOrigin);
         configuration.setAllowCredentials(true);
