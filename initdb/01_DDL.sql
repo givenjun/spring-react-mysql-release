@@ -145,3 +145,6 @@ SELECT
     MAX(created_at) AS last_issued_at
 FROM email_verification_token
 GROUP BY user_email;
+
+-- user 테이블에 role 컬럼 추가
+ALTER TABLE user ADD COLUMN role ENUM('USER', 'ADMIN') DEFAULT 'USER' NOT NULL;
