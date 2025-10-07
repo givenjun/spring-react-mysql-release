@@ -8,7 +8,7 @@ import BoardDetail from 'views/Board/Detail';
 import BoardWrite from 'views/Board/Write';
 import BoardUpdate from 'views/Board/Update';
 import Container from 'layouts/Container';
-import { MAIN_PATH, AUTH_PATH, SEARCH_PATH, USER_PATH, BOARD_PATH, BOARD_WRITE_PATH, BOARD_DETAIL_PATH, BOARD_UPDATE_PATH, NOTICE_PATH, EMAIL_VERIFIED_SUCCESS_PATH, EMAIL_VERIFIED_FAIL_PATH, ADMIN_BOARD_PATH, ADMIN_LAYOUT_PATH } from 'constant';
+import { MAIN_PATH, AUTH_PATH, SEARCH_PATH, USER_PATH, BOARD_PATH, BOARD_WRITE_PATH, BOARD_DETAIL_PATH, BOARD_UPDATE_PATH, NOTICE_PATH, EMAIL_VERIFIED_SUCCESS_PATH, EMAIL_VERIFIED_FAIL_PATH, ADMIN_LAYOUT_PATH } from 'constant';
 import { useEffect } from 'react';
 import { useLoginUserStore } from 'stores';
 import { getSignInUserRequest } from 'apis';

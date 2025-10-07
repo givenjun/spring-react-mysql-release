@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { Address, useDaumPostcodePopup } from 'react-daum-postcode';
 import SignUpRequestDto from 'apis/request/auth/sign-up.request.dto';
 import { customErrToast } from 'hooks';
+import { jwtDecode } from 'jwt-decode';
 
 //          component: 인증 화면 컴포넌트          //
 export default function Authentication() {
@@ -59,8 +60,12 @@ export default function Authentication() {
       const now = new Date().getTime();
       const expires = new Date(now + expirationTime * 1000);
 
+      const decoded: any = jwtDecode(token);
       setCookie('accessToken', token, { expires, path: MAIN_PATH() });
-      navigate(BOARD_PATH());
+      localStorage.setItem('accessToken', token); // ✅ 추가
+
+      if (decoded.role === 'ADMIN') navigate('/admin/layout');
+      else navigate(BOARD_PATH());
 
     }
 
