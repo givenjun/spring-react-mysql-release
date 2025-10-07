@@ -1,5 +1,6 @@
 package com.capstone.board_back.config;
 
+import com.capstone.board_back.filter.EmailVerificationFilter;
 import com.capstone.board_back.filter.JwtAuthenticationFilter;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,6 +33,7 @@ import java.util.List;
 public class WebSecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final EmailVerificationFilter emailVerificationFilter; // ✅ 추가
 
     @Value("${cors.front-origin}")
     private String frontOrigin;
@@ -49,16 +51,23 @@ public class WebSecurityConfig {
                 .sessionManagement(session -> session.
                         sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(request -> request
+                        // ✅ 관리자 전용 경로
+                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+
+                        // ✅ 공개 접근 경로
                         .requestMatchers("/", "/api/v1/auth/**", "/api/v1/search/**", "/file/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/board/**", "/api/v1/user/*").permitAll()
-                        .requestMatchers("/api/v1/gemini/ask").permitAll()
-                        .requestMatchers("/api/dev/**").permitAll()   // ✅ 개발용 메일 테스트 허용
-                        .anyRequest().authenticated()
+//                        .requestMatchers("/api/v1/gemini/ask").permitAll()
+
+                        // ✅ 나머지 요청은 USER 또는 ADMIN만 접근 가능
+                        .anyRequest().hasAnyRole("USER", "ADMIN")
                 )
                 .exceptionHandling(exceptionHandling -> exceptionHandling
                         .authenticationEntryPoint(new FailedAuthenticationEntryPoint())
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                // ✅ 이메일 인증 필터는 JWT 다음에 실행
+                .addFilterAfter(emailVerificationFilter, JwtAuthenticationFilter.class);
 
         return httpSecurity.build();
 

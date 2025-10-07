@@ -40,6 +40,12 @@ public class EmailVerificationFilter extends OncePerRequestFilter {
             return;
         }
 
+        // ✅ GET 요청(게시글 열람)은 통과시킴
+        if (request.getMethod().equalsIgnoreCase("GET")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getName() == null) {
             filterChain.doFilter(request, response);
