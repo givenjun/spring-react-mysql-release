@@ -42,7 +42,7 @@ public class JwtProvider {
         String jwt = Jwts.builder()
                 .signWith(key, SignatureAlgorithm.HS256)
                 .setSubject(email)
-                .claim("role", role) // 👈 추가된 부분 (role 정보 포함)
+                .claim("role", role.name()) // 👈 추가된 부분 (role 정보 포함)
                 .setIssuedAt(new Date())
                 .setExpiration(expiredDate)
                 .compact();
