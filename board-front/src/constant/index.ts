@@ -9,3 +9,5 @@ export const BOARD_UPDATE_PATH = (boardNumber: string | number) => `update/${boa
 export const NOTICE_PATH = () => `/notice`;
 export const EMAIL_VERIFIED_SUCCESS_PATH = () => '/email-verified-success';
 export const EMAIL_VERIFIED_FAIL_PATH = () => '/email-verified-fail';
+export const ADMIN_PATH = () => '/admin';
+export const ADMIN_LAYOUT_PATH = () => '/admin/layout';
