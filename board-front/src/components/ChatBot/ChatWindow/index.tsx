@@ -4,9 +4,14 @@ import SendButton from 'assets/image/expand-right-light.png';
 import { useChat } from 'hooks/chatbot.hook';
 import ReactMarkDown from 'react-markdown';
 
-export default function ChatWindow() {
+interface ChatWindowProps {
+    sessionId: string;
+    onBack: () => void;
+}
+
+export default function ChatWindow({ sessionId, onBack }: ChatWindowProps) {
     // useChat Hook을 호출하여 채팅 관련 상태와 함수들을 가져옵니다.
-    const { messages, input, isLoading, handleInputChange, handleSubmit } = useChat();
+    const { messages, input, isLoading, handleInputChange, handleSubmit } = useChat(sessionId);
     
     // 스크롤을 항상 아래로 유지하기 위한 ref
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -21,6 +26,9 @@ export default function ChatWindow() {
 
     return (
         <div className="chat-window-container">
+            <div className='chat-window-header'>
+                <button onClick={onBack}>&lt; 목록으로</button>
+            </div>
             <div className="chat-window-messages">
                 {/* messages 배열을 순회하며 각 메시지를 화면에 렌더링 */}
                 {messages.map((msg, index) => (
@@ -35,7 +43,7 @@ export default function ChatWindow() {
                 }
                 {isLoading && (
                     <div className="message-bubble received">
-                        입력 중...
+                        입력 중... 
                     </div>
                 )}
                 <div ref={messagesEndRef} />

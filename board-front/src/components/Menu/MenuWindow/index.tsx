@@ -1,6 +1,6 @@
-import ChatWindow from 'components/ChatBot';
 import './style.css';
 import { useCallback, useEffect, useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import ChatIcon from 'assets/image/chat-icon.png'
 import MenuHome from '../MenuHome';
 import HomeIcon from 'assets/image/home-icon.png'
@@ -9,6 +9,8 @@ import { useNavigate } from 'react-router-dom';
 import { getSearchBoardListRequest } from 'apis';
 import RelatedPostsSidebar from 'components/RelatedPostsSidebar';
 import useRelativeStore from 'stores/relativeStore';
+import ChatWindow from 'components/ChatBot/ChatWindow';
+import ChatList from 'components/ChatBot/ChatList';
 
 const BOARD_DETAIL_PATH = '/board/detail';
 
@@ -41,6 +43,7 @@ export default function MenuWindow() {
     const [relatedLoading, setRelatedLoading] = useState<boolean>(false);
     const [relatedError, setRelatedError] = useState<string | null>(null);
     const [isOpened, setIsOpened] = useState<boolean>(false);
+    const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
  
     const loadRelatedPosts = useCallback(async (keyword: string) =>  {
         if (!keyword) return;
@@ -78,6 +81,16 @@ export default function MenuWindow() {
 
     const chatClickHandler = () => {
         setActiveTab('chat');
+        setCurrentSessionId(null);
+    }
+
+    const handleNewChat = () => {
+        const newSessionId = uuidv4();
+        setCurrentSessionId(newSessionId);
+    }
+
+    const handleSelectSession = (sessionId: string) => {
+        setCurrentSessionId(sessionId);
     }
     
     const relatedPostHandler =() => {
@@ -92,7 +105,20 @@ export default function MenuWindow() {
                 </div>
             }
             {activeTab === 'home' && <MenuHome/>}
-            {activeTab === 'chat' && <ChatWindow/>}
+            {activeTab === 'chat' && (
+                currentSessionId ? (
+                    <ChatWindow
+                        key={currentSessionId}
+                        sessionId={currentSessionId}
+                        onBack={() => setCurrentSessionId(null)}
+                    />
+                ) : (
+                    <ChatList
+                        onSelectSession={handleSelectSession}
+                        onNewChat={handleNewChat}
+                    />
+                )
+            )}
             {activeTab === 'relativePost' && (
                 <RelatedPostsSidebar
                     placeName={selectedPlaceName}
