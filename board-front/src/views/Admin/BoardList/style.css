@@ -1,44 +1,37 @@
 .admin-board-list {
-  padding: 40px;
+  margin-left: 40px;
+  margin-right: 40px;
 }
 
-.admin-board-list th,
-.admin-board-list td {
-  padding: 10px;
-  text-align: center;
+
+/* 열 고정 (게시물 8열 기준) */
+.admin-board-list th:nth-child(1),
+.admin-board-list td:nth-child(1) { width: 6%; }
+
+.admin-board-list th:nth-child(2),
+.admin-board-list td:nth-child(2) { width: 25%; }
+
+.admin-board-list th:nth-child(3),
+.admin-board-list td:nth-child(3) { width: 15%; }
+
+.admin-board-list th:nth-child(4),
+.admin-board-list td:nth-child(4) { width: 12%; }
+
+.admin-board-list th:nth-child(5),
+.admin-board-list td:nth-child(5),
+.admin-board-list th:nth-child(6),
+.admin-board-list td:nth-child(6),
+.admin-board-list th:nth-child(7),
+.admin-board-list td:nth-child(7) { width: 5%; }
+
+/* ✅ 제목 말줄임 표시 */
+.admin-board-list td:nth-child(2),
+.admin-board-list th:nth-child(2) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.detail-btn {
-  background-color: #3498db;
-  color: white;
-  border: none;
-  padding: 6px 10px;
-  cursor: pointer;
-  border-radius: 4px;
-  margin-right: 6px;
-  font-weight: 600;
-}
-
-.detail-btn:hover {
-  background-color: #2c80b4;
-  transition: background-color 0.2s ease;
-}
-
-.delete-btn {
-  background-color: #e74c3c;
-  color: white;
-  border: none;
-  padding: 6px 10px;
-  cursor: pointer;
-  border-radius: 4px;
-  font-weight: 600;
-}
-
-.delete-btn:hover {
-  background-color: #c0392b;
-  transition: background-color 0.2s ease;
-}
-
-.action-buttons {
-  justify-content: center;
+.admin-board-list td:nth-child(2)[title] {
+  cursor: help;
 }

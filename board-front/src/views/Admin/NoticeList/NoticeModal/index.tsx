@@ -63,8 +63,8 @@ export default function NoticeModal({ notice, onClose, onSuccess }: Props) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay">
+      <div className="modal-container">
         <h3>{isEdit ? "✏️ 공지 수정" : "📝 새 공지 작성"}</h3>
 
         <input

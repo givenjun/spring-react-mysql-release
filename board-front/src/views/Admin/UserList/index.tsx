@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import "./style.css";
+import "../common/style.css";
 import axios from "axios";
 import useAdminAuth from "hooks/useadminauth.hook";
-import { customErrToast } from "hooks";
+import { customErrToast, usePagination } from "hooks";
+import DeleteConfirmModal from '../common/DeleteConfirmModal';
 
 interface User {
   email: string;
@@ -16,13 +18,27 @@ const DOMAIN = process.env.REACT_APP_API_URL;
 
 export default function AdminUserList() {
   useAdminAuth();
-  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // ✅ 페이지네이션 훅 (페이지당 10명씩)
+  const {
+    currentPage,
+    setCurrentPage,
+    currentSection,
+    setCurrentSection,
+    viewList,
+    viewPageList,
+    totalSection,
+    setTotalList,
+  } = usePagination<User>(10);
 
   // ✅ 모달 상태
   const [showModal, setShowModal] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [targetEmail, setTargetEmail] = useState("");
 
   // ✅ 회원 목록 불러오기
   const getAdminUserList = async () => {
@@ -33,7 +49,7 @@ export default function AdminUserList() {
       });
 
       const { code, userList } = response.data;
-      if (code === "SU") setUsers(userList);
+      if (code === "SU") setTotalList(userList);
       else customErrToast("회원 목록을 불러오지 못했습니다.");
     } catch (error) {
       console.error(error);
@@ -44,18 +60,16 @@ export default function AdminUserList() {
   };
 
   // ✅ 회원 삭제 함수
-  const deleteUser = async (email: string) => {
-    if (!window.confirm(`${email} 사용자를 삭제하시겠습니까?`)) return;
-
+  const confirmDeleteUser = async () => {
     try {
       const token = localStorage.getItem("accessToken");
-      const response = await axios.delete(`${DOMAIN}/api/v1/admin/user/${email}`, {
+      const response = await axios.delete(`${DOMAIN}/api/v1/admin/user/${targetEmail}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       const { code } = response.data;
       if (code === "SU") {
-        setUsers((prev) => prev.filter((u) => u.email !== email));
+        getAdminUserList();
         customErrToast("회원이 삭제되었습니다.");
       } else {
         customErrToast("삭제 실패. 다시 시도해주세요.");
@@ -63,8 +77,11 @@ export default function AdminUserList() {
     } catch (error) {
       console.error(error);
       customErrToast("삭제 중 오류가 발생했습니다.");
+    } finally {
+      setShowDeleteModal(false);
     }
   };
+
 
   // ✅ 비밀번호 변경 요청
   const updateUserPassword = async () => {
@@ -107,67 +124,101 @@ export default function AdminUserList() {
         <h2>👥 회원 관리</h2>
       </div>
 
-      {users.length === 0 ? (
+      {viewList.length === 0 ? (
         <p>등록된 회원이 없습니다.</p>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>번호</th>
-              <th>이메일</th>
-              <th>비밀번호</th>
-              <th>닉네임</th>
-              <th>이메일 인증</th>
-              <th>권한</th>
-              <th>전화번호</th>
-              <th>관리</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user, index) => (
-              <tr key={user.email}>
-                <td>{index + 1}</td>
-                <td>{user.email}</td>
-                <td>
-                  <button
-                    className="update-btn"
-                    onClick={() => {
-                      setSelectedEmail(user.email);
-                      setShowModal(true);
-                    }}
-                  >
-                    변경하기
-                  </button>
-                </td>
-                <td>{user.nickname}</td>
-                <td> {user.emailVerified ? "✅ 인증됨" : "❌ 미인증"}</td>
-                <td>
-                  <span
-                    className={`role-badge ${
-                      user.role === "ADMIN" ? "admin" : "user"
-                    }`}
-                  >
-                    {user.role === "ADMIN" ? "ROLE_ADMIN" : "ROLE_USER"}
-                  </span>
-                </td>
-                <td>{user.telNumber}</td>
-                <td>
-                  <button
-                    className="delete-btn"
-                    onClick={() => deleteUser(user.email)}
-                  >
-                    삭제
-                  </button>
-                </td>
-              </tr>
+        <>
+          <div className="admin-table-wrapper">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>번호</th>
+                  <th>이메일</th>
+                  <th>비밀번호</th>
+                  <th>닉네임</th>
+                  <th>이메일 인증</th>
+                  <th>권한</th>
+                  <th>전화번호</th>
+                  <th>관리</th>
+                </tr>
+              </thead>
+              <tbody>
+                {viewList.map((user, index) => (
+                  <tr key={user.email}>
+                    <td>{(currentPage - 1) * 10 + index + 1}</td>
+                    <td>{user.email}</td>
+                    <td className="action-buttons">
+                      <button
+                        className="admin-btn update"
+                        onClick={() => {
+                          setSelectedEmail(user.email);
+                          setShowModal(true);
+                        }}
+                      >
+                        변경하기
+                      </button>
+                    </td>
+                    <td>{user.nickname}</td>
+                    <td>{user.emailVerified ? "✅ 인증됨" : "❌ 미인증"}</td>
+                    <td>
+                      <span
+                        className={`role-badge ${
+                          user.role === "ADMIN" ? "admin" : "user"
+                        }`}
+                      >
+                        {user.role === "ADMIN" ? "ROLE_ADMIN" : "ROLE_USER"}
+                      </span>
+                    </td>
+                    <td>{user.telNumber}</td>
+                    <td className="action-buttons">
+                      <button
+                        className="admin-btn delete"
+                        onClick={() => {
+                          setTargetEmail(user.email);
+                          setShowDeleteModal(true);
+                        }}
+                      >
+                        삭제하기
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ✅ 페이지네이션 UI */}
+          <div className="pagination">
+            <button
+              onClick={() => setCurrentSection(currentSection - 1)}
+              disabled={currentSection === 1}
+            >
+              ◀
+            </button>
+
+            {viewPageList.map((page) => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={page === currentPage ? "active" : ""}
+              >
+                {page}
+              </button>
             ))}
-          </tbody>
-        </table>
+
+            <button
+              onClick={() => setCurrentSection(currentSection + 1)}
+              disabled={currentSection === totalSection}
+            >
+              ▶
+            </button>
+          </div>
+        </>
       )}
 
       {/* ✅ 비밀번호 변경 모달 */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+        <div className="modal-overlay">
           <div
             className="modal-container"
             onClick={(e) => e.stopPropagation()}
@@ -190,6 +241,13 @@ export default function AdminUserList() {
             </div>
           </div>
         </div>
+      )}
+      {showDeleteModal && (
+        <DeleteConfirmModal
+          message={`${targetEmail} 사용자를 삭제하시겠습니까?`}
+          onCancel={() => setShowDeleteModal(false)}
+          onConfirm={confirmDeleteUser}
+        />
       )}
     </div>
   );
