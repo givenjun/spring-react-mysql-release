@@ -9,6 +9,8 @@ import com.capstone.board_back.repository.UserRepository;
 import com.capstone.board_back.service.AdminService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,6 +21,8 @@ public class AdminServiceImplement implements AdminService {
 
     private final UserRepository userRepository;
     private final BoardRepository boardRepository;
+
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public ResponseEntity<? super GetUserListResponseDto> getUserList() {
@@ -43,6 +47,24 @@ public class AdminServiceImplement implements AdminService {
         } catch (Exception exception) {
             exception.printStackTrace();
             return ResponseDto.databaseError();
+        }
+    }
+
+    // ✅ 비밀번호 변경 로직
+    @Override
+    public ResponseEntity<? super UpdateUserPasswordResponseDto> updateUserPassword(String email, String newPassword) {
+        try {
+            UserEntity user = userRepository.findByEmail(email);
+            if (user == null) return UpdateUserPasswordResponseDto.noExistUser();
+
+            String encodedPassword = passwordEncoder.encode(newPassword);
+            user.setPassword(encodedPassword);
+            userRepository.save(user);
+
+            return UpdateUserPasswordResponseDto.success();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return UpdateUserPasswordResponseDto.databaseError();
         }
     }
 
