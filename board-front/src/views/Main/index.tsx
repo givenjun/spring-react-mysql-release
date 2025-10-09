@@ -2056,7 +2056,7 @@ export default function Main() {
             setPlaceCardOpen(false);
             setFocusedRouteKey(null);
           }}
-          leftSidebarWidth={340}
+          leftSidebarWidth={isSidebarOpen ? 340 : 16}
           gap={16}
           topOffset={64}
           width={520}

@@ -140,3 +140,7 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+/* 부드러운 위치 이동: PlaceDetailCard */
+.place-detail-card {
+  transition: left 240ms ease, right 240ms ease;
+}
