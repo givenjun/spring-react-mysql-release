@@ -7,7 +7,7 @@ import AdminNoticeList from "./NoticeList";
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [section, setSection] = useState("dashboard");
+  const [section, setSection] = useState("notices");
   useAdminAuth();
   return (
     <div className="admin-layout">
