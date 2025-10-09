@@ -54,6 +54,7 @@ export default function Authentication() {
       if (code === 'DBE') customErrToast('데이터베이스 오류입니다.');
       if (code === 'SF' || code === 'VF') setError(true);
       if (code === 'NEV') customErrToast('이메일 인증 후 로그인해주세요.');
+      if (code === 'DU') customErrToast('삭제된 계정입니다.  로그인할 수 없습니다.'); 
       if (code !== 'SU') return;
 
       const { token, expirationTime } = responseBody as SignInResponseDto;
