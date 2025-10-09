@@ -172,3 +172,15 @@ ALTER TABLE image
         FOREIGN KEY (board_number)
             REFERENCES board(board_number)
             ON DELETE CASCADE;
+
+
+-- 공지사항 테이블 추가
+CREATE TABLE notice (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    content TEXT NOT NULL,
+    writer_email VARCHAR(100) NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_pinned BOOLEAN DEFAULT FALSE
+);
