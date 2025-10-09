@@ -3,6 +3,7 @@ import AdminSidebar from "components/AdminSidebar";
 import AdminBoardList from './BoardList';
 import AdminUserList from './UserList';
 import { useAdminAuth } from 'hooks';
+import AdminNoticeList from "./NoticeList";
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -39,7 +40,7 @@ export default function AdminLayout() {
         >
           메뉴 열기
         </button>
-        {section === "notices" && <div>📢 공지사항 영역</div>}
+        {section === "notices" && <AdminNoticeList />}
         {section === "boards" && <div><AdminBoardList/></div>}
         {section === "users" && <div><AdminUserList/></div>}
         {section === "dashboard" && <div>📊 대시보드 영역</div>}

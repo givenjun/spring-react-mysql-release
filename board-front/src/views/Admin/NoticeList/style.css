@@ -1,0 +1,177 @@
+.admin-notice-list {
+  padding: 40px;
+}
+
+.admin-notice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-notice-header h2 {
+  font-size: 1.6rem;
+  font-weight: bold;
+}
+
+.add-btn {
+  background-color: #4a6cf7;
+  color: white;
+  border: none;
+  font-size: 22px;
+  border-radius: 6px;
+  width: 38px;
+  height: 38px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.add-btn:hover {
+  background-color: #3b5be0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  background-color: white;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+th, td {
+  border-bottom: 1px solid #e0e0e0;
+  padding: 12px;
+  text-align: center;
+}
+
+th {
+  background-color: #f8f8f8;
+  font-weight: 600;
+}
+
+.update-btn,
+.delete-btn {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.update-btn {
+  background-color: #3498db;
+  color: white;
+  margin-right: 6px;
+}
+
+.update-btn:hover {
+  background-color: #2c80b4;
+}
+
+.delete-btn {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.delete-btn:hover {
+  background-color: #c0392b;
+}
+
+/* ✅ 모달 공통 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modal-container {
+  background: #fff;
+  padding: 24px 28px;
+  border-radius: 12px;
+  width: 380px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.25s ease;
+}
+
+.modal-container h3 {
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.modal-container input,
+.modal-container textarea {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  outline: none;
+}
+
+.modal-container textarea {
+  height: 120px;
+  resize: none;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+}
+
+.cancel-btn,
+.confirm-btn {
+  flex: 1;
+  margin: 0 4px;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cancel-btn {
+  background: #e0e0e0;
+}
+
+.confirm-btn {
+  background: #4a6cf7;
+  color: white;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;      /* 세로 가운데 정렬 */
+  justify-content: flex-start; /* 왼쪽 정렬 */
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  margin-bottom: 14px;
+}
+
+.checkbox-label input {
+  margin: 4px;
+  width: 18px;
+  height: 18px;
+  accent-color: #4a6cf7; /* 체크박스 색상 */
+  cursor: pointer;
+}
+
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
