@@ -56,6 +56,8 @@ public class UserEntity {
         this.emailVerified = emailVerified;
     }
 
+    public void setPassword(String password) { this.password = password; }
+
     // ✅ 관리자 승격용 메서드
     public void promoteToAdmin() {
         this.role = Role.ADMIN;
