@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import './style.css';
 import SendButton from 'assets/image/expand-right-light.png';
+import BackButton from 'assets/image/expand-left.png';
 import { useChat } from 'hooks/chatbot.hook';
 import ReactMarkDown from 'react-markdown';
 
@@ -26,9 +27,9 @@ export default function ChatWindow({ sessionId, onBack }: ChatWindowProps) {
 
     return (
         <div className="chat-window-container">
-            <div className='chat-window-header'>
-                <button onClick={onBack}>&lt; 목록으로</button>
-            </div>
+            <button className='chat-window-back-button' onClick={onBack}>
+                <img src={BackButton}></img>
+            </button>
             <div className="chat-window-messages">
                 {/* messages 배열을 순회하며 각 메시지를 화면에 렌더링 */}
                 {messages.map((msg, index) => (
