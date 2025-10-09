@@ -25,7 +25,7 @@ public class AuthServiceImplement implements AuthService {
     private final JwtProvider jwtProvider;
     private final EmailVerificationService emailVerificationService;
 
-    private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public ResponseEntity<? super SignUpResponseDto> signUp(SignUpRequestDto dto) {
@@ -85,7 +85,7 @@ public class AuthServiceImplement implements AuthService {
                 return SignInResponseDto.emailNotVerified();
             }
 
-            // ✅ role 정보를 JWT에 추가해서 발급
+            // ✅ role 정보를 JWT 에 추가해서 발급
             token = jwtProvider.create(email, Role.valueOf(userEntity.getRole().name()));
 
         } catch (Exception exception) {
