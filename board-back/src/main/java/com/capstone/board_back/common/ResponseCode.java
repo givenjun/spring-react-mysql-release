@@ -13,6 +13,7 @@ public interface ResponseCode {
     String NOT_EXISTED_USER = "NU";
     String NOT_EXISTED_BOARD = "NB";
     String NOT_EXISTED_COMMENT = "NC";
+    String NOT_EXISTED_NOTICE = "NEN";
 
     // HTTP Status 401
     String SIGN_IN_FAIL = "SF";
@@ -23,5 +24,6 @@ public interface ResponseCode {
 
     // HTTP Status 500
     String DATABASE_ERROR = "DBE";
+
 
 }
