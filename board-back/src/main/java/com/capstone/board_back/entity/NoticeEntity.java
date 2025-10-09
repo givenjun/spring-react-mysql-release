@@ -2,6 +2,9 @@ package com.capstone.board_back.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -26,18 +29,20 @@ public class NoticeEntity {
     @Column(nullable = false)
     private String writerEmail;
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @CreationTimestamp   // ✅ 엔티티 생성 시 자동으로 값 입력
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
+    @UpdateTimestamp     // ✅ 엔티티 수정 시 자동으로 값 갱신
     @Column(nullable = false)
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    private LocalDateTime updatedAt;
 
     @Column(nullable = false)
     private boolean pinned = false;
 
-    // 수정 시 updatedAt 자동 업데이트
-    @PreUpdate
-    public void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
+//    // 수정 시 updatedAt 자동 업데이트
+//    @PreUpdate
+//    public void onUpdate() {
+//        this.updatedAt = LocalDateTime.now();
+//    }
 }
