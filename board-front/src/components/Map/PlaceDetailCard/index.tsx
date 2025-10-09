@@ -94,12 +94,6 @@ export default function PlaceDetailCard({
           <img src={imageUrl} alt={`${name} 대표 이미지`} />
         </div>
       )}
-
-      <div className="pd-cta">
-        <button className="pd-chip" onClick={() => onClickStart?.(place)}>출발</button>
-        <button className="pd-chip primary" onClick={() => onClickDest?.(place)}>도착</button>
-      </div>
-
       {/* 탭 없이, 맛집 리스트만 표시 */}
       <section className="pd-body">
         <div className="pd-slot">
