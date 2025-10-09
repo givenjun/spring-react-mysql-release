@@ -7,6 +7,7 @@ import com.capstone.board_back.entity.UserEntity;
 import com.capstone.board_back.repository.BoardRepository;
 import com.capstone.board_back.repository.UserRepository;
 import com.capstone.board_back.service.AdminService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -35,13 +36,39 @@ public class AdminServiceImplement implements AdminService {
         }
     }
 
+//    @Override
+//    public ResponseEntity<? super DeleteUserResponseDto> deleteUser(String email) {
+//        try {
+//            if (!userRepository.existsById(email))
+//                return DeleteUserResponseDto.notExistedUser();
+//
+//            userRepository.deleteById(email);
+//            return DeleteUserResponseDto.success();
+//
+//        } catch (Exception exception) {
+//            exception.printStackTrace();
+//            return ResponseDto.databaseError();
+//        }
+//    }
+
+    // ✅ [수정됨] Soft Delete (실제 삭제 X, 익명화 처리)
     @Override
     public ResponseEntity<? super DeleteUserResponseDto> deleteUser(String email) {
         try {
-            if (!userRepository.existsById(email))
+            // 1️⃣ 이메일로 유저 조회
+            UserEntity user = userRepository.findByEmail(email);
+            if (user == null)
                 return DeleteUserResponseDto.notExistedUser();
 
-            userRepository.deleteById(email);
+            // 2️⃣ 이미 탈퇴된 회원이면 예외 처리
+            if (user.isDeleted())
+                return DeleteUserResponseDto.alreadyDeletedUser();
+
+            // 3️⃣ Soft Delete (익명화 및 삭제 처리)
+            user.markAsDeleted();
+            userRepository.save(user);
+
+            // 4️⃣ 성공 응답 반환
             return DeleteUserResponseDto.success();
 
         } catch (Exception exception) {

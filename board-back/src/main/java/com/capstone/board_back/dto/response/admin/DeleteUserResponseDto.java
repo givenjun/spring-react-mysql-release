@@ -21,4 +21,8 @@ public class DeleteUserResponseDto extends ResponseDto {
         ResponseDto responseBody = new ResponseDto(ResponseCode.NOT_EXISTED_USER, ResponseMessage.NOT_EXISTED_USER);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseBody);
     }
+
+    public static ResponseEntity<DeleteUserResponseDto> alreadyDeletedUser() {
+        return ResponseEntity.badRequest().body(new DeleteUserResponseDto("AD", "이미 탈퇴된 회원입니다."));
+    }
 }
