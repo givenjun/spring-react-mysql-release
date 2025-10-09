@@ -2431,6 +2431,9 @@ export default function Main() {
   const [extraPlaceTarget, setExtraPlaceTarget] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const [extraPlaceETAsec, setExtraPlaceETAsec] = useState<number | null>(null);
 
+  // ★ 더블클릭 시 해당 맛집만 마커 표시
+  const [onlySelectedMarker, setOnlySelectedMarker] = useState(false);
+
   type RouteOption = {
     id: string;
     name: '빠른길' | '권장길' | '쉬운길';
@@ -2517,6 +2520,7 @@ export default function Main() {
       setRouteTargetPlace({ name: end.name ?? '도착지', categoryText: '도착지' } as PlaceDetail);
       setPlaceCardOpen(false);
       setExtraPlacePath([]); setExtraPlaceTarget(null); setExtraPlaceETAsec(null);
+      setOnlySelectedMarker(false); // 새 경로 시작 시 전체 모드로
 
       try {
         const geo0 = await callTmap({ start: { lat: start.lat, lng: start.lng }, end: { lat: end.lat, lng: end.lng } });
@@ -2605,6 +2609,7 @@ export default function Main() {
     setAutoRoutePath(routeOptions[i].path);
     setAutoRouteInfo({ totalDistance: routeOptions[i].distanceM, totalTime: routeOptions[i].timeSec });
     setExtraPlacePath([]); setExtraPlaceTarget(null); setExtraPlaceETAsec(null);
+    setOnlySelectedMarker(false); // 경로 재선택 시 전체 모드
     resetRoutePlaces?.();
     await searchAlongPath(routeOptions[i].path);
     setPlaceCardOpen(true);
@@ -2617,20 +2622,19 @@ export default function Main() {
     setAutoRoutePath(r.path);
     setAutoRouteInfo({ totalDistance: r.distanceM, totalTime: r.timeSec });
     setExtraPlacePath([]); setExtraPlaceTarget(null); setExtraPlaceETAsec(null);
+    setOnlySelectedMarker(false);
     await searchAlongPath(r.path);
     setPlaceCardOpen(true);
   }, [routeOptions, searchAlongPath]);
 
-  /* 더블클릭: 이동 + 추가 경로 + 라벨(상호 + ETA) */
+  /* 더블클릭: 이동 + 추가 경로 + 라벨(상호 + ETA) + 단일마커 모드 */
   const onFocusOrDoubleToRoute = useCallback(async (p: { lat: number|string; lng: number|string; name?: string; place_name?: string }) => {
     const lat = typeof p.lat === 'string' ? parseFloat(p.lat) : p.lat;
     const lng = typeof p.lng === 'string' ? parseFloat(p.lng) : p.lng;
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
-    // 1) 해당 위치로 부드럽게 이동
     panToPlace(lat, lng, 3);
 
-    // 2) 출발지가 있어야 추가 경로 생성 + ETA 계산
     const start = autoRouteEndpoints?.start;
     if (!start) return;
 
@@ -2641,30 +2645,31 @@ export default function Main() {
       const coords: LL[] = ls.flatMap((f: any) =>
         (f.geometry.coordinates ?? []).map(([lng2, lat2]: [number, number]) => ({ lat: lat2, lng: lng2 }))
       );
-      // 요약에서 totalTime(sec) 추출
       const sum = fs.find((f: any) => f?.properties?.totalTime || f?.properties?.totalDistance)?.properties ?? {};
       const etaSec = typeof sum.totalTime === 'number' ? sum.totalTime : (typeof sum.time === 'number' ? sum.time : null);
 
       setExtraPlacePath(coords);
       setExtraPlaceTarget({ lat, lng, name: (p?.name || p?.place_name || '목적지') as string });
       setExtraPlaceETAsec(etaSec);
+
+      // ★ 단일 마커 모드 ON
+      setOnlySelectedMarker(true);
     } catch {
-      // 실패 시 경로만(혹은 아무것도) 표시하지 않음
+      // ignore
     }
   }, [autoRouteEndpoints?.start, panToPlace]);
 
   /* === 개미행렬 설정 === */
-  const DASH_LEN = 120;  // m
-  const GAP_LEN  = 170;  // m
+  const DASH_LEN = 40;  // m
+  const GAP_LEN  = 220;  // m
   const OVERLAP  = 40;   // m
 
   const [routePhase, setRoutePhase] = useState(0);
   const [autoPhase,  setAutoPhase]  = useState(0);
 
-  // 지도 이동 중 여부 (드래그/줌/팬) → 이동 중엔 개미행렬 숨김
+  // 지도 이동 중 여부 → 이동 중엔 개미행렬 숨김
   const [isMoving, setIsMoving] = useState(false);
 
-  // 애니메이션 타이머
   useEffect(() => {
     let raf = 0; let last = performance.now();
     const tick = (now: number) => {
@@ -2679,7 +2684,6 @@ export default function Main() {
     return () => cancelAnimationFrame(raf);
   }, [isMoving]);
 
-  // 경로 바뀔 때 위상 리셋
   useEffect(() => { setAutoPhase(0); }, [autoRoutePath, selectedRouteIdx]);
   useEffect(() => { setRoutePhase(0); }, [routePath]);
 
@@ -2727,6 +2731,7 @@ export default function Main() {
   const FOOD_TABS = ['전체','한식','중식','일식','피자','패스트푸드','치킨','분식','카페'] as const;
   type FoodTab = typeof FOOD_TABS[number];
   const [foodTab, setFoodTab] = useState<FoodTab>('전체');
+
   const classifyPlace = (p: any): FoodTab => {
     const group = ((p?.category_group_code || p?.categoryGroupCode || p?.group) || '').toUpperCase();
     const name = (p?.name || p?.place_name || '').toLowerCase();
@@ -2743,6 +2748,7 @@ export default function Main() {
     if (has(['한식','국밥','백반','비빔밥','설렁탕','갈비','냉면','칼국수','보쌈','족발','삼겹살','곱창','감자탕'])) return '한식';
     return '전체';
   };
+
   const filteredRoutePlaces = useMemo(() => {
     const list = Array.isArray(routePlaces) ? routePlaces : [];
     if (foodTab === '전체') return list;
@@ -2821,7 +2827,13 @@ export default function Main() {
         >
           <div className="pd-tabs">
             {['전체','한식','중식','일식','피자','패스트푸드','치킨','분식','카페'].map(t => (
-              <button key={t} className={`pd-tab ${foodTab === t ? 'active' : ''}`} onClick={() => setFoodTab(t as any)}>{t}</button>
+              <button
+                key={t}
+                className={`pd-tab ${foodTab === t ? 'active' : ''}`}
+                onClick={() => { setFoodTab(t as any); setOnlySelectedMarker(false); }} // ★ 탭 클릭 시 전체 마커 모드 복귀
+              >
+                {t}
+              </button>
             ))}
           </div>
 
@@ -2991,7 +3003,7 @@ export default function Main() {
           </>
         )}
 
-        {/* 추가 경로(파란색) + 선택 맛집 라벨 */}
+        {/* 추가 경로(파란색) */}
         {extraPlacePath.length > 1 && (
           <Polyline
             path={extraPlacePath}
@@ -3002,26 +3014,22 @@ export default function Main() {
             zIndex={78}
           />
         )}
-        {extraPlaceTarget && (
+
+        {/* ★ 단일 마커 모드일 때: 선택 맛집만 마커/라벨 */}
+        {onlySelectedMarker && extraPlaceTarget && (
           <>
-            {/* 선택 맛집 위치에 라벨(상호명 + ETA) */}
-            <CustomOverlayMap
-              position={{ lat: extraPlaceTarget.lat, lng: extraPlaceTarget.lng }}
-              yAnchor={1.25}
-              zIndex={95}
-            >
+            <MapMarker position={{ lat: extraPlaceTarget.lat, lng: extraPlaceTarget.lng }} />
+            <CustomOverlayMap position={{ lat: extraPlaceTarget.lat, lng: extraPlaceTarget.lng }} yAnchor={1.25} zIndex={95}>
               <div className="km-label">
                 {extraPlaceTarget.name}
                 {typeof extraPlaceETAsec === 'number' && <> · {Math.round(extraPlaceETAsec / 60)} min</>}
               </div>
             </CustomOverlayMap>
-            {/* 필요시 동일 지점에 마커 보강(가시성) */}
-            <MapMarker position={{ lat: extraPlaceTarget.lat, lng: extraPlaceTarget.lng }} />
           </>
         )}
 
-        {/* 맛집 마커 전체(기본) */}
-        {Array.isArray(filteredRoutePlaces) && filteredRoutePlaces.map((p: any, idx: number) => {
+        {/* 일반(탭) 모드일 때: 필터된 모든 맛집 마커 */}
+        {!onlySelectedMarker && Array.isArray(filteredRoutePlaces) && filteredRoutePlaces.map((p: any, idx: number) => {
           const lat = typeof p.lat === 'string' ? parseFloat(p.lat) : p.lat;
           const lng = typeof p.lng === 'string' ? parseFloat(p.lng) : p.lng;
           if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
