@@ -7,6 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/v1/admin")
 @RequiredArgsConstructor
@@ -29,6 +31,19 @@ public class AdminController {
             @PathVariable("email") String email
     ) {
         ResponseEntity<? super DeleteUserResponseDto> response = adminService.deleteUser(email);
+        return response;
+    }
+
+    // ✅ 회원 비밀번호 변경
+    @PatchMapping("/user/{email}/password")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<? super UpdateUserPasswordResponseDto> updateUserPassword(
+            @PathVariable("email") String email,
+            @RequestBody Map<String, String> requestBody
+    ) {
+        String newPassword = requestBody.get("newPassword");
+        ResponseEntity<? super UpdateUserPasswordResponseDto> response =
+                adminService.updateUserPassword(email, newPassword);
         return response;
     }
 
