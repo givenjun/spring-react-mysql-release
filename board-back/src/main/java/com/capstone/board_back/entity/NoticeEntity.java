@@ -38,7 +38,7 @@ public class NoticeEntity {
     private LocalDateTime updatedAt;
 
     @Column(nullable = false)
-    private boolean pinned = false;
+    private boolean pinned;
 
 //    // 수정 시 updatedAt 자동 업데이트
 //    @PreUpdate
