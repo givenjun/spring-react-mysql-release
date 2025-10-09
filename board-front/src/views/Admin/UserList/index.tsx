@@ -7,6 +7,7 @@ import { customErrToast, usePagination } from "hooks";
 import DeleteConfirmModal from '../common/DeleteConfirmModal';
 
 interface User {
+  deleted: boolean;
   email: string;
   nickname: string;
   telNumber: string;
@@ -118,6 +119,10 @@ export default function AdminUserList() {
 
   if (loading) return <div className="admin-user-list">로딩 중...</div>;
 
+  function handleRestoreUser(email: string) {
+    throw new Error('Function not implemented.');
+  }
+
   return (
     <div className="admin-user-list">
       <div className="admin-user-header">
@@ -144,11 +149,18 @@ export default function AdminUserList() {
               </thead>
               <tbody>
                 {viewList.map((user, index) => (
-                  <tr key={user.email}>
+                  <tr className={user.deleted ? "deleted-user" : ""} key={user.email}>
                     <td>{(currentPage - 1) * 10 + index + 1}</td>
                     <td>{user.email}</td>
                     <td className="action-buttons">
-                      <button
+                      {user.deleted ? (
+                        <button
+                          className="admin-btn"
+                        >
+                          변경하기
+                        </button>
+                      ) : (
+                        <button
                         className="admin-btn update"
                         onClick={() => {
                           setSelectedEmail(user.email);
@@ -157,6 +169,7 @@ export default function AdminUserList() {
                       >
                         변경하기
                       </button>
+                      )}
                     </td>
                     <td>{user.nickname}</td>
                     <td>{user.emailVerified ? "✅ 인증됨" : "❌ 미인증"}</td>
@@ -171,15 +184,28 @@ export default function AdminUserList() {
                     </td>
                     <td>{user.telNumber}</td>
                     <td className="action-buttons">
-                      <button
-                        className="admin-btn delete"
-                        onClick={() => {
-                          setTargetEmail(user.email);
-                          setShowDeleteModal(true);
-                        }}
-                      >
-                        삭제하기
-                      </button>
+                      {user.deleted ? (
+                        <button
+                          className="admin-btn restore"
+                          onClick={() => {
+                            setTargetEmail(user.email);
+                            // 복구용 모달 띄우기 or 즉시 요청
+                            handleRestoreUser(user.email);
+                          }}
+                        >
+                          복구하기
+                        </button>
+                      ) : (
+                        <button
+                          className="admin-btn delete"
+                          onClick={() => {
+                            setTargetEmail(user.email);
+                            setShowDeleteModal(true);
+                          }}
+                        >
+                          삭제하기
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
