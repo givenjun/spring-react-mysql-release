@@ -70,7 +70,7 @@ export default function RouteController({
 
   const doSearchPlaces = useCallback(async () => {
     if (!afterRoute) return;
-    await search(path, { stepMeters: 250, radius: 200, maxPerStep: 5 });
+    await search(path, { stepMeters: 40, radius: 280, maxTotal: 600 });
   }, [afterRoute, path, search]);
 
   const focusPlace = (p: Place) => {
