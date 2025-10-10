@@ -1,0 +1,37 @@
+.admin-board-list {
+  margin-left: 40px;
+  margin-right: 40px;
+}
+
+
+/* 열 고정 (게시물 8열 기준) */
+.admin-board-list th:nth-child(1),
+.admin-board-list td:nth-child(1) { width: 6%; }
+
+.admin-board-list th:nth-child(2),
+.admin-board-list td:nth-child(2) { width: 25%; }
+
+.admin-board-list th:nth-child(3),
+.admin-board-list td:nth-child(3) { width: 15%; }
+
+.admin-board-list th:nth-child(4),
+.admin-board-list td:nth-child(4) { width: 12%; }
+
+.admin-board-list th:nth-child(5),
+.admin-board-list td:nth-child(5),
+.admin-board-list th:nth-child(6),
+.admin-board-list td:nth-child(6),
+.admin-board-list th:nth-child(7),
+.admin-board-list td:nth-child(7) { width: 5%; }
+
+/* ✅ 제목 말줄임 표시 */
+.admin-board-list td:nth-child(2),
+.admin-board-list th:nth-child(2) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-board-list td:nth-child(2)[title] {
+  cursor: help;
+}
