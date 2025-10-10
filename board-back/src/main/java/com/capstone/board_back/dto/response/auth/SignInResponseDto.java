@@ -36,4 +36,10 @@ public class SignInResponseDto extends ResponseDto {
         ResponseDto result = new ResponseDto("NEV", "이메일 인증이 필요합니다.");
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(result);
     }
+
+    public static ResponseEntity<ResponseDto> deletedUser() {
+        ResponseDto result =
+                new ResponseDto("DU", "탈퇴한 회원입니다. 로그인할 수 없습니다.");
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(result);
+    }
 }

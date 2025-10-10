@@ -1,0 +1,53 @@
+.admin-user-list {
+  margin-left: 40px;
+  margin-right: 40px;
+}
+
+/* 번호~전화번호까지 고정 */
+.admin-user-list th:nth-child(1),
+.admin-user-list td:nth-child(1) { width: 6%; }
+.admin-user-list th:nth-child(2),
+.admin-user-list td:nth-child(2) { width: 20%; }
+.admin-user-list th:nth-child(4),
+.admin-user-list td:nth-child(4) { width: 15%; }
+.admin-user-list th:nth-child(5),
+.admin-user-list td:nth-child(5) { width: 10%; }
+.admin-user-list th:nth-child(6),
+.admin-user-list td:nth-child(6) { width: 10%; }
+
+/* 🔹 탈퇴한 회원 행 스타일 */
+.deleted-user {
+  color: #999;
+  font-style: italic;
+  opacity: 0.7;
+  background-color: #fafafa;       /* 약간 회색 배경 */
+  transition: background-color 0.2s ease;
+}
+
+.deleted-user:hover {
+  background-color: #f0f0f0;       /* hover 시 미세한 강조 */
+}
+
+/* 🔸 탈퇴회원의 버튼(삭제→비활성화 느낌) */
+.deleted-user .admin-btn.delete .admin-btn.update {
+  background-color: #e0e0e0;
+  color: #888;
+  border: 1px solid #ccc;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.admin-btn.restore {
+  background-color: #5cb85c;   /* 초록색 (복구 느낌) */
+  color: white;
+  border: none;
+  padding: 7px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 5px;
+  transition: background-color 0.2s ease;
+}
+
+.admin-btn.restore:hover {
+  background-color: #4cae4c;
+}

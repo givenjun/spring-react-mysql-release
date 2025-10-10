@@ -5,6 +5,7 @@ import com.capstone.board_back.dto.request.auth.SignUpRequestDto;
 import com.capstone.board_back.dto.response.ResponseDto;
 import com.capstone.board_back.dto.response.auth.SignInResponseDto;
 import com.capstone.board_back.dto.response.auth.SignUpResponseDto;
+import com.capstone.board_back.entity.Role;
 import com.capstone.board_back.entity.UserEntity;
 import com.capstone.board_back.provider.JwtProvider;
 import com.capstone.board_back.repository.UserRepository;
@@ -24,7 +25,7 @@ public class AuthServiceImplement implements AuthService {
     private final JwtProvider jwtProvider;
     private final EmailVerificationService emailVerificationService;
 
-    private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public ResponseEntity<? super SignUpResponseDto> signUp(SignUpRequestDto dto) {
@@ -50,7 +51,7 @@ public class AuthServiceImplement implements AuthService {
             UserEntity userEntity = new UserEntity(dto);
             userRepository.save(userEntity);
 
-            // 이메일 인증 메일 자동 발송
+            // ✅ 이메일 인증 메일 자동 발송
             emailVerificationService.issueToken(userEntity.getEmail());
 
 
@@ -74,6 +75,10 @@ public class AuthServiceImplement implements AuthService {
             UserEntity userEntity = userRepository.findByEmail(email);
             if (userEntity == null) return SignInResponseDto.signInFail();
 
+            // ✅ 추가: 탈퇴 회원 로그인 차단
+            if (userEntity.isDeleted())
+                return SignInResponseDto.deletedUser();
+
             String password = dto.getPassword();
             String encodedPassword = userEntity.getPassword();
             boolean isMatched = passwordEncoder.matches(password, encodedPassword);
@@ -84,7 +89,8 @@ public class AuthServiceImplement implements AuthService {
                 return SignInResponseDto.emailNotVerified();
             }
 
-            token = jwtProvider.create(email);
+            // ✅ role 정보를 JWT 에 추가해서 발급
+            token = jwtProvider.create(email, Role.valueOf(userEntity.getRole().name()));
 
         } catch (Exception exception) {
             exception.printStackTrace();

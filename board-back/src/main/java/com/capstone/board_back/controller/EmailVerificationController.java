@@ -19,6 +19,8 @@ import java.net.URI;
 public class EmailVerificationController {
 
     private final EmailVerificationService emailVerificationService;
+    @Value("${cors.front-origin}")
+    private String frontOrigin;
 
     // 📌 인증 메일 재전송
     @PostMapping("/send")
@@ -37,12 +39,12 @@ public class EmailVerificationController {
         if (result.getBody() instanceof EmailConfirmResponseDto responseDto) {
             if ("SU".equals(responseDto.getCode())) {
                 return ResponseEntity.status(HttpStatus.FOUND)
-                        .location(URI.create("http://localhost:3000/email-verified-success"))
+                        .location(URI.create(frontOrigin + "/email-verified-success"))
                         .build();
             }
         }
         return ResponseEntity.status(HttpStatus.FOUND)
-                .location(URI.create("http://localhost:3000/email-verified-fail"))
+                .location(URI.create(frontOrigin + "/email-verified-fail"))
                 .build();
     }
 }

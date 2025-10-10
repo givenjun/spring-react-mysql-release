@@ -1,0 +1,17 @@
+.delete-modal {
+  width: 340px;
+  text-align: center;
+}
+
+.delete-modal p {
+  font-size: 15px;
+  color: #555;
+  margin: 16px 0 24px;
+}
+
+.confirm-btn.delete {
+  background: #e74c3c;
+}
+.confirm-btn.delete:hover {
+  background: #c0392b;
+}

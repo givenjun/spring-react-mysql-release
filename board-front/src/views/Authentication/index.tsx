@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { Address, useDaumPostcodePopup } from 'react-daum-postcode';
 import SignUpRequestDto from 'apis/request/auth/sign-up.request.dto';
 import { customErrToast } from 'hooks';
+import { jwtDecode } from 'jwt-decode';
 
 //          component: 인증 화면 컴포넌트          //
 export default function Authentication() {
@@ -53,14 +54,19 @@ export default function Authentication() {
       if (code === 'DBE') customErrToast('데이터베이스 오류입니다.');
       if (code === 'SF' || code === 'VF') setError(true);
       if (code === 'NEV') customErrToast('이메일 인증 후 로그인해주세요.');
+      if (code === 'DU') customErrToast('삭제된 계정입니다.  로그인할 수 없습니다.'); 
       if (code !== 'SU') return;
 
       const { token, expirationTime } = responseBody as SignInResponseDto;
       const now = new Date().getTime();
       const expires = new Date(now + expirationTime * 1000);
 
+      const decoded: any = jwtDecode(token);
       setCookie('accessToken', token, { expires, path: MAIN_PATH() });
-      navigate(BOARD_PATH());
+      localStorage.setItem('accessToken', token); // ✅ 추가
+
+      if (decoded.role === 'ADMIN') navigate('/admin/layout');
+      else navigate(BOARD_PATH());
 
     }
 

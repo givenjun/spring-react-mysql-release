@@ -19,6 +19,7 @@ enum ResponseCode {
 
     // HTTP Status 403
     NO_PERMISSION = "NP",
+    DELETED_USER = "DU",
 
     // HTTP Status 500
     DATABASE_ERROR = "DBE"

@@ -145,3 +145,47 @@ SELECT
     MAX(created_at) AS last_issued_at
 FROM email_verification_token
 GROUP BY user_email;
+
+-- user 테이블에 role 컬럼 추가
+ALTER TABLE user ADD COLUMN role ENUM('USER', 'ADMIN') DEFAULT 'USER' NOT NULL;
+
+-- 1️⃣ 댓글 → 게시글 관계 CASCADE 적용
+ALTER TABLE comment DROP FOREIGN KEY FK_board_TO_comment;
+ALTER TABLE comment
+    ADD CONSTRAINT FK_board_TO_comment
+        FOREIGN KEY (board_number)
+            REFERENCES board(board_number)
+            ON DELETE CASCADE;
+
+-- 2️⃣ 좋아요 → 게시글 관계 CASCADE 적용
+ALTER TABLE favorite DROP FOREIGN KEY FK_board_TO_favorite;
+ALTER TABLE favorite
+    ADD CONSTRAINT FK_board_TO_favorite
+        FOREIGN KEY (board_number)
+            REFERENCES board(board_number)
+            ON DELETE CASCADE;
+
+-- 3️⃣ 이미지 → 게시글 관계 CASCADE 적용
+ALTER TABLE image DROP FOREIGN KEY FK_board_TO_image;
+ALTER TABLE image
+    ADD CONSTRAINT FK_board_TO_image
+        FOREIGN KEY (board_number)
+            REFERENCES board(board_number)
+            ON DELETE CASCADE;
+
+
+-- 공지사항 테이블 추가
+CREATE TABLE notice (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    content TEXT NOT NULL,
+    writer_email VARCHAR(100) NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    pinned BOOLEAN DEFAULT FALSE
+);
+
+-- 유저 테이블에 컬럼 추가
+ALTER TABLE user ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
+ALTER TABLE user ADD COLUMN deleted_at DATETIME NULL;
+ALTER TABLE user ADD COLUMN joined_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;

@@ -1,0 +1,36 @@
+/* src/views/Error/style.css */
+.not-found-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 80vh;
+  text-align: center;
+  color: #333;
+}
+
+.not-found-page h1 {
+  font-size: 120px;
+  font-weight: bold;
+  color: #ff6b6b;
+  margin-bottom: 20px;
+}
+
+.not-found-page p {
+  font-size: 18px;
+  margin-bottom: 30px;
+}
+
+.not-found-page button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.not-found-page button:hover {
+  background-color: #2c80b4;
+}
