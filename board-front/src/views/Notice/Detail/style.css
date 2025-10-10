@@ -1,20 +1,23 @@
 #notice-detail-wrapper {
   background-image: url(../../../assets/image/background-image.png);
   background-position: 50% 50%;
-  padding: 140px 0 60px;
+  padding: 156px 0 50px;
   display: flex;
   justify-content: center;
+  margin-top: -22px;
 }
 
 .notice-detail-container {
-  background-color: #fff;
-  padding: 80px;
-  width: 996px;
   min-height: 600px;
 
   display: flex;
   flex-direction: column;
   gap: 30px;
+
+  padding: 50px 30px;
+  width: 1200px;
+
+  background-color: rgba(255, 255, 255, 1);
 
   box-shadow: 2px 0 6px rgba(0, 0, 0, 0.2);
   border-radius: 20px;

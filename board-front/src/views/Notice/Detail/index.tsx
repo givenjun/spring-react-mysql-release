@@ -96,7 +96,7 @@ export default function NoticeDetail() {
           <pre className="notice-detail-text">{notice.content}</pre>
         </div>
 
-        <div className="divider"></div>
+        <div className="notice-divider"></div>
 
         {/* 하단 버튼 */}
         <div className="notice-detail-footer">

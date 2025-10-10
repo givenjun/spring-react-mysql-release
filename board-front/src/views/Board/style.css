@@ -1,12 +1,10 @@
 #board-top-wrapper {
-    padding: 134px 0px 50px;
-
+    background-image: url(../../assets/image/background-image.png);
     display: flex;
     justify-content: center;
-    /* background-color: #f2daff; */
-    background-image: url(../../assets/image/background-image.png);
-    
-    
+    background-position: 50% 50%;
+    padding: 134px 0 50px;
+    margin-top: 6px;
 }
 
 .board-top-container {
@@ -21,6 +19,7 @@
     gap: 56px;
     box-shadow: 2px 0 6px rgba(0, 0, 0, 0.2);
     border-radius: 20px;
+    margin-top: -6px;
 }
 
 .board-top-title {
@@ -71,12 +70,15 @@
 }
 
 #board-bottom-wrapper {
-    padding: 0 0 40px;
+    margin-top: -42px;
+    padding: 19px 0 48px;
 
     display: flex;
     justify-content: center;
     /* background-color: #f2daff; */
     background-image: url(../../assets/image/background-image.png);
+    background-position: 50% 50%;
+    display: flex;
 }
 
 .board-bottom-container {

@@ -62,9 +62,17 @@ export default function BoardUpdate() {
       return;
     }
 
-    if (!contentRef.current) return;
-    contentRef.current.style.height = 'auto';
-    contentRef.current.style.height = `${contentRef.current.scrollHeight}px`
+    // ✅ 제목 / 본문 높이 초기화 (렌더 직후 즉시 적용)
+    setTimeout(() => {
+      if (titleRef.current) {
+        titleRef.current.style.height = "auto";
+        titleRef.current.style.height = `${titleRef.current.scrollHeight}px`;
+      }
+      if (contentRef.current) {
+        contentRef.current.style.height = "auto";
+        contentRef.current.style.height = `${contentRef.current.scrollHeight}px`;
+      }
+    }, 0);
   }
 
   //          event handler: 제목 변경 이벤트 처리         //
