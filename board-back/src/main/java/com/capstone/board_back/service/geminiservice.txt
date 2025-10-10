@@ -1,0 +1,167 @@
+package com.capstone.board_back.service;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@Service
+@Slf4j
+public class GeminiService {
+
+    private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper; // JSON 파싱을 위한 ObjectMapper 추가
+
+    @Value("${gemini.api.key}")
+    private String geminiApiKey;
+
+    @Value("${gemini.api.url}")
+    private String geminiApiUrl;
+
+    @Value("${kakao.api.key}") // ✅ application.properties에서 카카오 API 키 주입
+    private String kakaoApiKey;
+
+    public GeminiService(RestTemplate restTemplate, ObjectMapper objectMapper) {
+        this.restTemplate = restTemplate;
+        this.objectMapper = objectMapper;
+    }
+
+    // ✅ 카카오 키워드 검색 API를 호출하는 새로운 메소드
+    private String searchLocationWithKakao(String placeName) {
+        String url = "https://dapi.kakao.com/v2/local/search/keyword.json";
+
+        // 요청 헤더 설정
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "KakaoAK " + kakaoApiKey);
+
+        // URL 및 파라미터 설정
+        URI uri = UriComponentsBuilder.fromHttpUrl(url)
+                .queryParam("query", placeName)
+                .queryParam("size", 5) // 최대 5개의 결과만 받도록 설정
+                .encode(StandardCharsets.UTF_8)
+                .build()
+                .toUri();
+
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(uri, HttpMethod.GET, entity, Map.class);
+            
+            log.info("Kakao API로부터 받은 원본 응답: {}", response.getBody());
+
+            Map<String, Object> body = response.getBody();
+            
+            if (body == null || ((List) body.get("documents")).isEmpty()) {
+                return "[]"; // 검색 결과가 없으면 빈 배열 반환
+            }
+
+            List<Map<String, String>> documents = (List<Map<String, String>>) body.get("documents");
+            
+            // 카카오맵 API 응답을 우리 프론트엔드가 사용하는 형식으로 변환
+            List<Map<String, String>> results = documents.stream().map(doc -> Map.of(
+                    "id", doc.get("id"),
+                    "place_name", doc.get("place_name"),
+                    "y", doc.get("y"), // 위도
+                    "x", doc.get("x")  // 경도
+            )).collect(Collectors.toList());
+
+            return objectMapper.writeValueAsString(results); // 최종 결과를 JSON 문자열로 변환하여 반환
+
+        } catch (Exception e) {
+            log.error("Kakao API 호출 중 오류 발생: {}", e.getMessage());
+            return "[]"; // 오류 발생 시에도 빈 배열 반환
+        }
+    }
+
+    public String askGemini(String prompt) {
+        // --- 1. Gemini API 호출: 문장에서 장소 이름만 추출 ---
+        String geminiRequestUrl = geminiApiUrl + "?key=" + geminiApiKey;
+        HttpHeaders geminiHeaders = new HttpHeaders();
+        geminiHeaders.setContentType(MediaType.APPLICATION_JSON);
+
+        // ✅ Gemini에게 역할을 새로 부여: 좌표 찾지 말고, 장소 이름만 JSON으로 알려줘!
+        String systemInstruction = """
+        Your job is to understand the user's full intent and create the optimal search query for a map API.
+        Respond ONLY with a JSON object that has a single key "search_query".
+
+        Example 1:
+        User: "더현대서울 인근 맛집좀 찾아줘"
+        JSON response:
+        {
+        "search_query": "더현대서울 근처 맛집"
+        }
+
+        Example 2:
+        User: "대전역 주변에 주차할 곳 있어?"
+        JSON response:
+        {
+        "search_query": "대전역 근처 주차장"
+        }
+
+        Example 3:
+        User: "한밭대학교"
+        JSON response:
+        {
+        "search_query": "한밭대학교"
+        }
+        """;
+        String finalPrompt = systemInstruction + "\n\nUser: " + prompt;
+
+        System.out.println("\n\n\n Prompt \n\n\n"+finalPrompt);
+
+        Map<String, Object> parts = Map.of("text", finalPrompt);
+        Map<String, Object> content = Map.of("parts", Collections.singletonList(parts));
+        Map<String, Object> requestBody = Map.of("contents", Collections.singletonList(content));
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, geminiHeaders);
+
+        try {
+            Map<String, Object> geminiResponse = restTemplate.postForObject(geminiRequestUrl, entity, Map.class);
+            
+            String geminiResultText = ((List<Map<String, Object>>) geminiResponse.get("candidates")).stream()
+                    .findFirst()
+                    .map(c -> (Map<String, Object>) c.get("content"))
+                    .map(c -> (List<Map<String, Object>>) c.get("parts"))
+                    .flatMap(p -> p.stream().findFirst())
+                    .map(p -> (String) p.get("text"))
+                    .orElse("{}");
+
+            log.info("Gemini 원본 텍스트: {}", geminiResultText);
+
+            String cleanedJson = geminiResultText.trim();
+            if (cleanedJson.startsWith("```")) {
+                // Markdown 코드 블록(` ```json ... ``` `) 제거
+                cleanedJson = cleanedJson.substring(cleanedJson.indexOf('{'), cleanedJson.lastIndexOf('}') + 1);
+            }
+
+            Map<String, String> searchQueryMap = objectMapper.readValue(cleanedJson, Map.class);
+            String searchQuery = searchQueryMap.get("search_query");
+
+            if (searchQuery == null || searchQuery.trim().isEmpty()) {
+                 // 장소 이름 추출에 실패하면 일반 대화로 간주하고 Gemini에게 다시 질문
+                 return "{\"type\": \"text\", \"content\": \"어떤 장소를 찾고 계신지 잘 모르겠어요. 조금 더 자세히 말씀해주시겠어요?\"}";
+            }
+
+            // --- 2. Kakao API 호출: 추출된 장소 이름으로 좌표 검색 ---
+            return searchLocationWithKakao(searchQuery);
+
+        } catch (Exception e) {
+            log.error("Gemini API 또는 Kakao API 처리 중 오류: {}", e.getMessage());
+            // Gemini가 장소 이름 추출을 실패하고 일반 텍스트로 답하는 경우 등 예외 처리
+            if (e instanceof JsonProcessingException) {
+                 return "{\"type\": \"text\", \"content\": \"장소를 찾을 수 없는 요청이에요. 다른 질문이 있으신가요?\"}";
+            }
+            return "{\"type\": \"error\", \"content\": \"요청 처리 중 오류가 발생했습니다.\"}";
+        }
+    }
+}

@@ -1,0 +1,163 @@
+.chat-list-container {
+  position: relative;
+  display: flex;
+  flex-grow: 1;
+  flex-direction: column;
+  overflow: hidden; /* 자식 요소가 둥근 모서리를 넘지 않도록 */
+  font-family: 'Noto Sans KR';
+}
+
+.chat-session-container {
+    flex-grow: 1;
+    overflow-y: auto;
+
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.chat-session-container::-webkit-scrollbar {
+  width: 4px; /* 스크롤바의 두께 */
+}
+
+.chat-session-container::-webkit-scrollbar-thumb {
+  background-color: #aab7c4; /* 핸들 색상 */
+  border-radius: 10px; /* 핸들을 둥글게 */
+  padding: 1px;
+}
+
+.chat-session-items {
+    border-radius: 8px;
+    line-height: 150%;
+    height: 72px;
+    padding: 12px;
+    margin: 0 8px;
+}
+
+.chat-session-header {
+    display: flex;
+    align-items: center;
+    position: relative; /* 자식 요소의 position absolute 기준점 */
+}
+
+.chat-session-date {
+    color: rgba(0, 0, 0, 0.25);
+    font-size: 14px;
+    margin-left: auto; /* 날짜를 오른쪽으로 밀어냄 */
+    padding-right: 5px; /* 더보기 버튼과의 간격 */
+}
+
+.chat-session-items:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.chat-session-title {
+    flex-grow: 1; /* 제목이 가능한 많은 공간을 차지하도록 설정 */
+    width: 12px;
+    white-space: nowrap; /* 제목이 길어도 한 줄로 표시 */
+    overflow: hidden; /* 넘치는 부분 숨김 */
+    text-overflow: ellipsis; /* 넘치는 부분은 ...으로 표시 */
+
+    font-family: 'Noto Sans KR';
+}
+
+.chat-session-more-container {
+    position: relative;
+    top: 4px;
+    width: 36px;
+    height: 24px;
+}
+
+.chat-session-more-button {
+    opacity: 0;
+    border: none;
+    background-color: transparent;
+    width: 36px;
+    height: 24px;
+    color: #888;
+    cursor: pointer;
+    padding: 0 8px;
+    border-radius: 4px;
+}
+
+.chat-session-items:hover .chat-session-more-button {
+    opacity: 1;
+}
+
+.chat-session-more-container:has(.more-menu) .chat-session-more-button {
+    opacity: 1;
+}
+
+.more-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 10;
+    overflow: hidden; /* 내부 버튼의 둥근 모서리 적용 */
+    width: 120px; /* 메뉴 너비 고정 */
+}
+
+.more-menu button {
+    display: block;
+    width: 100%;
+    padding: 10px 15px;
+    border: none;
+    background-color: transparent;
+    text-align: left;
+    cursor: pointer;
+}
+
+.more-menu button:hover {
+    background-color: #f0f0f0;
+}
+
+.chat-session-rename-input {
+    width: 100%;
+    padding: 4px 6px;
+    border: 1px solid #c295fe;
+    border-radius: 4px;
+    font-family: 'Noto Sans KR';
+    font-size: 16px;
+}
+
+.chat-session-rename-input:focus {
+    outline: 1px solid #a467fd;
+}
+
+.chat-session-contents {
+    width: 90%;
+    /* white-space: nowrap; */
+    overflow: hidden;
+    /* text-overflow: ellipsis; */
+
+    font-family: 'Noto Sans KR Thin';
+}
+
+.chat-new-session-button {
+    position: absolute;
+    bottom: 33px;
+    left: 50%;
+    transform: translateX(-50%);
+
+    height: 44px;
+    width: 156px;
+    padding: 0 4px;
+
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    background-color: #c295fe;
+
+    font-family: 'Noto Sans KR Bold';
+    font-size: 14px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    cursor: pointer;
+}

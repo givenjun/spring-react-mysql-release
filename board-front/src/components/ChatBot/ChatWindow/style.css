@@ -1,29 +1,17 @@
-/* ChatBox.css */
 
-.chat-window-container {
-  position: absolute; /* 또는 fixed, App.tsx 위치에 따라 */
-  bottom: 100px; /* FAB 버튼(24px) + 여백 */
-  right: 24px;
-  width: 400px;
-  height: 650px;
-  background-color: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+/* .chat-window-container {
+  position: relative;
   display: flex;
+  flex-grow: 1;
   flex-direction: column;
-  overflow: hidden; /* 자식 요소가 둥근 모서리를 넘지 않도록 */
+  overflow: hidden; 
   z-index: 999;
-}
-
-.chat-window-header {
-  padding: 16px;
-  text-align: center;
-}
+} */
 
 .chat-window-title {
   margin: 0;
-  font-size: 18px;
-  font-weight: bold;
+  font-family: 'Noto Sans KR Bold';
+  font-size: 20px;
   color: #333;
 }
 
@@ -52,7 +40,12 @@
   border-radius: 20px;
   margin-bottom: 10px;
   max-width: 80%;
-  word-wrap: break-word; /* 긴 단어가 있어도 줄바꿈 */
+  word-wrap: break-word; 
+  white-space: pre-wrap;
+}
+
+.message-bubble p {
+  margin: 0;
 }
 
 .message-bubble.received {
@@ -72,7 +65,7 @@
 .chat-window-input-area {
   display: flex;
   padding-top: 0;
-  padding: 10px;
+  padding: 5px 10px;
   /* border-top: 1px solid #e0e0e0; */
 }
 
@@ -82,7 +75,7 @@
   border: none;
   border-radius: 20px;
   padding: 10px 15px;
-  font-size: 16px;
+  font-size: 14px;
   margin-right: 10px;
 }
 
@@ -103,4 +96,10 @@
 
 .chat-send-button:hover {
   filter: brightness(95%);
+}
+
+.place-info-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* 카드 사이의 간격 */
 }
