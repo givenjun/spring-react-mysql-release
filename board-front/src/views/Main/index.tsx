@@ -9,6 +9,7 @@ import PlaceList from 'components/Map/PlaceList';
 import './style.css';
 import 'components/Map/marker-label.css';
 import MenuButton from 'components/Menu/MenuButton';
+import useRelativeStore from 'stores/relativeStore';
 
 
 const DOMAIN = process.env.REACT_APP_API_URL;
@@ -134,6 +135,7 @@ function complexityScore(path: LL[]): number {
 
 /* ===== 메인 ===== */
 export default function Main() {
+  const { setSelectedPlaceName } = useRelativeStore();
   const { searchResults, center, searchPlaces } = useKakaoSearch();
 
   const [map, setMap] = useState<kakao.maps.Map | null>(null);
@@ -601,6 +603,9 @@ export default function Main() {
         onClickItem={(place: any) => {
           const lat = Number(place?.y); const lng = Number(place?.x);
           if (!Number.isNaN(lat) && !Number.isNaN(lng)) { setSelectedIndex((searchResults as any).indexOf(place)); panToPlace(lat, lng, 3); }
+          if (place?.place_name) {
+            setSelectedPlaceName(place.place_name);
+          }  
         }}
         selectedIndex={selectedIndex}
         isOpen={isSidebarOpen}
