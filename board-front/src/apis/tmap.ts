@@ -2,8 +2,10 @@
 import type { GetPedestrianRouteRequest, LatLng } from './request/tmap/index';
 import type { TmapGeoJSON, TmapRoute } from './response/tmap/index';
 
+const DOMAIN = process.env.REACT_APP_API_URL;
+
 export async function getPedestrianRoute(req: GetPedestrianRouteRequest): Promise<TmapRoute> {
-  const res = await fetch('http://127.0.0.1:4000/api/tmap/pedestrian', {
+  const res = await fetch(`${DOMAIN}/api/tmap/pedestrian`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(req),

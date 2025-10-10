@@ -1,7 +1,6 @@
 // src/views/Main/index.tsx
-import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Map, MapMarker, MapTypeControl, Polyline, ZoomControl, CustomOverlayMap } from 'react-kakao-maps-sdk';
-import { useNavigate, useLocation } from 'react-router-dom';
 import SearchSidebar from 'components/Map/SearchSidebar';
 import useKakaoSearch from 'hooks/Map/useKakaoSearch.hook';
 import PlaceDetailCard, { PlaceDetail } from 'components/Map/PlaceDetailCard';
@@ -10,7 +9,9 @@ import PlaceList from 'components/Map/PlaceList';
 import './style.css';
 import 'components/Map/marker-label.css';
 import MenuButton from 'components/Menu/MenuButton';
-import useRelativeStore from 'stores/relativeStore';
+
+
+const DOMAIN = process.env.REACT_APP_API_URL;
 
 declare global { interface Window { kakao: any } }
 const kakao = (typeof window !== 'undefined' ? (window as any).kakao : undefined);
@@ -133,7 +134,6 @@ function complexityScore(path: LL[]): number {
 
 /* ===== 메인 ===== */
 export default function Main() {
-  const { setSelectedPlaceName } = useRelativeStore();
   const { searchResults, center, searchPlaces } = useKakaoSearch();
 
   const [map, setMap] = useState<kakao.maps.Map | null>(null);
@@ -152,8 +152,6 @@ export default function Main() {
   const [routeLoading, setRouteLoading] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
 
-  // 연관 게시물
-  const [selectedPlace, setSelectedPlace] = useState<any | null>(null);
   // 자동 3경로 + 맛집
   const [autoRoutePath, setAutoRoutePath] = useState<LL[]>([]);
   const [autoRouteInfo, setAutoRouteInfo] = useState<{ totalDistance?: number; totalTime?: number } | null>(null);
@@ -209,7 +207,7 @@ export default function Main() {
 
   /* Tmap 호출 */
   const callTmap = (body: { start: LL; end: LL; viaPoints?: LL[] }) =>
-    fetch('http://127.0.0.1:4000/api/tmap/pedestrian', {
+    fetch(`${DOMAIN}/api/tmap/pedestrian`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -393,11 +391,6 @@ export default function Main() {
       const seg = slicePathRange(path, cum, a, b);
       if (seg.length >= 2) segs.push(seg);
     }
-  }, [searchResults]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // 검색
-  const handleSearch = (start: string) => {
-    if (start) searchPlaces(start);
     return segs;
   }
 
@@ -462,23 +455,6 @@ export default function Main() {
     return list.filter((p: any) => {
       const group = (p?.category_group_code || p?.group || '').toUpperCase();
 
-    if (place?.place_name) {
-      setSelectedPlaceName(place.place_name);
-    } 
-  };
-
-  // 게시글 열기(라우트 이동 전 상태 저장)
-  // const handleOpenPost = useCallback((boardNumber: string | number) => {
-  //   if (boardNumber === undefined || boardNumber === null) return;
-  //   saveBeforeGoDetail();
-  //   navigate(`${BOARD_DETAIL_PATH}/${boardNumber}`, {
-  //     state: {
-  //       from: location.pathname,
-  //       fromMap: true,
-  //       fromSearch: selectedPlace?.place_name ?? null,
-  //     },
-  //   });
-  // }, [navigate, location.pathname, selectedPlace, saveBeforeGoDetail]);
       // ‘카페’는 그룹 코드 CE7 우선
       if (foodTab === '카페') return group === 'CE7' || classifyPlace(p) === '카페';
 
@@ -617,12 +593,6 @@ export default function Main() {
       setRoutePath([]); setRouteInfo(null); setRouteError(null);
     }
   };
-
-  const formatDistance = (km: number) => (km < 1 ? `${(km * 1000).toFixed(0)} m` : `${km.toFixed(2)} km`);
-  const formatMeters = (m?: number) => (m == null ? '' : m < 1000 ? `${m} m` : `${(m / 1000).toFixed(2)} km`);
-  const formatMinutes = (sec?: number) => (sec == null ? '' : `${Math.round(sec / 60)} min`);
-  const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
-  const rightBase = 10;
 
   return (
     <div className='main-wrapper'>
@@ -874,7 +844,8 @@ export default function Main() {
           );
         })}
       </Map>
-      <MenuButton/>
+
+      <div><MenuButton/></div>
     </div>
   );
 }
