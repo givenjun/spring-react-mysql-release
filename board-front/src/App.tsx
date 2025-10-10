@@ -23,6 +23,7 @@ import EmailVerifiedFail from 'views/EmailVerifiedFail';
 import AdminBoardList from 'views/Admin/BoardList';
 import AdminLayout from 'views/Admin';
 import NotFound from 'views/Error/NotFound';
+import NoticeDetail from './views/Notice/Detail';
 
 //          component: Application 컴포넌트         //
 function App() {
@@ -74,6 +75,7 @@ function App() {
         <Route path={EMAIL_VERIFIED_SUCCESS_PATH()} element={<EmailVerifiedSuccess />} />
         <Route path={EMAIL_VERIFIED_FAIL_PATH()} element={<EmailVerifiedFail />} />
         <Route path={NOTICE_PATH()} element={<Notice />} />
+        <Route path={NOTICE_PATH() + '/:noticeId'} element={<NoticeDetail />} />
         {/* ✅ 관리자 라우트 추가 */}
         <Route path={ADMIN_LAYOUT_PATH()} element={<AdminLayout />} />
         <Route path='*' element={<NotFound />}></Route>
