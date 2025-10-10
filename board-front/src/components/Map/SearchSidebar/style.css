@@ -1,33 +1,29 @@
+/* === 사이드바 컨테이너: 화면 높이에 딱 맞추기 === */
 .slideContainer {
-  position: absolute;
+  position: fixed;             /* absolute → fixed */
   top: 0;
   left: 0;
-  height: 100%;
+  height: 100vh;               /* 화면 전체 높이 */
   width: 360px;
   background-color: white;
-  transform: translateX(-360px);
+  transform: translateX(-338px);
   transition: transform 0.3s ease-in-out;
-  z-index: 100;
+  z-index: 1000;               /* 지도보다 위 */
   box-shadow: 2px 0 6px rgba(0, 0, 0, 0.2);
 }
+.slideContainer.active { transform: translateX(0); }
 
-.slideContainer.active {
-  transform: translateX(0);
-}
-
+/* 열기/닫기 핸들 */
 .slideBtnContainer {
   position: absolute;
   top: 50%;
   right: -22px;
   transform: translateY(-50%);
   z-index: 10;
-  
 }
-
 .slideBtn {
   display: flex;
   align-items: center;
-
   width: 22px;
   height: 50px;
   background-color: #ffffff;
@@ -36,11 +32,7 @@
   border-radius: 0 5px 5px 0;
   cursor: pointer;
 }
-
-.slideBtn.active {
-  background-color: #ffffff;
-}
-
+.slideBtn.active { background-color: #ffffff; }
 .slideBtn:hover {
   background-color: #ffffff;
   border: 0.5px solid #ccc;
@@ -48,43 +40,30 @@
   border-radius: 0 5px 5px 0;
   box-shadow: 0 0 2px rgba(0,0,0,0.2);
 }
+.slideBtn-image { width: 100%; height: 100%; text-align: center; }
 
-.slideBtn-image {
-  width: 100%;
-  height: 100%;
-
-  text-align: center;
-}
-
-.sidebar-search-input-box {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
+/* 타이틀/컨텐츠 */
 .sidebar-title {
   width: 155px;
   height: 50px;
-
   background-image: url(../assets/logo-light.png);
   background-position: center;
-  background-size: cover;   /* 가득 채우되 비율 유지 */
+  background-size: cover;
   background-repeat: no-repeat;
-
-  flex-shrink: 0; /* 줄어들지 않음 */
+  flex-shrink: 0;
   display: flex;
   align-items: center;
 }
 
 .sidebar-content {
-  padding: 20px 20px 20px;
+  padding: 20px;
   background-image: url(../assets/purple-image.png);
   background-position: 50% 50%;
   background-size: 100% 100%;
-  height: 100vh;         /* 화면 전체 높이에 맞춤 */
   display: flex;
   flex-direction: column;
+  height: 100%;        /* 컨테이너(100vh) 꽉 채움 */
+  overflow: hidden;    /* 바깥으로 스크롤 안 나가게 */
   box-sizing: border-box;
 }
 
@@ -94,64 +73,66 @@
   height: 45px;
   margin: 10px 0;
   padding: 8px;
-  border-radius: 5px 5px;
+  border-radius: 10px;   /* 둥근 느낌 */
   border: none;
   outline: none;
   box-sizing: border-box;
 }
 
+/* 탭 */
 .button-group {
-  display: flex;
-  width: 100%;
-  height: 40px;
-  justify-content: space-around;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
-  margin-top: 0px;
+  width: 100%;
+  margin-top: 0;
 }
-
 .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  width: 100%;
   color: rgba(255, 255, 255, 1);
   font-size: 14px;
-  font-weight: 500;
-  line-height: 140%;
-  text-shadow: 0 0 5px rgba(0,0,0,0.2);
-  width: 100%;
-  background: none;
-  border:none;
-
+  font-weight: 600;
+  line-height: 1;
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px; /* 둥글게 */
   cursor: pointer;
+  transition: background-color .15s ease, outline-color .15s ease;
+
+   /* 🔒 여기 추가 */
+  white-space: nowrap;        /* 줄바꿈 금지 */
+  word-break: keep-all;       /* 한국어 글자 쪼개기 방지 */
+  overflow-wrap: normal;      /* 강제 줄바꿈 방지 */
+  flex: 0 0 auto;             /* 컨테이너에서 폭이 줄어들며 깨지는 것 방지 */
 }
 
-.button:hover {
-  background-color: rgba(0,0,0,0.2);
-  border:none;
-
-}
-
+/* 검색 인풋 박스 */
 .sidebar-search-input-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 5px;
   width: 100%;
   margin-top: 12px;
 }
-
-.search-input-wrapper {
-  position: relative;
-  width: 100%;
-}
-
+.search-input-wrapper { position: relative; width: 100%; }
 .search-input-wrapper input {
   width: 100%;
-  padding: 10px 36px 10px 12px; /* 오른쪽에 아이콘 공간 확보 */
+  padding: 10px 36px 10px 12px; /* 오른쪽 아이콘 공간 */
   border: none;
-  border-radius: 6px;
+  border-radius: 10px;          /* 둥근 느낌 */
   outline: none;
   box-shadow: 0 0 0 1px #ccc;
   font-size: 14px;
 }
-
-.search-input-wrapper input:focus {
-  box-shadow: 0 0 0 2px #888;
-}
-
+.search-input-wrapper input:focus { box-shadow: 0 0 0 2px #888; }
 .search-icon {
   position: absolute;
   right: 10px;
@@ -169,50 +150,278 @@
   background-color: rgba(0, 0, 0, 0.05);
 }
 
+/* === 리스트 공통(탐색/맛집): 둥근 느낌 + 내부 스크롤 === */
 .search-result-list {
   margin-top: 8px;
-  max-height: 900px;
-  scrollbar-width: none;
+  /* 이전 max-height: 900px 제거. 탐색 탭은 calc로 제한 */
+  max-height: calc(100vh - 260px);   /* 탭/인풋/여백 감안. 필요시 240~300px 조절 */
   overflow-y: auto;
   overflow-x: hidden;
-  border-radius: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  background-color: #ffffff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  padding: 8px 0;
-}
 
+  border-radius: 12px;               /* 둥근 테두리 */
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background-color: #ffffff;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+  padding: 8px 0;
+
+  scrollbar-width: thin;
+}
 .search-result-item {
   padding: 12px 16px;
   border-bottom: 1px solid #eee;
   cursor: pointer;
   transition: background-color 0.2s, transform 0.1s;
 }
-
 .search-result-item:hover {
-  background-color: rgba(0, 123, 255, 0.06);
+  background-color: rgba(79,70,229,0.06); /* 살짝 보라톤 */
   transform: translateX(2px);
 }
-
 .search-result-item.selected {
-  background-color: rgba(0, 123, 255, 0.12);
-  border-left: 4px solid #007bff;
+  background-color: rgba(79,70,229,0.12);
+  border-left: 4px solid #4f46e5;
+}
+.search-result-item:last-child { border-bottom: none; }
+.search-result-item:first-child {
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+.search-result-item:last-child {
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
 }
 
-.place-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: #222;
+.place-name { font-size: 15px; font-weight: 600; color: #222; }
+.place-address { font-size: 13px; color: #555; margin-top: 4px; }
+.place-phone { font-size: 12px; color: #888; margin-top: 2px; }
+
+/* === 길찾기 전용 === */
+.route-only-wrap {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1 1 auto;  /* 남은 공간 채움 */
+  min-height: 0;   /* 내부 스크롤 허용 */
+}
+.route-header { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; }
+.route-back { background: transparent; border: 0; color: #374151; cursor: pointer; }
+.route-title { text-align: center; font-weight: 700; }
+
+.route-form { display: grid; gap: 10px; }
+.route-field { position: relative; }
+.route-input-wrap { position: relative; }
+.route-input-wrap input {
+  width: 100%; height: 40px;
+  border: 1px solid #e5e7eb; border-radius: 10px; /* 둥근 인풋 */
+}
+.route-valid { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 18px; }
+.route-submit {
+  height: 40px; border-radius: 10px; border: 0; background: #4f46e5; color: #fff; cursor: pointer;
+}
+.route-submit:hover { filter: brightness(0.95); }
+.route-submit:disabled { opacity: .45; cursor: not-allowed; }
+
+/* 자동완성 드롭다운 */
+.route-suggest {
+  position: absolute; left: 0; right: 0; top: 44px;
+  max-height: 220px; overflow: auto;
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.08);
+  z-index: 5;
+}
+.route-suggest li { padding: 10px 12px; cursor: pointer; }
+.route-suggest li:hover { background: #f9fafb; }
+.sg-name { font-weight: 600; }
+.sg-addr { font-size: 12px; color: #6b7280; }
+
+/* === Route 탭: 리스트가 화면을 뚫지 않게, 남은 공간만 스크롤 === */
+.route-places-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+.route-places-list {
+  max-height: none !important;   /* 고정 높이 무력화 */
+  overflow-y: auto;
+
+  /* 둥근 컨테이너 유지 */
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: #fff;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.06);
 }
 
-.place-address {
-  font-size: 13px;
-  color: #555;
-  margin-top: 4px;
+/* 스크롤바 미관 */
+.search-result-list::-webkit-scrollbar,
+.route-places-wrap::-webkit-scrollbar,
+.route-places-list::-webkit-scrollbar { width: 8px; }
+.search-result-list::-webkit-scrollbar-thumb,
+.route-places-wrap::-webkit-scrollbar-thumb,
+.route-places-list::-webkit-scrollbar-thumb {
+  border-radius: 8px;
+  background: rgba(0,0,0,0.2);
 }
 
-.place-phone {
-  font-size: 12px;
-  color: #888;
-  margin-top: 2px;
+
+/* 바깥 래퍼: 둥근 박스 + 그림자 + 클리핑만 수행 */
+.list-rounded {
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: #fff;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+  overflow: hidden;          /* ← 모서리 유지의 핵심 */
 }
+
+/* 안쪽 스크롤러: 실제 스크롤은 여기서만 발생 */
+.list-scroll {
+  max-height: calc(100vh - 260px);  /* 탐색 탭 기본값(필요시 조정) */
+  overflow-y: auto;
+}
+
+/* 탐색/경로 별로 최대 높이 조절 가능 */
+.search-list-scroll {
+  /* 탐색 탭 전용(입력/탭/여백 고려) */
+  max-height: calc(100vh - 260px);
+}
+.route-list-scroll {
+  /* 경로 탭은 부모(route-places-wrap)가 flex로 공간을 주므로 제한 해제 */
+  max-height: none;
+}
+
+/* 기존 아이템 스타일은 재사용 */
+.search-result-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+.search-result-item:last-child { border-bottom: none; }
+
+/* 호버/선택 색감 유지 */
+.search-result-item:hover {
+  background-color: rgba(79,70,229,0.06);
+  transform: translateX(2px);
+}
+.search-result-item.selected {
+  background-color: rgba(79,70,229,0.12);
+  border-left: 4px solid #4f46e5;
+}
+
+/* 경로 탭 컨테이너는 남은 공간 채우고 내부 스크롤 */
+.route-places-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+
+/* 1) 바깥 박스: 둥근 + 그림자 + 흰 배경 (탐색 탭과 동일) */
+.list-rounded{
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+  overflow: hidden;          /* ← 둥근 모서리 유지 핵심 */
+}
+
+/* 2) 안쪽 스크롤 박스: 실제 스크롤만 담당 */
+.list-scroll{
+  overflow-y: auto;
+}
+
+/* 3) 경로(맛집) 탭: 부모-자식 높이 계산을 명확히 */
+.route-only-wrap{
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;            /* ← flex 내부에서 스크롤되게 필수 */
+}
+
+.route-places-wrap{
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;         /* 스크롤은 안쪽(list-scroll)에서만 */
+}
+
+/* 바깥 둥근 박스가 남은 공간을 그대로 차지 */
+.route-list{                /* (필요시 index.tsx에서 className="list-rounded route-list" 사용) */
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* 안쪽 스크롤러는 100% 높이에서만 스크롤 */
+.route-list-scroll{
+  height: 100%;
+  max-height: none;         /* 제한 제거 (탐색 탭과 달리 남은 공간 모두 사용) */
+  overflow-y: auto;
+}
+
+/* 4) 탐색 탭: 인풋/여백 고려한 최대 높이로 제한 (이미 OK면 그대로 두어도 됨) */
+.search-list-scroll{
+  max-height: calc(100vh - 260px);
+}
+
+/* 5) 기존 search-result-list의 박스 스타일은 무력화(래퍼가 담당) */
+.search-result-list{
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0;
+}
+
+/* 6) 공통 아이템 스타일 */
+.search-result-item{
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background-color .2s, transform .1s;
+}
+.search-result-item:last-child{ border-bottom: none; }
+.search-result-item:hover{ background: rgba(79,70,229,.06); transform: translateX(2px); }
+.search-result-item.selected{ background: rgba(79,70,229,.12); border-left: 4px solid #4f46e5; }
+
+/* 7) 스크롤바를 탐색 탭처럼 또렷하게 */
+.list-scroll::-webkit-scrollbar{ width: 8px; }
+.list-scroll::-webkit-scrollbar-track{ background: transparent; }
+.list-scroll::-webkit-scrollbar-thumb{
+  background: rgba(0,0,0,0.28);
+  border-radius: 8px;
+}
+
+/* ====== ⬇⬇⬇ 흔들림/진동 방지 오버라이드 (중요) ⬇⬇⬇ ====== */
+
+/* 스크롤 컨테이너: 가로 스크롤 금지 + 세로 스크롤바 공간 예약 */
+.list-scroll,
+.route-list-scroll {
+  overflow-x: hidden !important;              /* X 스크롤바 차단 */
+  scrollbar-gutter: stable both-edges;        /* 세로 스크롤바 공간 고정 */
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 리스트 아이템 폭 변동 방지 */
+.search-result-item {
+  box-sizing: border-box;                     /* border 포함 계산 */
+  width: 100%;
+  transform: none;                            /* hover 이동 제거(오버플로우 방지) */
+}
+.search-result-item:hover {
+  background: rgba(79,70,229,.06);
+  transform: none;                            /* 강제 리셋 */
+}
+
+/* 선택 상태: 왼쪽 보더 생겨도 전체 폭 불변 */
+.search-result-item.selected {
+  border-left: 4px solid #4f46e5;
+  padding-left: calc(16px - 4px);             /* 기본 padding-left 16px 기준 보정 */
+}
+
+/* 혹시 다른 상위에서 X 스크롤 켜지면 차단 */
+.list-rounded,
+.route-places-wrap {
+  overflow-x: hidden;
+}
+

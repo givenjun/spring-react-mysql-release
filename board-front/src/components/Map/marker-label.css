@@ -1,0 +1,32 @@
+/* 마커 위 이름 라벨: 심플한 알약(pill) 스타일 */
+.km-label {
+  position: relative;
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  background: #ffffff;
+  color: #111111;        /* 무난한 검정색 텍스트 */
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 600;
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+  white-space: nowrap;
+  transform: translateY(-8px); /* 마커 핀 위로 살짝 띄우기 */
+  user-select: none;
+}
+
+/* 심플한 꼬리(과한 말풍선 느낌 제거) */
+.km-label::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  transform: translateX(-50%) rotate(45deg);
+  width: 8px;
+  height: 8px;
+  background: #ffffff;
+  border-left: 1px solid rgba(0,0,0,0.06);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 2px 2px 6px rgba(0,0,0,0.06);
+}

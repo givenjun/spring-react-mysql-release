@@ -5,8 +5,8 @@ import com.capstone.board_back.filter.JwtAuthenticationFilter;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,9 +25,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.io.IOException;
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -64,7 +61,7 @@ public class WebSecurityConfig {
                         // ✅ 공개 접근 경로
                         .requestMatchers("/", "/api/v1/auth/**", "/api/v1/search/**", "/file/**", "/api/v1/notice/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/board/**", "/api/v1/user/*").permitAll()
-//                        .requestMatchers("/api/v1/gemini/ask").permitAll()
+                        .requestMatchers("/api/v1/gemini/ask", "/api/tmap/**").permitAll()
 
                         // ✅ 나머지 요청은 USER 또는 ADMIN만 접근 가능
                         .anyRequest().hasAnyRole("USER", "ADMIN")
@@ -104,8 +101,11 @@ public class WebSecurityConfig {
 class FailedAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     @Override
-    public void commence(HttpServletRequest request, HttpServletResponse response,
-            AuthenticationException authException) throws IOException, ServletException {
+    public void commence(
+				HttpServletRequest request, 
+				HttpServletResponse response,
+        AuthenticationException authException) 
+				throws IOException, ServletException {
 
         response.setContentType("application/json");
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

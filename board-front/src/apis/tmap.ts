@@ -27,8 +27,9 @@ export async function getPedestrianRoute(req: GetPedestrianRouteRequest): Promis
         path.push({ lat, lng });
       }
     }
-    if (f.properties?.totalDistance) totalDistance = f.properties.totalDistance;
-    if (f.properties?.totalTime) totalTime = f.properties.totalTime;
+    // board-front/src/apis/tmap.ts (해당 두 줄만 교체)
+    if (f.properties?.totalDistance != null) totalDistance = Number(f.properties.totalDistance);
+    if (f.properties?.totalTime != null) totalTime = Number(f.properties.totalTime);
   }
 
   return { path, totalDistance, totalTime };
