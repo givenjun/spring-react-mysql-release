@@ -20,7 +20,7 @@ export default function NoticePreview({ latestNotices }: Props) {
         ) : (
           latestNotices.map((notice) => (
             <li key={notice.id}>
-              <span className="notice-title">{notice.title}</span>
+              <span className="admin-notice-title">{notice.title}</span>
               <span className="notice-date">{notice.createdAt}</span>
             </li>
           ))
