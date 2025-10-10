@@ -1,0 +1,46 @@
+/* src/components/Map/PlaceList/style.css */
+.place-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 0 16px;
+}
+
+.place-item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.place-item:hover {
+  background: #faf7ff;
+}
+
+.place-name {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.place-meta {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  color: #666;
+  flex-wrap: wrap;
+}
+
+.place-addr {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 240px;
+}
+
+.place-phone {
+  white-space: nowrap;
+}

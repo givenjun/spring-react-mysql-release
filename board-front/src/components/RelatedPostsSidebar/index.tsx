@@ -1,37 +1,4 @@
-// import React from 'react';
-// import './style.css';
-// import { BoardListItem } from 'types/interface';
-// import { useNavigate } from 'react-router-dom';
 
-// interface Props {
-//     placeName: string;
-//     relatedPosts: BoardListItem[];
-//     onClose: () => void;
-// }
-
-// export default function RelatedPostsSidebar({ placeName, relatedPosts, onClose }: Props) {
-
-//     const navigate = useNavigate();
-
-//     return (
-//         <div className='related-posts-sidebar'>
-//             <div className='related-posts-sidebar-header'>
-//                 <h3>{placeName}</h3>
-//                 <button className='close-button' onClick={onClose}>X</button>
-//             </div>
-//             <div className='related-posts-sidebar-content'>
-//                 <p>연관된 게시물: {relatedPosts.length}개</p>
-//                 <ul>
-//                     {relatedPosts.map(post => (
-//                         <li key={post.boardNumber} onClick={() => navigate(`/board/detail/${post.boardNumber}`)}>
-//                             {post.title}
-//                         </li>
-//                     ))}
-//                 </ul>
-//             </div>
-//         </div>
-//     );
-// }
 // components/RelatedPostsSidebar/index.tsx
 import React from 'react';
 import './style.css';

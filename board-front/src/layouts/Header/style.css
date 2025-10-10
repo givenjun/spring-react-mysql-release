@@ -25,102 +25,141 @@
 }
 
 .header-container {
-    width: 1200px;
-    
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  width: 1200px;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .header-left-box {
-    width: 155px;
-    height: 50px;
+  width: 155px;
+  height: 50px;
 
-    background-image: url(../assets/logo-light.png);
-    background-position: 50% 50%;
-    background-size: 100% 100%;
+  background-image: url(../assets/logo-light.png);
+  background-position: 50% 50%;
+  background-size: 100% 100%;
 
-    display: flex;
-    align-items: center;
+  display: flex;
+  align-items: center;
 
-    cursor: pointer;
+  cursor: pointer;
 }
 
 .header-logo {
-    color: rgba(255, 255, 255, 1);
+  color: rgba(255, 255, 255, 1);
 
-    font-size: 20px;
-    font-weight: 400;
-    line-height: 140%;
-    letter-spacing: -0.4px;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 140%;
+  letter-spacing: -0.4px;
 }
 
 .header-logo:hover {
-    color: rgba(0, 0, 0, 0.75);
+  color: rgba(0, 0, 0, 0.75);
 
-    /* font-size: 18px; */
-    font-weight: 600;
-    line-height: 140%;
-    /* letter-spacing: 0px; */
+  /* font-size: 18px; */
+  font-weight: 600;
+  line-height: 140%;
+  /* letter-spacing: 0px; */
 }
 
 .header-route-box {
-    display: flex;
-    gap: 75px;
-    justify-content: space-between;
-    align-items: center;
+  display: flex;
+  gap: 75px;
+  justify-content: space-between;
+  align-items: center;
+
+  /* 추가: 탭 묶음 줄바꿈 방지 */
+  flex-wrap: nowrap;
+  white-space: nowrap; /* 컨테이너 레벨에서도 안전장치 */
 }
 
 .header-route {
-    color: rgba(255, 255, 255, 1);
+  color: rgba(255, 255, 255, 1);
 
-    font-size: 16px;
-    font-weight: 400;
-    line-height: 140%;
-    letter-spacing: -0.4px;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 140%;
+  letter-spacing: -0.4px;
 
-    cursor: pointer;
+  cursor: pointer;
+
+  /* 추가: 텍스트 줄바꿈 금지 + 한국어 단위 유지 */
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal; /* 강제 줄바꿈 방지 */
 }
 
 .header-route:hover {
-    color: rgba(0, 0, 0, 0.75);
+  color: rgba(0, 0, 0, 0.75);
 
-    /* font-size: 18px; */
-    font-weight: 600;
-    line-height: 140%;
-    /* letter-spacing: 0px; */
+  /* font-size: 18px; */
+  font-weight: 600;
+  line-height: 140%;
+  /* letter-spacing: 0px; */
 }
 
 .header-right-box {
-    display: flex;
-    align-items: center;
-    gap: 15px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 
 .header-search-input-box {
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    border-radius: 43px;
-    padding: 0 10px 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 43px;
+  padding: 0 10px 0 12px;
 
-    width: 223px;
-    height: 30px;
+  width: 223px;
+  height: 30px;
 
-    display: flex;
-    align-items: center;
-    gap: 5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .header-search-input {
-    flex: 1;
+  flex: 1;
 
-    border: none;
-    background: none;
-    outline: none;
+  border: none;
+  background: none;
+  outline: none;
 
-    color: rgba(255, 255, 255, 1);
+  color: rgba(255, 255, 255, 1);
 
-    font-size: 14px;
-    font-weight: 400;
-    line-height: 140%;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 140%;
 }
 
+/* ============================= */
+/* 강제 패치: 커뮤니티 줄바꿈 방지 */
+/* ============================= */
+.header-route,
+.header-route-box .header-route,
+.header-route a,
+.header-route * {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  overflow-wrap: normal !important;
+  display: inline-flex;      /* 글자 폭만큼만 차지 */
+  align-items: center;
+  width: max-content;        /* 강제 최소폭 해제 */
+}
+
+.header-route-box {
+  flex-wrap: nowrap !important;
+  min-width: fit-content;
+}
+
+/* 반응형: 화면이 좁으면 간격/글자 크기 축소(선택) */
+@media (max-width: 1280px) {
+  .header-route-box { gap: 40px; }
+}
+@media (max-width: 1024px) {
+  .header-route-box { gap: 24px; }
+  .header-route { font-size: 15px; }
+}
+
+.header-route { white-space: nowrap !important; }
