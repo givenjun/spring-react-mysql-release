@@ -39,7 +39,7 @@ export default function BoardListItem({boardListItem}: Props) {
                 </div> 
             </div>
             <div className = 'board-list-item-middle'>
-                <div className = 'board-list-item-tile'>{title}</div>
+                <div className = 'board-list-item-title'>{title}</div>
                 <div className = 'board-list-item-content'>{content}</div>
             </div>
             <div className = 'board-list-item-bottom'>

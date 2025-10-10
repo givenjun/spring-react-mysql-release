@@ -103,7 +103,6 @@
   color: #222;
   margin-bottom: 10px;
 
-   /* ✅ 제목 2줄까지만 보이기 (grid 깨짐 방지) */
   display: -webkit-box;
   -webkit-line-clamp: 1; /* 보여줄 줄 수 */
   -webkit-box-orient: vertical;
