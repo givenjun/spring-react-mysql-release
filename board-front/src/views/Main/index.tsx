@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Map, MapMarker, MapTypeControl, Polyline, ZoomControl } from 'react-kakao-maps-sdk';
 import { useNavigate, useLocation } from 'react-router-dom';
 import SearchSidebar from 'components/Map/SearchSidebar';
-import useKakaoSearch from 'hooks/Map/useKakaoSearch.hock';
+import useKakaoSearch from 'hooks/Map/useKakaoSearch.hook';
 import './style.css';
 import MenuButton from 'components/Menu/MenuButton';
 import useRelativeStore from 'stores/relativeStore';
