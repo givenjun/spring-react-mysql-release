@@ -5,6 +5,7 @@
     justify-content: center;
 
     background-color: rgba(0,0,0,0.05);
+
 }
 
 .main-top-container {
@@ -301,3 +302,4 @@
   visibility: visible; 
   pointer-events: auto; 
 }
+.main-wrapper { position: relative; overflow: hidden; }

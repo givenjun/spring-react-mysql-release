@@ -10,6 +10,10 @@ export const BOARD_WRITE_PATH = () => `write`;
 export const BOARD_DETAIL_PATH = (boardNumber: string | number) => `detail/${boardNumber}`;
 export const BOARD_UPDATE_PATH = (boardNumber: string | number) => `update/${boardNumber}`;
 export const NOTICE_PATH = () => `/notice`;
+export const EMAIL_VERIFIED_SUCCESS_PATH = () => '/email-verified-success';
+export const EMAIL_VERIFIED_FAIL_PATH = () => '/email-verified-fail';
+export const ADMIN_PATH = () => '/admin';
+export const ADMIN_LAYOUT_PATH = () => '/admin/layout';
 
 // --- 쉬움(Ease) 지표 파라미터(튜닝용) ---
 export const EASE_PARAMS = {
@@ -27,3 +31,4 @@ export const EASE_PARAMS = {
   // 안정화
   minPathMeters: 50, // 너무 짧은 경로 보호
 };
+

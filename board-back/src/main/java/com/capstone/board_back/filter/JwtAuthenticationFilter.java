@@ -1,5 +1,6 @@
 package com.capstone.board_back.filter;
 
+import com.capstone.board_back.entity.Role;
 import com.capstone.board_back.provider.JwtProvider;
 
 import jakarta.servlet.FilterChain;
@@ -10,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -18,6 +20,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -43,8 +46,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
+            // ✅ 새로 추가: role 추출 (없으면 기본 USER)
+            Role role = jwtProvider.getRole(token);
+            SimpleGrantedAuthority authority =
+                    new SimpleGrantedAuthority("ROLE_" + role);
+
+            // ✅ 기존 인증 객체 생성 방식 그대로, 권한만 추가
             AbstractAuthenticationToken authenticationToken =
-                    new UsernamePasswordAuthenticationToken(email, null, AuthorityUtils.NO_AUTHORITIES);
+                    new UsernamePasswordAuthenticationToken(email, null, List.of(authority));
             authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
             SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
