@@ -65,7 +65,7 @@ export default function NoticeList() {
     <div id="notice-wrapper">
       <div className="notice-container">
         <div className="notice-header">
-          <div className="notice-title">📢 공지사항</div>
+          <div className="notice-title">공지사항</div>
           <div className="notice-subtitle">서비스 관련 최신 소식을 확인하세요.</div>
         </div>
 

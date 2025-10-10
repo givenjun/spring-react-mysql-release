@@ -52,11 +52,12 @@
   min-height: 600px;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: 190px;
   gap: 24px;
 }
 
 .notice-card {
-  min-height: 140px;
+  height: 140px;
   position: relative;
   background-color: #fff;
   border-radius: 10px;
@@ -64,7 +65,7 @@
   padding: 24px;
   cursor: pointer;
   transition: all 0.25s ease;
-  border: 1px solid #f0f0f0;
+  border: 2px solid #f0f0f0;
 }
 
 .notice-card:hover {
