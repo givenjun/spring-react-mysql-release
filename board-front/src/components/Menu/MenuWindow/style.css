@@ -1,0 +1,90 @@
+.menu-window-container {
+  position: absolute;
+  bottom: 100px;
+  right: 24px;
+  width: 400px;
+  height: 650px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* 자식 요소가 둥근 모서리를 넘지 않도록 */
+  z-index: 100;
+}
+
+.menu-window-header {
+  padding: 6px;
+  text-align: center;
+  font-family: 'Noto Sans KR Bold';
+  font-size: 16px;
+}
+
+.chat-window-container {
+    /* ChatWindow 전체가 MenuWindow의 내용 영역을 채우도록 */
+    position: relative; /* MenuWindow 내에서 absolute */
+    flex-grow: 1;
+    height: 80%;
+    /* overflow: hidden; */
+    z-index: 50;
+    background-color: white; /* 뒤로가기 버튼이 헤더 위에 보이도록 하려면 배경색으로 아래를 덮어야 합니다 */
+    display: flex; /* 내부 요소 정렬을 위해 추가 */
+    flex-direction: column; /* 세로로 쌓이도록 */
+}
+
+.chat-window-back-button {
+    position: absolute; /* chat-window-container를 기준으로 위치 */
+    top: -55px; /* 헤더 위치에 맞춰 조정 */
+    left: 15px;
+    z-index: 200; 
+
+    /* 버튼 스타일 */
+    background-color: transparent;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.menu-window-footer {
+    bottom: 0;
+    height: 52px;
+    padding: 0 15%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.navigate-menu-home,
+.navigate-menu-chat,
+.navigate-menu-config {
+  display: flex;
+  flex-direction: column; /* 자식 요소를 세로로 쌓기 */
+  align-items: center;   /* 가로축 중앙 정렬 */
+  justify-content: center; /* 세로축 중앙 정렬 */
+  padding: 8px 0; /* 위아래 여백 추가 */
+  font-size: 12px; /* 폰트 크기 통일 */
+  cursor: pointer;
+}
+
+.navigate-menu-home:hover,
+.navigate-menu-chat:hover,
+.navigate-menu-config:hover {
+  font-weight: 600;
+}
+.nagivate-menu-chat {
+  display: flex;
+  align-items: center;
+}
+
+/* 아이콘과 텍스트 사이 여백 추가 */
+.navigate-menu-home > img,
+.navigate-menu-chat > img {
+    margin-bottom: 2px;
+}
+
+.navigate-menu-config {
+  margin: 0;
+}

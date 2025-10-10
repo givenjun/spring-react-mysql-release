@@ -1,0 +1,73 @@
+.call-to-action-container {
+  position: absolute;
+  bottom: 100px;
+  right: 24px;
+  width: 260px;
+  border-radius: 12px; 
+  border: none;
+  background-color: rgba(255, 255, 255, 0.9); 
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); 
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 1000;
+  -webkit-user-select:none;
+  -moz-user-select:none;
+  -ms-user-select:none;
+  user-select:none;
+  padding: 20px; /* 내부 여백 추가 */
+  text-align: left; /* 모든 텍스트 중앙 정렬 */
+
+}
+
+.call-to-action-container:hover {
+  transform: translateY(-5px); /* 호버 시 살짝 떠오르는 효과 */
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.cta-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.cta-title {
+    font-family: 'Noto Sans KR Black', sans-serif;
+    font-size: 16px;
+    margin: 0;
+    padding-right: 8px;
+    color: #343a40; /* 제목 색상 */
+}
+
+.cta-close-button {
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    filter: opacity(0.6);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cta-close-button img {
+    width: 18px;
+    height: 18px;
+}
+
+
+.cta-body p {
+    color: #868e96; /* 가독성을 위해 색상 조정 */
+    font-family: 'Noto Sans KR', sans-serif; /* 폰트 두께 보통으로 */
+    font-size: 14px;
+    line-height: 1.6; /* ✅ 줄 간격 정상화 */
+    margin: 4px 0; /* 문단 사이의 간격 */
+}

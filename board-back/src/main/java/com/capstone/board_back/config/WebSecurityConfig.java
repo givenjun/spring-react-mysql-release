@@ -61,7 +61,7 @@ public class WebSecurityConfig {
                         // ✅ 공개 접근 경로
                         .requestMatchers("/", "/api/v1/auth/**", "/api/v1/search/**", "/file/**", "/api/v1/notice/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/board/**", "/api/v1/user/*").permitAll()
-                        .requestMatchers("/api/v1/gemini/ask", "/api/tmap/**").permitAll()
+                        .requestMatchers("/api/v1/gemini/**", "/api/tmap/**").permitAll()
 
                         // ✅ 나머지 요청은 USER 또는 ADMIN만 접근 가능
                         .anyRequest().hasAnyRole("USER", "ADMIN")

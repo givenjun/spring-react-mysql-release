@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { create } from 'zustand';
 
 export interface Place {
   id: string;
@@ -11,6 +12,15 @@ export interface Place {
   phone?: string;
 }
 
+interface AiSearchState {
+  aiSearchResults: Place[];
+  setAiSearchResults: (results: Place[]) => void;
+}
+export const useAiSearchStore = create<AiSearchState>((set) => ({
+  aiSearchResults: [],
+  setAiSearchResults: (results) => set({ aiSearchResults: results}),
+}));
+
 export default function useKakaoSearch() {
   const [searchResults, setSearchResults] = useState<Place[]>([]);
   const [center, setCenter] = useState({ lat: 37.5665, lng: 126.9780 });
@@ -18,6 +28,15 @@ export default function useKakaoSearch() {
   const [isLoading, setIsLoading] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);  // ✅ 마커 hover용 index
 
+  const { aiSearchResults } = useAiSearchStore();
+
+  useEffect(() => {
+    if (aiSearchResults.length > 0) {
+      setSearchResults(aiSearchResults);
+      const firstPlace = aiSearchResults[0];
+      setCenter({ lat: parseFloat(firstPlace.y), lng: parseFloat(firstPlace.x) });
+    }
+  }, [aiSearchResults]);
   /**
    * 키워드로 장소를 검색합니다.
    */

@@ -1,0 +1,44 @@
+.menu-home-container {
+    position: relative;
+    display: flex;
+    flex-grow: 1;
+    flex-direction: column; 
+    align-items: center;
+    overflow: hidden;
+    overflow-y: auto;
+}
+
+.menu-home-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.menu-home-container::-webkit-scrollbar-track {
+    width: 6px;
+    background-color: rgba(0, 0, 0, 0);
+}
+
+.menu-home-container::-webkit-scrollbar-thumb {
+  background-color: #aab7c4;
+  border-radius: 10px; 
+}
+
+.menu-home-logo-icon {
+    margin-top: 5%;
+    width: 66%;
+}
+
+.menu-home-title {
+    font-family: 'Noto Sans KR Bold';
+    color: #7664FD;
+    font-size: 20px;
+    /* font-weight: 600; */
+}
+
+.menu-home-body {
+    margin: 0;
+    /* padding: %; */
+
+    font-family: 'Noto Sans KR Thin';
+    line-height: 200%;
+}
+

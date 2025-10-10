@@ -1,11 +1,19 @@
 import React, { useRef, useEffect } from 'react';
 import './style.css';
 import SendButton from 'assets/image/expand-right-light.png';
-import { useChat } from 'hooks/chatbot.hook';
+import BackButton from 'assets/image/expand-left.png';
+import { PlaceInfo, useChat } from 'hooks/chatbot.hook';
+import ReactMarkDown from 'react-markdown';
+import PlaceInfoCard from '../ChatBotRecommend';
 
-export default function ChatWindow() {
+interface ChatWindowProps {
+    sessionId: string;
+    onBack: () => void;
+}
+
+export default function ChatWindow({ sessionId, onBack }: ChatWindowProps) {
     // useChat Hook을 호출하여 채팅 관련 상태와 함수들을 가져옵니다.
-    const { messages, input, isLoading, handleInputChange, handleSubmit } = useChat();
+    const { messages, input, isLoading, handleInputChange, handleSubmit } = useChat(sessionId);
     
     // 스크롤을 항상 아래로 유지하기 위한 ref
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -20,20 +28,29 @@ export default function ChatWindow() {
 
     return (
         <div className="chat-window-container">
-            <div className="chat-window-header">
-                <p className="chat-window-title">AI에게 물어보기</p>
-            </div>
+            <button className='chat-window-back-button' onClick={onBack}>
+                <img src={BackButton}></img>
+            </button>
             <div className="chat-window-messages">
                 {/* messages 배열을 순회하며 각 메시지를 화면에 렌더링 */}
                 {messages.map((msg, index) => (
                     <div key={index} className={`message-bubble ${msg.sender === 'user' ? 'sent' : 'received'}`}>
-                        {msg.text}
-                    </div>
-                ))}
+                    {typeof msg.text === 'string' ? (
+                            // 문자열이면 기존처럼 ReactMarkdown을 사용
+                            <ReactMarkDown>{msg.text}</ReactMarkDown>
+                        ) : (
+                            // PlaceInfo 객체이면 새로 만든 PlaceInfoCard를 사용
+                            <PlaceInfoCard info={msg.text as PlaceInfo} />
+                        )}
+                        </div>
+                    ))}
                 {/* 로딩 중일 때 '입력 중...' 메시지 표시 */}
+                { !messages[1] &&
+                    <div className='message-bubble sent'>AI가 제공한 위치 정보엔 오차가 있을 수 있습니다. 다시 한번 확인하세요.</div>
+                }
                 {isLoading && (
                     <div className="message-bubble received">
-                        입력 중...
+                        입력 중... 
                     </div>
                 )}
                 <div ref={messagesEndRef} />
