@@ -4,6 +4,7 @@ import AdminBoardList from './BoardList';
 import AdminUserList from './UserList';
 import { useAdminAuth } from 'hooks';
 import AdminNoticeList from "./NoticeList";
+import AdminDashboard from "./Dashboard";
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -43,7 +44,7 @@ export default function AdminLayout() {
         {section === "notices" && <AdminNoticeList />}
         {section === "boards" && <div><AdminBoardList/></div>}
         {section === "users" && <div><AdminUserList/></div>}
-        {section === "dashboard" && <div>📊 대시보드 영역</div>}
+        {section === "dashboard" && <div><AdminDashboard/></div>}
       </main>
     </div>
   );
