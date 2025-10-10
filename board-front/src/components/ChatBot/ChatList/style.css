@@ -9,8 +9,11 @@
 
 .chat-session-container {
     flex-grow: 1;
-    overflow: hidden;
     overflow-y: auto;
+
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
 }
 
 .chat-session-container::-webkit-scrollbar {
@@ -25,7 +28,10 @@
 
 .chat-session-items {
     border-radius: 8px;
-    padding: 12px 6px;
+    line-height: 150%;
+    height: 72px;
+    padding: 12px;
+    margin: 0 8px;
 }
 
 .chat-session-header {
@@ -47,6 +53,7 @@
 
 .chat-session-title {
     flex-grow: 1; /* 제목이 가능한 많은 공간을 차지하도록 설정 */
+    width: 12px;
     white-space: nowrap; /* 제목이 길어도 한 줄로 표시 */
     overflow: hidden; /* 넘치는 부분 숨김 */
     text-overflow: ellipsis; /* 넘치는 부분은 ...으로 표시 */
@@ -62,6 +69,7 @@
 }
 
 .chat-session-more-button {
+    opacity: 0;
     border: none;
     background-color: transparent;
     width: 36px;
@@ -70,6 +78,14 @@
     cursor: pointer;
     padding: 0 8px;
     border-radius: 4px;
+}
+
+.chat-session-items:hover .chat-session-more-button {
+    opacity: 1;
+}
+
+.chat-session-more-container:has(.more-menu) .chat-session-more-button {
+    opacity: 1;
 }
 
 .more-menu {
@@ -136,12 +152,12 @@
     background-color: #c295fe;
 
     font-family: 'Noto Sans KR Bold';
-    font-size: 16px;
+    font-size: 14px;
 
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 8px;
 
     cursor: pointer;
 }

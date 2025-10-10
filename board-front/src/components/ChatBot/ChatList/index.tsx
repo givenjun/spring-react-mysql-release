@@ -26,7 +26,6 @@ export default function ChatList({ onSelectSession, onNewChat }: ChatListProps) 
     const [newTitle, setNewTitle] = useState('');
     const menuRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
-    const [isHovered, setIsHovered] = useState<boolean>(false);
 
     useEffect(() => {
         // localStorage에서 세션 목록 불러오기
@@ -96,14 +95,8 @@ export default function ChatList({ onSelectSession, onNewChat }: ChatListProps) 
         setRenamingSessionId(null); // 이름 변경 모드 종료
     };
 
-    const hoverHandler = (sessionId: string) => {
-        setIsHovered(!isHovered);
-    }
-
     return (
         <div className='chat-list-container'>
-            {/* <div>대화 목록</div> */}
-            
             <div className='chat-session-container'>
                 {Object.keys(sessions).map(sessionId => {
                     const session = sessions[sessionId];
@@ -114,8 +107,6 @@ export default function ChatList({ onSelectSession, onNewChat }: ChatListProps) 
                     <div 
                         className='chat-session-items' 
                         key={sessionId} onClick={() => onSelectSession(sessionId)}
-                        // onMouseEnter={hoverHandler(sessionId)}
-                        // onMouseLeave={hoverHandler(sessionId)}
                     >
                         <div className='chat-session-header'>
                             {renamingSessionId === sessionId ? (
@@ -139,14 +130,12 @@ export default function ChatList({ onSelectSession, onNewChat }: ChatListProps) 
                             <div className='chat-session-date'>{formattedDate}</div>
                             
                             <div className='chat-session-more-container' ref={menuRef}>
-                                {isHovered &&
                                 <button
                                     className='chat-session-more-button'
                                     onClick={(e) => toggleMenu(e, sessionId)}
                                 >
                                     <img src={MoreIcon} style={{width:'100%'}}></img>
                                 </button>
-                                }
                                 {activeMenu === sessionId && (
                                     <div className="more-menu">
                                         <button onClick={(e) => {
@@ -162,10 +151,20 @@ export default function ChatList({ onSelectSession, onNewChat }: ChatListProps) 
                             </div>
                         </div>
                         <div className='chat-session-contents'>
-                            {lastMessage?.text.length < 50 ? 
-                                lastMessage?.text : 
-                                (lastMessage?.text.substring(0, 50) + '...')
-                            }
+                            {(() => {
+                                const lastMessageContent = lastMessage?.text;
+                                let previewText = '';
+
+                                if (typeof lastMessageContent === 'string') {
+                                    previewText = lastMessageContent;
+                                } else if (lastMessageContent && 'place_name' in lastMessageContent) {
+                                    previewText = `[맛집 추천] ${lastMessageContent.place_name}\n${lastMessageContent.reason}`;
+                                }
+
+                                return previewText.length < 50 ? 
+                                    previewText : 
+                                    (previewText.substring(0, 50) + '...');
+                            })()}
                         </div>
                     </div>
                 );
