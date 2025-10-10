@@ -24,7 +24,7 @@
     display: flex;
     flex-direction: column;
 
-    max-width: 736px;
+    max-width: 554px;
     gap: 16px;
 }
 
@@ -101,7 +101,7 @@
     color: rgba(0,0,0,0.7);
 
     font-size: 12px;
-    font-weight: 400;
+    font-weight: 400;   
     line-height: 140%;
 }
 
@@ -110,6 +110,15 @@
     height: 152px;
     position: relative;
 }
+
+.board-list-item-null-box {
+    width: 152px;
+    height: 152px;
+    background-color: #ffffff; /* 💡 살짝만 톤 다운 */
+  /* border: 1px solid #eee;   ✅ 테두리 추가해서 빈칸 같지 않게 */
+  border-radius: 8px;
+}
+
 
 .board-list-item-image {
     border-radius: 10px;

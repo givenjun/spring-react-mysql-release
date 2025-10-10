@@ -49,16 +49,20 @@ export default function BoardListItem({boardListItem}: Props) {
             </div>  
         </div>
         {/*썸네일에 이미지가 몇개 더 있는지 알려주는 기능*/}
-        {boardTitleImage !== null&& (
+        {boardTitleImage !== null ? (
             <div className = 'board-list-item-image-box'>
-            <div className = 'board-list-item-image' style={{backgroundImage: `url(${boardTitleImage})`}}></div>
-             {/* ✨ 이미지 개수가 2개 이상일 때만 +N 표시 (썸네일 자체를 1개로 간주) */}
-            {imageCount && imageCount > 1 && (
-                <div className='board-list-item-image-count-badge'>
-                    +{imageCount - 1} 
-                </div>
-            )}
-        </div> )}
+                <div className = 'board-list-item-image' style={{backgroundImage: `url(${boardTitleImage})`}}></div>
+                {/* ✨ 이미지 개수가 2개 이상일 때만 +N 표시 (썸네일 자체를 1개로 간주) */}
+                {imageCount && imageCount > 1 && (
+                    <div className='board-list-item-image-count-badge'>
+                        +{imageCount - 1} 
+                    </div>
+                )}
+                </div> 
+            ) : (
+            <div className = 'board-list-item-null-box'></div> 
+            )
+        }
     </div>
   )
 }
