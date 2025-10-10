@@ -97,3 +97,9 @@
 .chat-send-button:hover {
   filter: brightness(95%);
 }
+
+.place-info-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* 카드 사이의 간격 */
+}

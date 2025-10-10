@@ -389,3 +389,18 @@ export const askGeminiRequest = async (requestBody: GeminiRequestDto) => {
         })
         return result;
 }
+
+export const searchPlaceOnMapRequest = async (searchQuery: string) => {
+  const requestBody = { searchQuery };
+  // POST 요청으로 변경하고, requestBody를 함께 보냅니다.
+  const result = await axios.post(`${API_DOMAIN}/gemini/map-search`, requestBody)
+    .then(response => {
+      // 성공 시 받은 데이터(장소 배열)를 반환합니다.
+      return response.data;
+    })
+    .catch(error => {
+      console.error("searchPlaceOnMapRequest API 호출 실패:", error.response); // ❗ 이 로그를 확인하세요.
+      return []; // 일단 기존처럼 빈 배열을 반환합니다.
+    });
+  return result;
+}
