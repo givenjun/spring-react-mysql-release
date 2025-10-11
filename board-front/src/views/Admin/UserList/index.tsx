@@ -5,6 +5,7 @@ import axios from "axios";
 import useAdminAuth from "hooks/useadminauth.hook";
 import { customErrToast, usePagination } from "hooks";
 import DeleteConfirmModal from '../common/DeleteConfirmModal';
+import RestoreConfirmModal from './RestoreConfirmModal';
 
 interface User {
   deleted: boolean;
@@ -39,6 +40,7 @@ export default function AdminUserList() {
   const [newPassword, setNewPassword] = useState("");
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [targetEmail, setTargetEmail] = useState("");
 
   // ✅ 회원 목록 불러오기
@@ -83,6 +85,29 @@ export default function AdminUserList() {
     }
   };
 
+  // ✅ 회원 복구 함수
+  const confirmRestoreUser = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      const response = await axios.put(`${DOMAIN}/api/v1/admin/user/restore/${targetEmail}`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const { code } = response.data;
+      if (code === "SU") {
+        getAdminUserList();
+        customErrToast("회원이 복구되었습니다.");
+      } else {
+        customErrToast("복구 실패. 다시 시도해주세요.");
+      }
+    } catch (error) {
+      console.error(error);
+      customErrToast("복구 중 오류가 발생했습니다.");
+    } finally {
+      setShowRestoreModal(false);
+    }
+  };
+
 
   // ✅ 비밀번호 변경 요청
   const updateUserPassword = async () => {
@@ -118,10 +143,6 @@ export default function AdminUserList() {
   }, []);
 
   if (loading) return <div className="admin-user-list">로딩 중...</div>;
-
-  function handleRestoreUser(email: string) {
-    throw new Error('Function not implemented.');
-  }
 
   return (
     <div className="admin-user-list">
@@ -190,7 +211,7 @@ export default function AdminUserList() {
                           onClick={() => {
                             setTargetEmail(user.email);
                             // 복구용 모달 띄우기 or 즉시 요청
-                            handleRestoreUser(user.email);
+                            setShowRestoreModal(true);
                           }}
                         >
                           복구하기
@@ -273,6 +294,13 @@ export default function AdminUserList() {
           message={`${targetEmail} 사용자를 삭제하시겠습니까?`}
           onCancel={() => setShowDeleteModal(false)}
           onConfirm={confirmDeleteUser}
+        />
+      )}
+      {showRestoreModal && (
+        <RestoreConfirmModal
+          message={`${targetEmail} 사용자를 복구하시겠습니까?`}
+          onCancel={() => setShowRestoreModal(false)}
+          onConfirm={confirmRestoreUser}
         />
       )}
     </div>
