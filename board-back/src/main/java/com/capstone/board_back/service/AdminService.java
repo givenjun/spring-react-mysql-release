@@ -11,4 +11,5 @@ public interface AdminService {
     ResponseEntity<? super DeleteBoardResponseDto> deleteBoard(Integer boardNumber);
     ResponseEntity<? super GetDashboardResponseDto> getDashboardData();
     ResponseEntity<? super GetDashboardTrendResponseDto> getDashboardTrend();
+    ResponseEntity<? super PutRestoreUserResponseDto> restoreUser(String email);
 }

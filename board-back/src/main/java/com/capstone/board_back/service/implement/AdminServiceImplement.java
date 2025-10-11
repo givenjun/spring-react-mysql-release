@@ -187,4 +187,28 @@ public class AdminServiceImplement implements AdminService {
         }
     }
 
+    @Override
+    public ResponseEntity<? super PutRestoreUserResponseDto> restoreUser(String email) {
+        try {
+            // 1️⃣ 이메일로 유저 조회
+            UserEntity user = userRepository.findByEmail(email);
+            if (user == null)
+                return PutRestoreUserResponseDto.notExistUser();
+
+            // 2️⃣ 이미 탈퇴된 회원이면 예외 처리
+            if (!user.isDeleted())
+                return PutRestoreUserResponseDto.alreadyActive();
+
+            // 3️⃣ Soft Delete (익명화 및 삭제 처리)
+            user.restoreDeleted();
+            userRepository.save(user);
+
+            // 4️⃣ 성공 응답 반환
+            return PutRestoreUserResponseDto.success();
+
+        } catch (Exception exception) {
+            exception.printStackTrace();
+            return ResponseDto.databaseError();
+        }
+    }
 }
