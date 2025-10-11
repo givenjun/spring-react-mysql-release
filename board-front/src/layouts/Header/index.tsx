@@ -170,6 +170,7 @@ export default function Header() {
     const onSignOutButtonClickHandler = () => {
       resetLoginUser();
       setCookie('accessToken', '', { path: MAIN_PATH(), expires: new Date() });
+      localStorage.removeItem("accessToken");
       navigate(MAIN_PATH());
     };
 

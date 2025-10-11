@@ -32,7 +32,7 @@ import { ResponseDto } from 'apis/response';
 import dayjs from 'dayjs';
 import { useCookies } from 'react-cookie';
 import { PostCommentRequestDto } from 'apis/request/board';
-import { usePagination } from 'hooks';
+import { customErrToast, usePagination } from 'hooks';
 import RollingNumber from 'components/Rolling/RollingNumber';
 import { toast } from 'react-toastify';
 import InitRollingNumber from 'components/Rolling/initRolling/InitRollingNumber';
@@ -65,8 +65,8 @@ const BoardDetailTop = memo(function BoardDetailTop({ boardNumber, setViewCount,
   const getBoardResponse = (responseBody: GetBoardResponseDto | ResponseDto | null) => {
     if (!responseBody) return;
     const { code } = responseBody as ResponseDto;
-    if (code === 'NB') toast('존재하지 않는 게시물입니다.');
-    if (code === 'DBE') toast('데이터베이스 오류입니다.');
+    if (code === 'NB') customErrToast('존재하지 않는 게시물입니다.');
+    if (code === 'DBE') customErrToast('데이터베이스 오류입니다.');
     if (code !== 'SU') {
       navigate(BOARD_PATH());
       return;
@@ -90,12 +90,12 @@ const BoardDetailTop = memo(function BoardDetailTop({ boardNumber, setViewCount,
   const deleteBoardResponse = (responseBody: DeleteBoardResponseDto | ResponseDto | null) => {
     if (!responseBody) return;
     const { code } = responseBody as ResponseDto;
-    if (code === 'VF') toast('잘못된 접근입니다.');
-    if (code === 'NU') toast('존재하지 않는 유저입니다.');
-    if (code === 'NB') toast('존재하지 않는 게시물입니다.');
-    if (code === 'AF') toast('인증에 실패했습니다.');
-    if (code === 'NP') toast('권환이 없습니다.');
-    if (code === 'DBE') toast('데이터베이스 오류입니다.');
+    if (code === 'VF') customErrToast('잘못된 접근입니다.');
+    if (code === 'NU') customErrToast('존재하지 않는 유저입니다.');
+    if (code === 'NB') customErrToast('존재하지 않는 게시물입니다.');
+    if (code === 'AF') customErrToast('인증에 실패했습니다.');
+    if (code === 'NP') customErrToast('권환이 없습니다.');
+    if (code === 'DBE') customErrToast('데이터베이스 오류입니다.');
     if (code !== 'SU') return;
     navigate(BOARD_PATH());
   };
@@ -198,11 +198,11 @@ const BoardDetailBottom = memo(function BoardDetailBottom({ boardNumber, viewCou
   // 댓글 삭제
   const handleDeleteComment = (commentNumber: number) => {
     if (!boardNumber) {
-      toast('게시물 번호가 유효하지 않습니다.');
+      customErrToast('게시물 번호가 유효하지 않습니다.');
       return;
     }
     if (!cookies.accessToken) {
-      toast('로그인이 필요합니다.');
+      customErrToast('로그인이 필요합니다.');
       return;
     }
     const isConfirm = window.confirm('댓글을 정말 삭제하시겠습니까?');
@@ -212,22 +212,22 @@ const BoardDetailBottom = memo(function BoardDetailBottom({ boardNumber, viewCou
 
   const deleteCommentResponseCallback = (responseBody: ResponseDto | null) => {
     if (!responseBody) {
-      toast('네트워크 응답이 없거나 요청에 실패했습니다.');
+      customErrToast('네트워크 응답이 없거나 요청에 실패했습니다.');
       return;
     }
     const { code } = responseBody;
-    if (code === 'VF') toast('잘못된 접근입니다.');
-    else if (code === 'NU') toast('존재하지 않는 유저입니다.');
-    else if (code === 'NB') toast('존재하지 않는 게시물입니다.');
-    else if (code === 'NC') toast('존재하지 않는 댓글입니다.');
-    else if (code === 'AF') toast('인증에 실패했습니다.');
-    else if (code === 'NP') toast('권한이 없습니다.');
-    else if (code === 'DBE') toast('데이터베이스 오류입니다.');
+    if (code === 'VF') customErrToast('잘못된 접근입니다.');
+    else if (code === 'NU') customErrToast('존재하지 않는 유저입니다.');
+    else if (code === 'NB') customErrToast('존재하지 않는 게시물입니다.');
+    else if (code === 'NC') customErrToast('존재하지 않는 댓글입니다.');
+    else if (code === 'AF') customErrToast('인증에 실패했습니다.');
+    else if (code === 'NP') customErrToast('권한이 없습니다.');
+    else if (code === 'DBE') customErrToast('데이터베이스 오류입니다.');
     else if (code === 'SU') {
-      toast('댓글이 삭제되었습니다.');
+      customErrToast('댓글이 삭제되었습니다.');
       getCommentListRequest(boardNumber).then(getCommentListResponse);
     } else {
-      toast('알 수 없는 오류가 발생했습니다: ' + code);
+      customErrToast('알 수 없는 오류가 발생했습니다: ' + code);
     }
   };
 
@@ -235,8 +235,8 @@ const BoardDetailBottom = memo(function BoardDetailBottom({ boardNumber, viewCou
   const getFavoriteListResponse = (responseBody: GetFavoriteListResponseDto | ResponseDto | null) => {
     if (!responseBody) return;
     const { code } = responseBody as ResponseDto;
-    if (code === 'NB') toast('존재하지 않는 게시물입니다.');
-    if (code === 'DBE') toast('데이터베이스 오류입니다.');
+    if (code === 'NB') customErrToast('존재하지 않는 게시물입니다.');
+    if (code === 'DBE') customErrToast('데이터베이스 오류입니다.');
     if (code !== 'SU') return;
 
     const { favoriteList } = responseBody as GetFavoriteListResponseDto;
@@ -254,8 +254,8 @@ const BoardDetailBottom = memo(function BoardDetailBottom({ boardNumber, viewCou
   const getCommentListResponse = (responseBody: GetCommentListResponseDto | ResponseDto | null) => {
     if (!responseBody) return;
     const { code } = responseBody as ResponseDto;
-    if (code === 'NB') toast('존재하지 않는 게시물입니다.');
-    if (code === 'DBE') toast('데이터베이스 오류입니다.');
+    if (code === 'NB') customErrToast('존재하지 않는 게시물입니다.');
+    if (code === 'DBE') customErrToast('데이터베이스 오류입니다.');
     if (code !== 'SU') return;
 
     const { commentList } = responseBody as GetCommentListResponseDto;
@@ -268,11 +268,11 @@ const BoardDetailBottom = memo(function BoardDetailBottom({ boardNumber, viewCou
   const putFavoriteResponse = (responseBody: PutFavoriteResponseDto | ResponseDto | null) => {
     if (!responseBody) return;
     const { code } = responseBody as ResponseDto;
-    if (code === 'VF') toast('잘못된 접근입니다.');
-    if (code === 'NU') toast('존재하지 않는 유저입니다.');
-    if (code === 'NB') toast('존재하지 않는 게시물입니다.');
-    if (code === 'AF') toast('인증에 실패했습니다.');
-    if (code === 'DBE') toast('데이터베이스 오류입니다.');
+    if (code === 'VF') customErrToast('잘못된 접근입니다.');
+    if (code === 'NU') customErrToast('존재하지 않는 유저입니다.');
+    if (code === 'NB') customErrToast('존재하지 않는 게시물입니다.');
+    if (code === 'AF') customErrToast('인증에 실패했습니다.');
+    if (code === 'DBE') customErrToast('데이터베이스 오류입니다.');
     if (code !== 'SU') return;
     getFavoriteListRequest(boardNumber).then(getFavoriteListResponse);
   };
@@ -281,11 +281,11 @@ const BoardDetailBottom = memo(function BoardDetailBottom({ boardNumber, viewCou
   const postCommentResponse = (responseBody: PostCommentResponseDto | ResponseDto | null) => {
     if (!responseBody) return;
     const { code } = responseBody as ResponseDto;
-    if (code === 'VF') toast('잘못된 접근입니다.');
-    if (code === 'NU') toast('존재하지 않는 유저입니다.');
-    if (code === 'NB') toast('존재하지 않는 게시물입니다.');
-    if (code === 'AF') toast('인증에 실패했습니다.');
-    if (code === 'DBE') toast('데이터베이스 오류입니다.');
+    if (code === 'VF') customErrToast('잘못된 접근입니다.');
+    if (code === 'NU') customErrToast('존재하지 않는 유저입니다.');
+    if (code === 'NB') customErrToast('존재하지 않는 게시물입니다.');
+    if (code === 'AF') customErrToast('인증에 실패했습니다.');
+    if (code === 'DBE') customErrToast('데이터베이스 오류입니다.');
     if (code !== 'SU') return;
     getCommentListRequest(boardNumber).then(getCommentListResponse);
   };
@@ -458,8 +458,8 @@ export default function BoardDetail() {
   const increaseViewCountResponse = (responseBody: IncreaseViewCountResponseDto | ResponseDto | null) => {
     if (!responseBody) return;
     const { code } = responseBody as ResponseDto;
-    if (code === 'NB') toast('존재하지 않는 게시물입니다.');
-    if (code === 'DBE') toast('데이터베이스 오류입니다.');
+    if (code === 'NB') customErrToast('존재하지 않는 게시물입니다.');
+    if (code === 'DBE') customErrToast('데이터베이스 오류입니다.');
   };
 
   // 게시물 번호 변화 시 딱 1회만 조회수 증가

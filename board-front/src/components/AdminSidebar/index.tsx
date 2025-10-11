@@ -23,7 +23,7 @@ export default function AdminSidebar({
   const [selected, setSelected] = useState(activeSection);
 
   const menuItems: MenuItem[] = [
-    { label: "공지사항", key: "notices", icon: "📢" },
+    { label: "공지사항 관리", key: "notices", icon: "📢" },
     { label: "게시판 관리", key: "boards", icon: "📝" },
     { label: "회원 관리", key: "users", icon: "👥" },
     { label: "대시보드", key: "dashboard", icon: "📊" },
@@ -36,6 +36,7 @@ export default function AdminSidebar({
 
   const handleLogout = () => {
     localStorage.removeItem("accessToken");
+    document.cookie = "accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     window.location.href = "/";
   };
 

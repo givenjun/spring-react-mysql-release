@@ -9,7 +9,7 @@ import { AUTH_PATH, BOARD_PATH, BOARD_WRITE_PATH, SEARCH_PATH } from 'constant';
 import { getLatestBoardListRequest, getPopularListRequest, getTop3BoardListRequest } from 'apis';
 import { GetLatestBoardListResponseDto, GetTop3BoardListResponseDto } from 'apis/response/board';
 import { ResponseDto } from 'apis/response';
-import { usePagination } from 'hooks';
+import { customErrToast, usePagination } from 'hooks';
 import { GetPopularListResponseDto } from 'apis/response/search';
 import { toast } from 'react-toastify';
 import Slider from 'react-slick';
@@ -41,7 +41,7 @@ export default function Board() {
     const getTop3BoardListResponse = (responseBody: GetTop3BoardListResponseDto | ResponseDto | null) => {
       if (!responseBody) return;
       const { code } = responseBody;
-      if (code === 'DBE') toast('데이터베이스 오류입니다.');
+      if (code === 'DBE') customErrToast('데이터베이스 오류입니다.');
       if (code !== 'SU') return;
 
       const { top3List } = responseBody as GetTop3BoardListResponseDto;
@@ -91,7 +91,7 @@ export default function Board() {
     const getLatestBoardListResponse = (responseBody: GetLatestBoardListResponseDto | ResponseDto | null) => {
       if (!responseBody) return;
       const { code } = responseBody;
-      if (code === 'DBE') toast('데이터베이스 오류입니다.');
+      if (code === 'DBE') customErrToast('데이터베이스 오류입니다.');
       if (code !== 'SU') return;
 
       const { latestList } = responseBody as GetLatestBoardListResponseDto;
@@ -102,7 +102,7 @@ export default function Board() {
     const getPopularListRespone = (responseBody: GetPopularListResponseDto | ResponseDto | null) => {
       if (!responseBody) return;
       const { code } = responseBody;
-      if (code === 'DBE') toast('데이터베이스 오류입니다.');
+      if (code === 'DBE') customErrToast('데이터베이스 오류입니다.');
       if (code !== 'SU') return;
 
       const { popularWordList } = responseBody as GetPopularListResponseDto;
@@ -118,7 +118,7 @@ export default function Board() {
     //          event handler: 글쓰기 버튼 클릭 이벤트 처리           //
     const onWriteBoardClickHandler = () => {
       if (!loginUser){
-        toast('로그인이 필요합니다.');
+        customErrToast('로그인이 필요합니다.');
         navigate(AUTH_PATH());
         return;
       }

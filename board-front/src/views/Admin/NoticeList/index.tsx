@@ -32,7 +32,7 @@ export default function AdminNoticeList() {
     currentSection,
     setCurrentSection,
     setTotalList,
-  } = usePagination<Notice>(5);
+  } = usePagination<Notice>(10);
 
   // ✅ 모달 상태
   const [showModal, setShowModal] = useState(false);
@@ -138,7 +138,7 @@ export default function AdminNoticeList() {
               {viewList.map((notice, index) => (
                 <tr key={notice.id}>
                   <td>{notice.pinned ? "📌" : "-"}</td>
-                  <td>{(currentPage - 1) * 5 + index + 1}</td>
+                  <td>{(currentPage - 1) * 10 + index + 1}</td>
                   <td title={notice.title}>{notice.title}</td>
                   <td>{formatDate(notice.createdAt)}</td>
                   <td>{formatDate(notice.updatedAt)}</td>

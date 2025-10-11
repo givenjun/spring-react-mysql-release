@@ -1,13 +1,16 @@
-.admin-layout {
+.admin-main {
   display: flex;
-  min-height: 100vh;
+  align-items: center;       /* 수직 중앙 */
+  justify-content: center;   /* 수평 중앙 */
+  min-height: 90vh;
+  padding: 0;
+  background-color: #fafafa;
+  overflow: hidden;
 }
 
-.admin-sidebar {
-  width: 250px;
-  background-color: #2c3e50;
-  color: white;
-  padding: 20px;
+.admin-layout {
+  display: flex;
+  min-height: 90vh;
 }
 
 .admin-sidebar h2 {
@@ -39,3 +42,4 @@
   padding: 40px;
   background: #f8f9fa;
 }
+  
