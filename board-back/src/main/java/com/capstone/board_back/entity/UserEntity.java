@@ -116,4 +116,9 @@ public class UserEntity {
         this.nickname = "탈퇴회원" + randomId;
         this.profileImage = null;
     }
+
+    public void restoreDeleted() {
+        this.isDeleted = false;
+        this.deletedAt = null;
+    }
 }
