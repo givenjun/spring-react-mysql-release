@@ -77,7 +77,11 @@ public class GeminiService {
                     "id", String.valueOf(doc.getOrDefault("id", "")),
                     "place_name", String.valueOf(doc.getOrDefault("place_name", "이름 없음")),
                     "y", String.valueOf(doc.getOrDefault("y", "0.0")),
-                    "x", String.valueOf(doc.getOrDefault("x", "0.0"))
+                    "x", String.valueOf(doc.getOrDefault("x", "0.0")),
+
+                    "road_address_name", String.valueOf(doc.getOrDefault("road_address_name", "")),
+                    "category_name", String.valueOf(doc.getOrDefault("category_name", "")),
+                    "phone", String.valueOf(doc.getOrDefault("phone", ""))
             )).collect(Collectors.toList());
 
             return objectMapper.writeValueAsString(results);
@@ -99,60 +103,60 @@ public class GeminiService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        // String systemInstruction = """
-        // You are a professional map expert and local guide.
-        // Your task is to find 2-3 best places that match the user's request and provide detailed information for each in a structured JSON format.
-        // Your response MUST BE a raw JSON array of objects, and nothing else.
-        // Each object in the array must have the following keys: "place_name", "address", "menu", "reason", "review_summary".
-
-        // - "place_name": The exact name of the place.
-        // - "address": The full address of the place.
-        // - "menu": A short list of 2-3 signature menu items with prices.
-        // - "reason": A compelling reason why this place is recommended for the user.
-        // - "review_summary": A brief summary of online reviews.
-
-        // Example User Request: "대전 시청 근처에서 점심 먹기 좋은 파스타 맛집 알려줘"
-        // Example JSON response:
-        // [
-        // {
-        //     "place_name": "비스트로퍼블릭",
-        //     "address": "대전 서구 둔산중로4번길 20",
-        //     "menu": "- 봉골레 파스타: 16,000원\\n- 라구 파스타: 18,000원",
-        //     "reason": "신선한 재료로 만든 이탈리안 요리를 맛볼 수 있는 곳이에요. 특히 파스타와 리조또가 훌륭해서 점심시간에 직장인들에게 인기가 많습니다.",
-        //     "review_summary": "방문객들은 '분위기가 좋고 음식 맛이 뛰어나다'는 긍정적인 평가를 남겼습니다."
-        // },
-        // {
-        //     "place_name": "칸 스테이크하우스",
-        //     "address": "대전 서구 둔산남로105번길 22",
-        //     "menu": "- 런치 스테이크: 25,000원\\n- 안심 스테이크: 48,000원",
-        //     "reason": "고급스러운 분위기에서 최상급 스테이크를 즐길 수 있는 곳으로, 특별한 날 점심 식사에 아주 적합합니다.",
-        //     "review_summary": "리뷰에 따르면 '스테이크 굽기가 완벽하고 육즙이 풍부하다'는 평이 많으며, '기념일에 방문하기 좋다'는 추천이 많습니다."
-        // }
-        // ]
-        // """;
-
         String systemInstruction = """
         You are a professional map expert and local guide.
-        Your task is to find ONE best place that matches the user's request and provide detailed information about it in a structured JSON format.
-        Your response MUST BE a single, raw JSON object without any other text or markdown formatting.
-        The JSON object must have the following keys: "place_name", "address", "menu", "reason", "review_summary".
+        Your task is to find nearby 3 best places that match the user's request and provide detailed information for each in a structured JSON format.
+        Your response MUST BE a raw JSON array of objects, and nothing else.
+        Each object in the array must have the following keys: "place_name", "address", "menu", "reason", "review_summary".
 
         - "place_name": The exact name of the place.
-        - "address": The full address of the place.
+        - "address": The full address of the place. but don't include floor info.
         - "menu": A short list of 2-3 signature menu items with prices.
         - "reason": A compelling reason why this place is recommended for the user.
         - "review_summary": A brief summary of online reviews.
 
         Example User Request: "대전 시청 근처에서 점심 먹기 좋은 파스타 맛집 알려줘"
         Example JSON response:
+        [
         {
-        "place_name": "비스트로퍼블릭",
-        "address": "대전 서구 둔산중로4번길 20",
-        "menu": "- 봉골레 파스타: 16,000원\\n- 라구 파스타: 18,000원",
-        "reason": "신선한 재료로 만든 이탈리안 요리를 맛볼 수 있는 곳이에요. 특히 파스타와 리조또가 훌륭해서 점심시간에 직장인들에게 인기가 많습니다.",
-        "review_summary": "방문객들은 '분위기가 좋고 음식 맛이 뛰어나다', '재료가 신선하고 양도 푸짐하다'는 긍정적인 평가를 남겼습니다."
+            "place_name": "비스트로퍼블릭",
+            "address": "대전 서구 둔산중로4번길 20",
+            "menu": "- 봉골레 파스타: 16,000원\\n- 라구 파스타: 18,000원",
+            "reason": "신선한 재료로 만든 이탈리안 요리를 맛볼 수 있는 곳이에요. 특히 파스타와 리조또가 훌륭해서 점심시간에 직장인들에게 인기가 많습니다.",
+            "review_summary": "방문객들은 '분위기가 좋고 음식 맛이 뛰어나다'는 긍정적인 평가를 남겼습니다."
+        },
+        {
+            "place_name": "칸 스테이크하우스",
+            "address": "대전 서구 둔산남로105번길 22",
+            "menu": "- 런치 스테이크: 25,000원\\n- 안심 스테이크: 48,000원",
+            "reason": "고급스러운 분위기에서 최상급 스테이크를 즐길 수 있는 곳으로, 특별한 날 점심 식사에 아주 적합합니다.",
+            "review_summary": "리뷰에 따르면 '스테이크 굽기가 완벽하고 육즙이 풍부하다'는 평이 많으며, '기념일에 방문하기 좋다'는 추천이 많습니다."
         }
+        ]
         """;
+
+        // String systemInstruction = """
+        // You are a professional map expert and local guide.
+        // Your task is to find ONE best place that matches the user's request and provide detailed information about it in a structured JSON format.
+        // Your response MUST BE a single, raw JSON object without any other text or markdown formatting.
+        // The JSON object must have the following keys: "place_name", "address", "menu", "reason", "review_summary".
+
+        // - "place_name": The exact name of the place.
+        // - "address": The full address of the place. but don't include floor info.
+        // - "menu": A short list of 2-3 signature menu items with prices.
+        // - "reason": A compelling reason why this place is recommended for the user.
+        // - "review_summary": A brief summary of online reviews.
+
+        // Example User Request: "대전 시청 근처에서 점심 먹기 좋은 파스타 맛집 알려줘"
+        // Example JSON response:
+        // {
+        // "place_name": "비스트로퍼블릭",
+        // "address": "대전 서구 둔산중로4번길 20",
+        // "menu": "- 봉골레 파스타: 16,000원\\n- 라구 파스타: 18,000원",
+        // "reason": "신선한 재료로 만든 이탈리안 요리를 맛볼 수 있는 곳이에요. 특히 파스타와 리조또가 훌륭해서 점심시간에 직장인들에게 인기가 많습니다.",
+        // "review_summary": "방문객들은 '분위기가 좋고 음식 맛이 뛰어나다', '재료가 신선하고 양도 푸짐하다'는 긍정적인 평가를 남겼습니다."
+        // }
+        // """;
 
         String finalPrompt = systemInstruction + "\n\nUser: " + prompt;
 

@@ -15,7 +15,7 @@ const PlaceInfoCard = ({ info }: Props) => {
   const handleRoutePick = async() => {
     console.log("Route Pick 버튼 클릭:", info.place_name);
     // 주소 또는 장소 이름으로 검색 쿼리를 결정합니다. 주소가 더 정확할 확률이 높습니다.
-    const searchQuery = info.address || info.place_name;
+    const searchQuery = info.place_name || info.address;
     
     // API를 호출하여 장소 목록(좌표 포함)을 받아옵니다.
     const places = await searchPlaceOnMapRequest(searchQuery);
@@ -51,9 +51,10 @@ const PlaceInfoCard = ({ info }: Props) => {
         <p>{info.review_summary}</p>
       </div>
 
-      <button onClick={handleRoutePick} className="route-pick-button">
+      <div className='info-divider'></div>
+      {/* <button onClick={handleRoutePick} className="route-pick-button">
         Route Pick
-      </button>
+      </button> */}
     </div>
   );
 };

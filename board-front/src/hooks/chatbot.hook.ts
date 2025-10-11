@@ -1,6 +1,6 @@
 import { askGeminiRequest } from 'apis';
 import { useState, ChangeEvent, FormEvent, useEffect } from 'react';
-import { useAiSearchStore } from './Map/useKakaoSearch.hook';
+import { Place, useAiSearchStore } from './Map/useKakaoSearch.hook';
 
 export interface PlaceInfo {
     place_name: string;
@@ -12,7 +12,7 @@ export interface PlaceInfo {
 
 // 메시지 객체의 타입을 정의합니다.
 interface Message {
-    text: string | PlaceInfo;
+    text: string | PlaceInfo[];
     sender: 'user' | 'ai';
 }
 
@@ -51,9 +51,22 @@ export const useChat = (sessionId: string | null): UseChatReturn => {
                 const allSessions = JSON.parse(window.localStorage.getItem('chat_sessions') || '{}');
                 const currentSession = allSessions[sessionId] || {};
                 
+                let title = currentSession.title;
+
+                if (!title) {
+                    const firstUserMessage = messages[1];
+                    if (firstUserMessage) {
+                        const firstMessageContent = firstUserMessage.text;
+                        if (typeof firstMessageContent === 'string') {
+                            title = firstMessageContent.substring(0, 30); 
+                        } else if (firstMessageContent && 'place_name' in firstMessageContent) {
+                            title = firstMessageContent.place_name;
+                        }
+                    }
+                }
                 const updatedSession = {
                     ...currentSession,
-                    title: currentSession.title || "새로운 대화", // 첫 사용자 메시지로 제목 생성
+                    title: title || "새로운 대화", // 첫 사용자 메시지로 제목 생성
                     messages: messages,
                     lastUpdated: new Date().toISOString()
                 };
@@ -97,7 +110,16 @@ export const useChat = (sessionId: string | null): UseChatReturn => {
 
             if (typeof responseFromServer === 'string') {
                 try {
-                    responseData = JSON.parse(responseFromServer);
+                    let jsonStringToParse = responseFromServer.trim();
+
+                    // ✅❗ AI가 보낸 텍스트가 대괄호 없이 '{'로 시작하고 '}'로 끝나면,
+                    //      유효한 JSON 배열이 되도록 강제로 대괄호를 씌워줍니다.
+                    if (jsonStringToParse.startsWith("{") && jsonStringToParse.endsWith("}")) {
+                        jsonStringToParse = `[${jsonStringToParse}]`;
+                    }
+                    
+                    responseData = JSON.parse(jsonStringToParse);
+
                 } catch (error) {
                     responseData = { type: 'text', content: responseFromServer};
                 } 
@@ -105,9 +127,12 @@ export const useChat = (sessionId: string | null): UseChatReturn => {
                 responseData = responseFromServer;
             }
 
-        // 새로운 맛집 정보(PlaceInfo) 타입의 응답을 가장 먼저 확인하도록 로직을 수정합니다.
-        if (responseData?.place_name && responseData?.address) {
-            const aiMessage: Message = { text: responseData as PlaceInfo, sender: 'ai' };
+        if (Array.isArray(responseData) && responseData.length > 0 && responseData[0]?.place_name) {
+            const aiMessage: Message = { text: responseData as PlaceInfo[], sender: 'ai' };
+            setMessages(prev => [...prev, aiMessage]);
+        }
+        else if (responseData?.place_name && responseData?.address) {
+            const aiMessage: Message = { text: [responseData as PlaceInfo], sender: 'ai' };
             setMessages(prev => [...prev, aiMessage]);
         }
         else if (Array.isArray(responseData)) {

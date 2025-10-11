@@ -56,3 +56,8 @@
 .route-pick-button:hover {
   background-color: #1558b3;
 }
+
+.info-divider {
+  margin-top:25px;
+  border-top: 1px solid #bbb;
+}
