@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './style.css';
 import { useNavigate } from 'react-router-dom';
-import { BOARD_PATH, USER_PATH } from 'constant';
+import { AUTH_PATH, BOARD_PATH, USER_PATH } from 'constant';
 import useKakaoSearch from 'hooks/Map/useKakaoSearch.hook';
+import { getCookie } from 'utils';
+import { useLoginUserStore } from 'stores';
 
 declare global { interface Window { kakao: any; } }
 const kakao = (typeof window !== 'undefined' ? (window as any).kakao : undefined);
@@ -143,6 +145,7 @@ export default function SearchSidebar({
   distanceToleranceRatio = 0.05,
 }: SearchSidebarProps) {
   const navigate = useNavigate();
+  const { loginUser } = useLoginUserStore();
   const [mode, setMode] = useState<'search' | 'route'>('search');
 
   // ====== 탐색 탭 ======
@@ -269,7 +272,27 @@ export default function SearchSidebar({
   }, []);
 
   const onBoardClickHandler = () => navigate(BOARD_PATH());
-  const onUserClickHandler = () => navigate(USER_PATH(''));
+
+  const onUserClickHandler = () => {
+    // ✅ 쿠키나 로컬스토리지에서 토큰 확인
+    const cookieToken = getCookie("accessToken");
+    const localToken = localStorage.getItem("accessToken");
+    const accessToken = cookieToken || localToken;
+
+    // ✅ 로그인 안 되어 있으면 로그인 페이지로
+    if (!accessToken) {
+      navigate(AUTH_PATH());
+      return;
+    }
+
+    // ✅ 로그인 되어 있으면 loginUser.email 기반으로 마이페이지 이동
+    if (loginUser && loginUser.email) {
+      navigate(USER_PATH(loginUser.email));
+    } else {
+      // 로그인 상태지만 스토어에 유저 정보가 아직 로드 안 된 경우 (edge case)
+      navigate(AUTH_PATH());
+    }
+  };
 
   // ---- 레이아웃 상수 ----
   const ROW_HEIGHT = 42;
@@ -629,3 +652,6 @@ export default function SearchSidebar({
     </div>
   );
 }
+
+
+
