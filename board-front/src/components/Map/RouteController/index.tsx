@@ -18,6 +18,32 @@ interface Props {
   routeColor?: string; // 경로 색상 주입 가능
 }
 
+/* ===== 경로 길이 기반 가변 옵션 유틸 ===== */
+type LL = { lat: number; lng: number };
+const toRad = (d: number) => d * Math.PI / 180;
+const segKm = (a: LL, b: LL) => {
+  const R = 6371;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const A = Math.sin(dLat/2)**2 + Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLng/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(A));
+};
+const pathLengthKm = (path: LL[]) =>
+  path.reduce((s, _, i) => (i ? s + segKm(path[i-1], path[i]) : 0), 0);
+
+/** 경로 길이에 따라 stepMeters / radius / maxTotal 자동 결정 */
+function getAdaptivePlacesOptions(path: LL[]) {
+  const L = pathLengthKm(path);                  // km
+  const radius = L < 2 ? 350 : L < 6 ? 250 : 180;    // m (짧은 경로일수록 넓게)
+  const minSteps = 8;                                // 짧아도 최소 스텝 보장
+  const approxStep = Math.max(120, Math.round(radius * 0.9)); // m
+  const steps = Math.max(minSteps, Math.ceil((L * 1000) / approxStep));
+  const stepMeters = Math.max(80, Math.floor((L * 1000) / steps));
+  const maxTotal = L < 2 ? 140 : L < 6 ? 180 : 200;  // 전체 상한 가변
+
+  return { stepMeters, radius, maxTotal, includeCafe: true, mode: "full" } as const;
+}
+
 export default function RouteController({
   defaultCenter = HANBAT,
   SearchSidebar,
@@ -82,12 +108,10 @@ export default function RouteController({
   // 맛집 검색
   const doSearchPlaces = useCallback(async () => {
     if (!afterRoute) return;
-    await search(path, {
-      stepMeters: 150,
-      radius: 350,
-      maxTotal: 600,
-      includeCafe: true,
-    });
+    // removed: 고정 옵션(stepMeters/radius/maxTotal)
+    // await search(path, { stepMeters: 150, radius: 350, maxTotal: 600, includeCafe: true });
+    const opts = getAdaptivePlacesOptions(path as LL[]);
+    await search(path, opts);
   }, [afterRoute, path, search]);
 
   // 유틸
