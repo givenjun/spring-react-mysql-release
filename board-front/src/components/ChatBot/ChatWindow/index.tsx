@@ -72,6 +72,7 @@ export default function ChatWindow({ sessionId, onBack }: ChatWindowProps) {
                             <ReactMarkDown>{msg.text}</ReactMarkDown>
                         ) : (
                             <div className='place-info-cards-container'>
+                                <div className='ai-comment'>{msg.text.comment}</div>
                                 {msg.text.places.map((info, cardIndex) => (
                                     <PlaceInfoCard key={cardIndex} info={info} />
                                 ))}
