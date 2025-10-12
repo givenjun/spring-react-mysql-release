@@ -157,8 +157,13 @@ export default function ChatList({ onSelectSession, onNewChat }: ChatListProps) 
 
                                 if (typeof lastMessageContent === 'string') {
                                     previewText = lastMessageContent;
-                                } else if (lastMessageContent && 'place_name' in lastMessageContent) {
-                                    previewText = `[맛집 추천] ${lastMessageContent.place_name}\n${lastMessageContent.reason}`;
+                                } else if (Array.isArray(lastMessageContent) && lastMessageContent.length > 0) {
+                                    const firstPlace = lastMessageContent[0]
+                                    if (lastMessageContent.length > 1) {
+                                        previewText = `[맛집 추천] ${firstPlace.place_name} 외 ${lastMessageContent.length - 1}곳`;
+                                    } else {
+                                        previewText = `[맛집 추천] ${firstPlace.place_name}\n${firstPlace.reason}`;
+                                    }
                                 }
 
                                 return previewText.length < 50 ? 
