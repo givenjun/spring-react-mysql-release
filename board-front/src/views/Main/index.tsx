@@ -1,16 +1,15 @@
 // src/views/Main/index.tsx
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { Map, MapMarker, MapTypeControl, Polyline, ZoomControl, CustomOverlayMap } from 'react-kakao-maps-sdk';
 import SearchSidebar from 'components/Map/SearchSidebar';
 import useKakaoSearch from 'hooks/Map/useKakaoSearch.hook';
 import PlaceDetailCard, { PlaceDetail } from 'components/Map/PlaceDetailCard';
-import { usePlacesAlongPath } from 'hooks/Map/usePlacesAlongPath';
+import usePlacesAlongPath from 'hooks/Map/usePlacesAlongPath';
 import PlaceList from 'components/Map/PlaceList';
 import './style.css';
 import 'components/Map/marker-label.css';
 import MenuButton from 'components/Menu/MenuButton';
 import useRelativeStore from 'stores/relativeStore';
-
 
 const DOMAIN = process.env.REACT_APP_API_URL;
 
@@ -251,6 +250,7 @@ export default function Main() {
       setAutoRouteInfo(null);
       setAutoRouteEndpoints({ start: { lat: start.lat, lng: start.lng }, end: { lat: end.lat, lng: end.lng } });
       resetRoutePlaces?.();
+      routeQueryVerRef.current++; // 진행 중이던 보강 취소
       setRouteOptions([]);
       setRouteTargetPlace({ name: '두 경로사이 맛집리스트', categoryText: '' } as PlaceDetail);
       setPlaceCardOpen(false);
@@ -410,7 +410,6 @@ export default function Main() {
   type FoodTab = typeof FOOD_TABS[number];
   const [foodTab, setFoodTab] = useState<FoodTab>('전체');
 
-  // 공백/구분자 제거 본문까지 함께 매칭하는 정규화 헬퍼
   const normalize = (s: string) => s.toLowerCase().replace(/[\s>/·ㆍ,|-]+/g, '');
 
   const classifyPlace = (p: any): FoodTab => {
@@ -418,7 +417,6 @@ export default function Main() {
     const name = (p?.name || p?.place_name || '').toLowerCase();
     const cat  = (p?.category_name || '').toLowerCase();
 
-    // 일반 텍스트 + 공백/구분자 제거 텍스트 모두에서 매칭 시도
     const text   = `${name} ${cat}`;
     const textNS = normalize(name) + normalize(cat);
 
@@ -428,10 +426,8 @@ export default function Main() {
         return text.includes(lw) || textNS.includes(normalize(lw));
       });
 
-    // 그룹 코드 우선
     if (group === 'CE7') return '카페';
 
-    // ✅ '족발/보쌈'은 한식보다 먼저 체크 (브랜드/일반 키워드 모두 포함)
     if (has([
       '족발','왕족발','족발보쌈','보쌈','보쌈정식','마늘보쌈','수육',
       '가장맛있는족발','가장 맛있는 족발','원할머니보쌈','장충동왕족발','족발야시장','미쓰족발','삼대족발'
@@ -444,7 +440,6 @@ export default function Main() {
     if (has(['중식','짜장','짬뽕','탕수육','마라'])) return '중식';
     if (has(['일식','스시','초밥','라멘','돈카츠','우동'])) return '일식';
 
-    // ⬇️ 한식에서는 족발/보쌈 계열 제외(위에서 이미 걸러짐)
     if (has(['한식','국밥','백반','비빔밥','설렁탕','갈비','냉면','칼국수','삼겹살','곱창','감자탕'])) return '한식';
 
     return '기타';
@@ -457,12 +452,10 @@ export default function Main() {
     return list.filter((p: any) => {
       const group = (p?.category_group_code || p?.group || '').toUpperCase();
 
-      // ‘카페’는 그룹 코드 CE7 우선
       if (foodTab === '카페') return group === 'CE7' || classifyPlace(p) === '카페';
 
       const cls = classifyPlace(p);
 
-      // ‘족발/보쌈’ 탭일 땐 안전망(정규식)으로 한 번 더 포함시도
       if (foodTab === '족발/보쌈') {
         const txt = `${p?.name || p?.place_name || ''} ${p?.category_name || ''}`.toLowerCase();
         if (/(족발|보쌈)/.test(txt)) return true;
@@ -472,46 +465,101 @@ export default function Main() {
     });
   }, [routePlaces, foodTab]);
 
-  /* ✅ ‘족발/보쌈’ 탭일 때만 키워드/반경 보강 */
   const JOKBAL_KEYWORDS = [
     '족발','보쌈','왕족발','족발보쌈','보쌈정식','마늘보쌈','수육',
     '가장맛있는족발','원할머니보쌈','장충동왕족발','족발야시장','미쓰족발','삼대족발'
   ];
 
-  const optsForTab = (tab: FoodTab) => {
+  const makeAdaptiveStep = (path?: LL[]) => {
+    if (!path || path.length < 2) return 150;
+    const cum = buildCumulativeDist(path);
+    const total = cum[cum.length - 1] || 0;
+    return Math.max(100, Math.min(300, Math.round(total / 400)));
+  };
+
+  const pathKm = (p?: LL[]) => {
+    if (!p || p.length < 2) return 0;
+    const cum = buildCumulativeDist(p);
+    return (cum[cum.length - 1] || 0) / 1000;
+  };
+
+  const calcBudget = (path?: LL[]) => {
+    const km = pathKm(path);
+    // 긴 경로에서 충분히 많이 보이도록 상한을 늘림
+    return Math.min(1200, Math.max(400, Math.round(120 + 60 * km)));
+  };
+
+  // 옵션 생성 (fast/full 자동 선택)
+  const optsForTab = (tab: FoodTab, path?: LL[]) => {
+    const km = pathKm(path);
+    const adaptiveStep = makeAdaptiveStep(path);
+    const useFull = km >= 5;
+    const budget = calcBudget(path);
+    const timeBudgetMs = useFull ? Math.min(9000, 3500 + Math.round(400 * km)) : 2000;
+
+    const modeVal: 'fast' | 'full' = useFull ? 'full' : 'fast';
+
+    const base = {
+      stepMeters: adaptiveStep,
+      radius: 350,
+      includeCafe: true,
+      maxTotal: budget,
+      mode: modeVal,
+      timeBudgetMs,
+      maxSamples: Number.POSITIVE_INFINITY,
+      coverage: 'sweep' as const,
+    };
+
     if (tab === '족발/보쌈') {
       return {
-        stepMeters: 120,
+        ...base,
+        stepMeters: Math.min(adaptiveStep, 150),
         radius: 450,
         includeCafe: false,
         categoryGroupCodes: ['FD6'],
         keywords: JOKBAL_KEYWORDS,
-        limit: 250,
+        maxTotal: Math.max(base.maxTotal, 600),
       };
     }
-    // 기본(다른 탭)은 기존 기본값과 유사
-    return {
-      stepMeters: 150,
-      radius: 350,
-      includeCafe: true,
-      limit: 200,
-    };
+    return base;
   };
+
+  /* ---------- 2단계(빠른 → 보강) 검색 로직 ---------- */
+  const routeQueryVerRef = useRef(0);
+
+  const runAlongPathTwoStage = useCallback((path: LL[]) => {
+    if (!Array.isArray(path) || path.length < 2) return;
+
+    // 1) 빠르게 첫 화면
+    const fast = { ...optsForTab(foodTab, path), mode: 'fast' as const, timeBudgetMs: 1500 };
+    searchAlongPath(path, fast);
+
+    // 현재 쿼리 버전 스냅샷
+    const myVer = ++routeQueryVerRef.current;
+
+    // 2) 잠시 뒤 여전히 같은 경로라면 full로 보강
+    window.setTimeout(() => {
+      if (routeQueryVerRef.current !== myVer) return; // 경로/검색 바뀜 → 취소
+      const full = { ...optsForTab(foodTab, path), mode: 'full' as const };
+      searchAlongPath(path, full);
+    }, 1000);
+  }, [foodTab, searchAlongPath]);
 
   /* 경로 선택 시: 맛집 로딩 후 카드 */
   const selectRoute = useCallback(async (i: number) => {
     if (!routeOptions[i]) return;
+    const r = routeOptions[i];
     setSelectedRouteIdx(i);
-    setAutoRoutePath(routeOptions[i].path);
-    setAutoRouteInfo({ totalDistance: routeOptions[i].distanceM, totalTime: routeOptions[i].timeSec });
+    setAutoRoutePath(r.path);
+    setAutoRouteInfo({ totalDistance: r.distanceM, totalTime: r.timeSec });
     setExtraPlacePath([]); setExtraPlaceTarget(null); setExtraPlaceETAsec(null);
-    setOnlySelectedMarker(false); // 경로 재선택 시 전체 모드
+    setOnlySelectedMarker(false);
     resetRoutePlaces?.();
+    routeQueryVerRef.current++; // 기존 보강 취소
 
-    setPlaceCardOpen(true);                 // ✅ 카드 먼저 열기 → 바로 '로딩 중' 보임
-    // ✅ 탭별 옵션 주입 (특히 '족발/보쌈'일 때 키워드/반경 보강)
-    searchAlongPath(routeOptions[i].path, optsForTab(foodTab));
-  }, [routeOptions, resetRoutePlaces, searchAlongPath, foodTab]);
+    setPlaceCardOpen(true);
+    runAlongPathTwoStage(r.path);
+  }, [routeOptions, resetRoutePlaces, runAlongPathTwoStage]);
 
   const openRouteDetail = useCallback(async (i: number) => {
     if (!routeOptions[i]) return;
@@ -522,9 +570,10 @@ export default function Main() {
     setExtraPlacePath([]); setExtraPlaceTarget(null); setExtraPlaceETAsec(null);
     setOnlySelectedMarker(false);
 
-    setPlaceCardOpen(true);                 // ✅ 먼저 열기
-    searchAlongPath(r.path, optsForTab(foodTab)); // ✅ 탭별 옵션 주입
-  }, [routeOptions, searchAlongPath, foodTab]);
+    setPlaceCardOpen(true);
+    routeQueryVerRef.current++; // 기존 보강 취소
+    runAlongPathTwoStage(r.path);
+  }, [routeOptions, runAlongPathTwoStage]);
 
   const onFocusOrDoubleToRoute = useCallback(
   async (p: { lat: number|string; lng: number|string; name?: string; place_name?: string }) => {
@@ -532,14 +581,12 @@ export default function Main() {
     const lng = typeof p.lng === 'string' ? parseFloat(p.lng) : p.lng;
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
-    // 지도로 부드럽게 이동
     panToPlace(lat, lng, 3);
 
     const start = autoRouteEndpoints?.start;
     if (!start) return;
 
     try {
-      // 출발지 → 선택한 맛집까지 보행자 경로 조회
       const geo = await callTmap({ start, end: { lat, lng } });
       const fs  = geo?.features ?? [];
       const ls  = fs.filter((f: any) => f?.geometry?.type === 'LineString');
@@ -555,16 +602,12 @@ export default function Main() {
       setExtraPlacePath(coords);
       setExtraPlaceTarget({ lat, lng, name: (p?.name || p?.place_name || '목적지') as string });
       setExtraPlaceETAsec(etaSec);
-
-      // 선택 가게만 마커 표시
       setOnlySelectedMarker(true);
-    } catch {
-      // 실패해도 UI 깨지지 않게 조용히 무시
-    }
+    } catch { /* ignore */ }
   },
   [autoRouteEndpoints?.start, panToPlace]
 );
-  /* 지도 클릭 */
+
   const handleMapClick = (_: kakao.maps.Map, mouseEvent: kakao.maps.event.MouseEvent) => {
     const clickedLatLng = mouseEvent.latLng;
     if (isDistanceMode) {
@@ -603,14 +646,17 @@ export default function Main() {
         onClickItem={(place: any) => {
           const lat = Number(place?.y); const lng = Number(place?.x);
           if (!Number.isNaN(lat) && !Number.isNaN(lng)) { setSelectedIndex((searchResults as any).indexOf(place)); panToPlace(lat, lng, 3); }
-          if (place?.place_name) {
-            setSelectedPlaceName(place.place_name);
-          }  
+          if (place?.place_name) { setSelectedPlaceName(place.place_name); }
         }}
         selectedIndex={selectedIndex}
         isOpen={isSidebarOpen}
         toggleOpen={() => setIsSidebarOpen(prev => !prev)}
-        onSearch={(kw: string) => kw && (searchPlaces as any)(kw)}
+        onSearch={(kw: string) => {
+          // 새 검색 시작 → 진행 중인 경로 보강 취소 & 경로 맛집 초기화
+          routeQueryVerRef.current++;
+          resetRoutePlaces?.();
+          if (kw) (searchPlaces as any)(kw);
+        }}
         onRouteByCoords={handleRouteByCoords}
         routePlaces={filteredRoutePlaces as any}
         routeLoading={routePlacesLoading}
@@ -638,7 +684,7 @@ export default function Main() {
               <button
                 key={t}
                 className={`pd-tab ${foodTab === t ? 'active' : ''}`}
-                onClick={() => { setFoodTab(t as any); setOnlySelectedMarker(false); }} // ★ 탭 클릭 시 전체 마커 모드 복귀
+                onClick={() => { setFoodTab(t as any); setOnlySelectedMarker(false); }}
               >
                 {t}
               </button>
@@ -716,7 +762,6 @@ export default function Main() {
         <MapTypeControl position="TOPRIGHT" />
         <ZoomControl position="RIGHT" />
 
-        {/* 검색 마커 */}
         {searchResults.map((place, index) => (
           <MapMarker
             key={`search-${index}`}
@@ -731,7 +776,6 @@ export default function Main() {
           </MapMarker>
         ))}
 
-        {/* 수동 경로 포인트 */}
         {isRouteMode && routeSelectPoints.map((p, idx) => (
           <MapMarker
             key={`routepick-${idx}`}
@@ -744,7 +788,6 @@ export default function Main() {
           />
         ))}
 
-        {/* 수동 경로: 보라(아래) + 흰 개미행렬(위) */}
         {isRouteMode && routePath.length > 1 && (
           <>
             <Polyline
@@ -769,7 +812,6 @@ export default function Main() {
           </>
         )}
 
-        {/* 자동 3경로: 비선택 경로 */}
         {routeOptions.map((r, i) => {
           const selected = i === selectedRouteIdx;
           if (selected) return null;
@@ -786,7 +828,6 @@ export default function Main() {
           );
         })}
 
-        {/* 자동 선택 경로: 보라(아래) + 흰 개미행렬(위) */}
         {autoRoutePath.length > 1 && (
           <>
             <Polyline
@@ -811,7 +852,6 @@ export default function Main() {
           </>
         )}
 
-        {/* 추가 경로(파란색) */}
         {extraPlacePath.length > 1 && (
           <Polyline
             path={extraPlacePath}
@@ -823,20 +863,6 @@ export default function Main() {
           />
         )}
 
-        {/* ★ 단일 마커 모드일 때: 선택 맛집만 마커/라벨 */}
-        {onlySelectedMarker && extraPlaceTarget && (
-          <>
-            <MapMarker position={{ lat: extraPlaceTarget.lat, lng: extraPlaceTarget.lng }} />
-            <CustomOverlayMap position={{ lat: extraPlaceTarget.lat, lng: extraPlaceTarget.lng }} yAnchor={1.25} zIndex={95}>
-              <div className="km-label">
-                {extraPlaceTarget.name}
-                {typeof extraPlaceETAsec === 'number' && <> · {Math.round(extraPlaceETAsec / 60)} min</>}
-              </div>
-            </CustomOverlayMap>
-          </>
-        )}
-
-        {/* 일반(탭) 모드일 때: 필터된 모든 맛집 마커 */}
         {!onlySelectedMarker && Array.isArray(filteredRoutePlaces) && filteredRoutePlaces.map((p: any, idx: number) => {
           const lat = typeof p.lat === 'string' ? parseFloat(p.lat) : p.lat;
           const lng = typeof p.lng === 'string' ? parseFloat(p.lng) : p.lng;
@@ -848,6 +874,18 @@ export default function Main() {
             </React.Fragment>
           );
         })}
+
+        {onlySelectedMarker && extraPlaceTarget && (
+          <>
+            <MapMarker position={{ lat: extraPlaceTarget.lat, lng: extraPlaceTarget.lng }} />
+            <CustomOverlayMap position={{ lat: extraPlaceTarget.lat, lng: extraPlaceTarget.lng }} yAnchor={1.25} zIndex={95}>
+              <div className="km-label">
+                {extraPlaceTarget.name}
+                {typeof extraPlaceETAsec === 'number' && <> · {Math.round(extraPlaceETAsec / 60)} min</>}
+              </div>
+            </CustomOverlayMap>
+          </>
+        )}
       </Map>
 
       <div><MenuButton/></div>

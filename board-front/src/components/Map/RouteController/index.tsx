@@ -3,7 +3,7 @@ import React, { useCallback, useMemo, useRef, useState } from "react";
 import RouteOverlay from "components/Map/RouteOverlay";
 import PlaceList, { PlaceItem } from "components/Map/PlaceList";
 import { useRoute } from "hooks/Map/useRoute";
-import { usePlacesAlongPath } from "hooks/Map/usePlacesAlongPath";
+import usePlacesAlongPath  from "hooks/Map/usePlacesAlongPath";
 import type { LatLng, GetPedestrianRouteRequest } from "../../../apis/request/tmap";
 
 declare global { interface Window { kakao: any; } }
