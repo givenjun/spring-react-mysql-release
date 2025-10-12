@@ -10,9 +10,13 @@ export interface PlaceInfo {
     review_summary: string;
 }
 
+export interface PlaceRecommendation {
+    comment: string;
+    places: PlaceInfo[];
+}
 // 메시지 객체의 타입을 정의합니다.
 interface Message {
-    text: string | PlaceInfo[];
+    text: string | PlaceRecommendation;
     sender: 'user' | 'ai';
 }
 
@@ -110,15 +114,8 @@ export const useChat = (sessionId: string | null): UseChatReturn => {
 
             if (typeof responseFromServer === 'string') {
                 try {
-                    let jsonStringToParse = responseFromServer.trim();
 
-                    // ✅❗ AI가 보낸 텍스트가 대괄호 없이 '{'로 시작하고 '}'로 끝나면,
-                    //      유효한 JSON 배열이 되도록 강제로 대괄호를 씌워줍니다.
-                    if (jsonStringToParse.startsWith("{") && jsonStringToParse.endsWith("}")) {
-                        jsonStringToParse = `[${jsonStringToParse}]`;
-                    }
-                    
-                    responseData = JSON.parse(jsonStringToParse);
+                    responseData = JSON.parse(responseFromServer.trim());
 
                 } catch (error) {
                     responseData = { type: 'text', content: responseFromServer};
@@ -127,17 +124,8 @@ export const useChat = (sessionId: string | null): UseChatReturn => {
                 responseData = responseFromServer;
             }
 
-        if (Array.isArray(responseData) && responseData.length > 0 && responseData[0]?.place_name) {
-            const aiMessage: Message = { text: responseData as PlaceInfo[], sender: 'ai' };
-            setMessages(prev => [...prev, aiMessage]);
-        }
-        else if (responseData?.place_name && responseData?.address) {
-            const aiMessage: Message = { text: [responseData as PlaceInfo], sender: 'ai' };
-            setMessages(prev => [...prev, aiMessage]);
-        }
-        else if (Array.isArray(responseData)) {
-            setAiSearchResults(responseData);
-            const aiMessage: Message = { text: "요청하신 장소를 지도에 표시했어요! 🗺️", sender: 'ai' };
+        if (responseData?.places) {
+            const aiMessage: Message = { text: responseData as PlaceRecommendation, sender: 'ai' };
             setMessages(prev => [...prev, aiMessage]);
         }
         else if (responseData?.type === 'text' && typeof responseData.content === 'string') {

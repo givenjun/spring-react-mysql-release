@@ -72,11 +72,12 @@ export default function ChatWindow({ sessionId, onBack }: ChatWindowProps) {
                             <ReactMarkDown>{msg.text}</ReactMarkDown>
                         ) : (
                             <div className='place-info-cards-container'>
-                                {msg.text.map((info, cardIndex) => (
+                                {msg.text.places.map((info, cardIndex) => (
                                     <PlaceInfoCard key={cardIndex} info={info} />
                                 ))}
                                 <button 
-                                    onClick={() => handleShowAllOnMap(msg.text as PlaceInfo[])} 
+                                                                    //타입 명시 해줘야함(추후)  
+                                    onClick={() => handleShowAllOnMap((msg.text as any).places)}
                                     className="route-pick-button"
                                 >
                                     Route Pick
