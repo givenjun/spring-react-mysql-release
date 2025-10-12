@@ -1,6 +1,6 @@
 import { askGeminiRequest } from 'apis';
 import { useState, ChangeEvent, FormEvent, useEffect } from 'react';
-import { useAiSearchStore } from './Map/useKakaoSearch.hook';
+import { Place, useAiSearchStore } from './Map/useKakaoSearch.hook';
 
 export interface PlaceInfo {
     place_name: string;
@@ -10,9 +10,13 @@ export interface PlaceInfo {
     review_summary: string;
 }
 
+export interface PlaceRecommendation {
+    comment: string;
+    places: PlaceInfo[];
+}
 // 메시지 객체의 타입을 정의합니다.
 interface Message {
-    text: string | PlaceInfo;
+    text: string | PlaceRecommendation;
     sender: 'user' | 'ai';
 }
 
@@ -51,9 +55,22 @@ export const useChat = (sessionId: string | null): UseChatReturn => {
                 const allSessions = JSON.parse(window.localStorage.getItem('chat_sessions') || '{}');
                 const currentSession = allSessions[sessionId] || {};
                 
+                let title = currentSession.title;
+
+                if (!title) {
+                    const firstUserMessage = messages[1];
+                    if (firstUserMessage) {
+                        const firstMessageContent = firstUserMessage.text;
+                        if (typeof firstMessageContent === 'string') {
+                            title = firstMessageContent.substring(0, 30); 
+                        } else if (firstMessageContent && 'place_name' in firstMessageContent) {
+                            title = firstMessageContent.place_name;
+                        }
+                    }
+                }
                 const updatedSession = {
                     ...currentSession,
-                    title: currentSession.title || "새로운 대화", // 첫 사용자 메시지로 제목 생성
+                    title: title || "새로운 대화", // 첫 사용자 메시지로 제목 생성
                     messages: messages,
                     lastUpdated: new Date().toISOString()
                 };
@@ -97,7 +114,9 @@ export const useChat = (sessionId: string | null): UseChatReturn => {
 
             if (typeof responseFromServer === 'string') {
                 try {
-                    responseData = JSON.parse(responseFromServer);
+
+                    responseData = JSON.parse(responseFromServer.trim());
+
                 } catch (error) {
                     responseData = { type: 'text', content: responseFromServer};
                 } 
@@ -105,14 +124,8 @@ export const useChat = (sessionId: string | null): UseChatReturn => {
                 responseData = responseFromServer;
             }
 
-        // 새로운 맛집 정보(PlaceInfo) 타입의 응답을 가장 먼저 확인하도록 로직을 수정합니다.
-        if (responseData?.place_name && responseData?.address) {
-            const aiMessage: Message = { text: responseData as PlaceInfo, sender: 'ai' };
-            setMessages(prev => [...prev, aiMessage]);
-        }
-        else if (Array.isArray(responseData)) {
-            setAiSearchResults(responseData);
-            const aiMessage: Message = { text: "요청하신 장소를 지도에 표시했어요! 🗺️", sender: 'ai' };
+        if (responseData?.places) {
+            const aiMessage: Message = { text: responseData as PlaceRecommendation, sender: 'ai' };
             setMessages(prev => [...prev, aiMessage]);
         }
         else if (responseData?.type === 'text' && typeof responseData.content === 'string') {

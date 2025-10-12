@@ -1,8 +1,21 @@
 .admin-board-list {
-  margin-left: 40px;
-  margin-right: 40px;
+  padding: 25px 32px; /* ⬇️ 살짝 줄임 */
+  font-family: 'Pretendard', sans-serif;
+  background-color: #fafafa;
+  display: flex;
+  flex-direction: column;
+  min-width: 80vw;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
+/* ✅ 제목 */
+.admin-board-list h2 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 18px 0;
+}
 
 /* 열 고정 (게시물 8열 기준) */
 .admin-board-list th:nth-child(1),

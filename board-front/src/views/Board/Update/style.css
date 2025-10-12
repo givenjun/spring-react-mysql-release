@@ -1,12 +1,9 @@
 #board-update-wrapper {
-    border-top: 1px solid rgba(0, 0, 0, 0.2);
-
+    background-image: url(../../../assets/image/background-image.png);
+    background-position: 50% 50%;
+    padding: 134px 0 50px;
     display: flex;
     justify-content: center;
-
-    background-color: rgba(0, 0, 0, 0.05);
-    padding: 140px 0px 50px;
-    background-image: url(../../../assets/image/background-image.png);
 }
 
 .board-update-container {
@@ -42,6 +39,13 @@
     font-size: 32px;
     font-weight: 500;
     line-height: 140%;
+
+    /* ✅ 추가 부분 시작 */
+    overflow: hidden;
+    white-space: pre-wrap;   /* 줄바꿈 + 공백 유지 */
+    word-break: break-word;  /* 단어가 너무 길면 줄바꿈 */
+    overflow-wrap: break-word; /* 일부 브라우저 호환용 */
+    /* ✅ 추가 부분 끝 */
 }
 
 .board-update-content-box {

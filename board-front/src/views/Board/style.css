@@ -1,12 +1,10 @@
 #board-top-wrapper {
-    padding: 134px 0px 50px;
-
+    background-image: url(../../assets/image/background-image.png);
     display: flex;
     justify-content: center;
-    /* background-color: #f2daff; */
-    background-image: url(../../assets/image/background-image.png);
-    
-    
+    background-position: 50% 50%;
+    padding: 134px 0 50px;
+    margin-top: 6px;
 }
 
 .board-top-container {
@@ -21,6 +19,7 @@
     gap: 56px;
     box-shadow: 2px 0 6px rgba(0, 0, 0, 0.2);
     border-radius: 20px;
+    margin-top: -6px;
 }
 
 .board-top-title {
@@ -71,12 +70,15 @@
 }
 
 #board-bottom-wrapper {
-    padding: 0 0 40px;
+    margin-top: -42px;
+    padding: 19px 0 48px;
 
     display: flex;
     justify-content: center;
     /* background-color: #f2daff; */
     background-image: url(../../assets/image/background-image.png);
+    background-position: 50% 50%;
+    display: flex;
 }
 
 .board-bottom-container {
@@ -122,7 +124,7 @@
 
     display: flex;
     flex-direction: column;
-
+    max-width: 784px;
     gap: 16px;
 }
 
@@ -219,3 +221,26 @@
     display: flex;
     justify-content: center;
 }
+
+/* ========================= */
+/* 게시물 카드 hover 효과 추가 */
+/* ========================= */
+
+/* 게시물(또는 리스트형 카드)에 마우스 올렸을 때 */
+.board-bottom-side-card {
+  transition: all 0.25s ease; /* 부드럽게 전환 */
+}
+
+.board-bottom-side-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+  opacity: 0.95;
+}
+
+/* 필요 시 현재 게시물 목록 카드에도 동일 효과 적용 */
+.board-bottom-current-contents > *:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+  transition: all 0.25s ease;
+}
+

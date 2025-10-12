@@ -4,7 +4,10 @@ import com.capstone.board_back.entity.BoardEntity;
 import com.capstone.board_back.repository.resultSet.GetBoardResultSet;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import java.time.LocalDateTime;
 
 @Repository
 public interface BoardRepository extends JpaRepository<BoardEntity, Integer> {
@@ -13,6 +16,12 @@ public interface BoardRepository extends JpaRepository<BoardEntity, Integer> {
 
     BoardEntity findByBoardNumber(Integer boardNumber);
 
+    int countByWriteDatetimeAfter(String writeDatetime);
+    @Query(
+            value = "SELECT COUNT(*) FROM board WHERE write_datetime BETWEEN :start AND :end",
+            nativeQuery = true
+    )
+    int countByWriteDatetimeBetweenString(@Param("start") String start, @Param("end") String end);
 
     @Query(
             value =

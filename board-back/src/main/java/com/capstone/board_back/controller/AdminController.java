@@ -64,4 +64,25 @@ public class AdminController {
         ResponseEntity<? super DeleteBoardResponseDto> response = adminService.deleteBoard(boardNumber);
         return response;
     }
+
+    // ✅ 대시보드 요약 정보
+    @GetMapping("/dashboard")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<? super GetDashboardResponseDto> getDashboard() {
+        return adminService.getDashboardData();
+    }
+
+    // ✅ 대시보드 차트 정보
+    @GetMapping("/dashboard/trend")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<? super GetDashboardTrendResponseDto> getDashboardTrend() {
+        return adminService.getDashboardTrend();
+    }
+
+    // ✅ 회원 복구 (PUT)
+    @PutMapping("/user/restore/{email}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<? super PutRestoreUserResponseDto> restoreUser(@PathVariable("email") String email) {
+        return adminService.restoreUser(email);
+    }
 }

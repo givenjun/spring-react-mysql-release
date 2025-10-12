@@ -55,14 +55,12 @@ public class WebSecurityConfig {
                 .sessionManagement(session -> session.
                         sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(request -> request
-                        // ✅ 관리자 전용 경로
-                        .requestMatchers("/api/v1/admin/**", "/api/v1/notice/admin/**").hasRole("ADMIN")
-
                         // ✅ 공개 접근 경로
                         .requestMatchers("/", "/api/v1/auth/**", "/api/v1/search/**", "/file/**", "/api/v1/notice/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/board/**", "/api/v1/user/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/board/**", "/api/v1/user/**", "/api/v1/notice/**").permitAll()
                         .requestMatchers("/api/v1/gemini/**", "/api/tmap/**").permitAll()
-
+                        // ✅ 관리자 전용 경로
+                        .requestMatchers("/api/v1/admin/**", "/api/v1/notice/admin/**").hasRole("ADMIN")
                         // ✅ 나머지 요청은 USER 또는 ADMIN만 접근 가능
                         .anyRequest().hasAnyRole("USER", "ADMIN")
                 )

@@ -115,8 +115,10 @@ public class UserEntity {
         this.deletedAt = LocalDateTime.now();
         this.nickname = "탈퇴회원" + randomId;
         this.profileImage = null;
-        this.telNumber = null;
-        this.address = null;
-        this.addressDetail = null;
+    }
+
+    public void restoreDeleted() {
+        this.isDeleted = false;
+        this.deletedAt = null;
     }
 }

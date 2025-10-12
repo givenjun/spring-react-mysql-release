@@ -1,3 +1,15 @@
+/* ✅ 관리자 공통 컨테이너 (대시보드 크기 맞춤) */
+.admin-board-list,
+.admin-user-list,
+.admin-notice-list {
+    height: 95%;
+    max-height: 100vh;          /* ✅ 기존 max-height: 85vh → min-height: 90vh */
+    
+    width: 100%;
+    min-width: 80vw;
+    max-width: 100vw;
+}
+
 /**************************************
  * 🌐 관리자 공통 테이블 스타일
  **************************************/
@@ -30,7 +42,7 @@
 
 /* ✅ 테이블 헤더 스타일 */
 .admin-table th {
-  background-color: #f8f8f8;
+  background-color: #f4f3ff;
   font-weight: 600;
 }
 

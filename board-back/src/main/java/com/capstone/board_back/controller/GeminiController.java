@@ -44,6 +44,7 @@ public class GeminiController {
         try {
             String kakaoApiResponse = geminiService.searchLocationWithKakao(searchQuery);
             // ✅ 2. 서비스가 성공적으로 결과를 반환했는지 로그로 확인
+            log.info("카카오로부터 받은 응답 : {}", kakaoApiResponse);
             log.info("카카오 API 검색 성공. 응답 길이: {}", kakaoApiResponse.length());
             return ResponseEntity.ok(kakaoApiResponse);
         } catch (Exception e) {

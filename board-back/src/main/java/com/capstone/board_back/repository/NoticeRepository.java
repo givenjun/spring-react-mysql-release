@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface NoticeRepository extends JpaRepository<NoticeEntity, Long> {
     List<NoticeEntity> findAllByOrderByPinnedDescCreatedAtDesc();
+    List<NoticeEntity> findTop3ByOrderByCreatedAtDesc();
 }

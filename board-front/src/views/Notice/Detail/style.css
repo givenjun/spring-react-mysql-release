@@ -1,0 +1,135 @@
+#notice-detail-wrapper {
+  background-image: url(../../../assets/image/background-image.png);
+  background-position: 50% 50%;
+  padding: 156px 0 50px;
+  display: flex;
+  justify-content: center;
+  margin-top: -22px;
+}
+
+.notice-detail-container {
+  min-height: 600px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+
+  padding: 50px 30px;
+  width: 1200px;
+
+  background-color: rgba(255, 255, 255, 1);
+
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.2);
+  border-radius: 20px;
+}
+
+/* =============================== */
+/* 헤더 */
+/* =============================== */
+.notice-detail-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.notice-detail-pin {
+  color: #6c63ff;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.notice-detail-title {
+  width: 100%;
+  max-width: 900px;
+
+  font-size: 30px;
+  font-weight: 700;
+  color: #111;
+  line-height: 1.5;
+
+  text-align: center;
+  word-break: break-word;      /* ✅ 긴 단어 강제 줄바꿈 */
+  white-space: normal;          /* ✅ 줄바꿈 허용 */
+  overflow-wrap: anywhere;      /* ✅ 긴 영문/URL 대비 */
+}
+
+/* ✅ 작성자/날짜 한 줄 정렬 */
+.notice-detail-meta {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+
+  font-size: 15px;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.writer {
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.8);
+}
+
+/* ✅ 날짜 사이 구분선 */
+.meta-divider {
+  color: rgba(0, 0, 0, 0.3);
+}
+
+/* ✅ 본문 구분선 */
+.notice-divider {
+  width: 100%;
+  height: 1px;
+  background-color: rgba(0, 0, 0, 0.15);
+  margin: 20px 0;
+}
+
+/* =============================== */
+/* 본문 */
+/* =============================== */
+.notice-detail-content {
+  display: flex;
+  justify-content: center;
+  padding: 0 40px;
+}
+
+.notice-detail-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 17px;
+  color: rgba(0, 0, 0, 0.8);
+  line-height: 1.8;
+  max-width: 850px;
+}
+
+/* =============================== */
+/* 버튼 */
+/* =============================== */
+.notice-detail-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+/* ✅ 목록으로 돌아가기 버튼 */
+.back-btn {
+  background: linear-gradient(90deg, #e24fb1 0%, #6c3aff 100%);
+  color: white;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(108, 58, 255, 0.25);
+  background-size: 200% 100%;
+  background-position: left center; /* 기본은 왼쪽 */
+}
+
+.back-btn:hover {
+  background-position: right center; /* hover 시 오른쪽으로 그라데이션 이동 */
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(108, 58, 255, 0.35);
+}
