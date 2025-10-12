@@ -47,15 +47,43 @@ export default function PlaceDetailCard({
 }: Props) {
   const { name, imageUrl, categoryText } = place;
 
-  // 접근성: 열릴 때 닫기 버튼에 포커스, ESC로 닫기
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
+
+  // ✅ 전역 keydown: 입력창/셀렉트/에디터에서는 절대 간섭하지 않음. ESC만 처리.
   useEffect(() => {
     if (!open) return;
-    closeBtnRef.current?.focus({ preventScroll: true });
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+
+    const isTypingTarget = (el: HTMLElement | null) => {
+      if (!el) return false;
+      if (el.isContentEditable) return true;
+      const tag = el.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+      // input 계열의 커스텀 컴포넌트가 role로 노출되는 경우 보강
+      const role = el.getAttribute('role');
+      if (role && /combobox|textbox|searchbox|spinbutton|listbox|radiogroup/i.test(role)) return true;
+      return false;
+    };
+
+    const onKey = (e: KeyboardEvent) => {
+      // 입력 필드/컨텐트에디터블 등에서는 완전 무시 (ESC 포함)
+      const t = e.target as HTMLElement | null;
+      if (isTypingTarget(t)) return;
+
+      // 그 외 컨텍스트에서는 ESC만 처리 (다른 키는 건드리지 않음)
+      if (e.key === 'Escape') {
+        // preventDefault/stopPropagation 불필요 — 자연스럽게 닫기만 수행
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', onKey, false);
+    return () => window.removeEventListener('keydown', onKey, false);
   }, [open, onClose]);
+
+  // 접근성: 열릴 때 닫기 버튼에 포커스
+  useEffect(() => {
+    if (open) closeBtnRef.current?.focus({ preventScroll: true });
+  }, [open]);
 
   return (
     <aside
@@ -94,6 +122,7 @@ export default function PlaceDetailCard({
           <img src={imageUrl} alt={`${name} 대표 이미지`} />
         </div>
       )}
+
       {/* 탭 없이, 맛집 리스트만 표시 */}
       <section className="pd-body">
         <div className="pd-slot">
