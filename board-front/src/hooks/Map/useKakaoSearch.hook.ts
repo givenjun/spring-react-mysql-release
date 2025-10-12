@@ -1,5 +1,4 @@
-// src/hooks/Map/useKakaoSearch.hock.ts
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { create } from 'zustand';
 
 declare global { interface Window { kakao: any } }
@@ -8,8 +7,8 @@ const kakao = (typeof window !== 'undefined' ? (window as any).kakao : undefined
 export interface Place {
   id: string;
   place_name: string;
-  x: string;
-  y: string;
+  x: string; // lng
+  y: string; // lat
   address_name?: string;
   road_address_name?: string;
   category_name?: string;
@@ -26,10 +25,10 @@ export const useAiSearchStore = create<AiSearchState>((set) => ({
 }));
 
 type SearchOptions = {
-  center?: { lat: number; lng: number };     // 검색 중심
-  radius?: number;                            // m (카카오 최대 1000)
-  categoryGroupCodes?: string[];              // 예: ['FD6'] 음식점, ['FD6','CE7'] 음식+카페
-  limit?: number;                             // 결과 상한
+  center?: { lat: number; lng: number }; // 검색 중심
+  radius?: number;                        // m (카카오 최대 1000)
+  categoryGroupCodes?: string[];          // ['FD6'], ['FD6','CE7'] 등
+  limit?: number;                         // 결과 상한
 };
 
 export default function useKakaoSearch() {
@@ -41,15 +40,15 @@ export default function useKakaoSearch() {
 
   const { aiSearchResults } = useAiSearchStore();
 
-  // 내부 캐시 및 요청 버전(취소 토큰 역할)
+  // 내부 캐시 및 버전 토큰(구 요청 무시)
   const cacheRef = useRef<Map<string, Place[]>>(new Map());
   const verRef = useRef(0);
 
   useEffect(() => {
     if (aiSearchResults.length > 0) {
       setSearchResults(aiSearchResults);
-      const firstPlace = aiSearchResults[0];
-      setCenter({ lat: parseFloat(firstPlace.y), lng: parseFloat(firstPlace.x) });
+      const f = aiSearchResults[0];
+      setCenter({ lat: parseFloat(f.y), lng: parseFloat(f.x) });
     }
   }, [aiSearchResults]);
 
@@ -62,35 +61,26 @@ export default function useKakaoSearch() {
     return JSON.stringify({ k, c, r, cg, L });
   };
 
-  /**
-   * 키워드로 장소를 검색합니다. (디폴트: 기존 동작과 동일)
-   * options로 중심/반경/카테고리/상한을 줄 수 있음.
-   * 캐시 + 최신 요청만 반영 + 결과 상한 적용.
-   */
+  /** 탐색 탭: 상태를 바꾸는 일반 검색 */
   const searchPlaces = (
     keyword: string,
     onSuccess?: (results: Place[]) => void,
     onError?: () => void,
     options?: SearchOptions
   ) => {
-    if (!window.kakao?.maps?.services) {
-      console.warn('Kakao Maps SDK not loaded.');
-      onError?.();
-      return;
-    }
+    if (!window.kakao?.maps?.services) { onError?.(); return; }
 
     const key = makeKey(keyword, options);
     const cached = cacheRef.current.get(key);
     if (cached) {
-      // 캐시 히트시 즉시 반영
-      const limited = (options?.limit ? cached.slice(0, options.limit) : cached);
+      const limited = options?.limit ? cached.slice(0, options.limit) : cached;
       setSearchResults(limited);
       if (limited.length > 0) {
-        const first = limited[0];
-        setCenter({ lat: parseFloat(first.y), lng: parseFloat(first.x) });
-        const newBounds = new window.kakao.maps.LatLngBounds();
-        limited.forEach(p => newBounds.extend(new window.kakao.maps.LatLng(p.y, p.x)));
-        setBounds(newBounds);
+        const f = limited[0];
+        setCenter({ lat: parseFloat(f.y), lng: parseFloat(f.x) });
+        const b = new window.kakao.maps.LatLngBounds();
+        limited.forEach(p => b.extend(new window.kakao.maps.LatLng(p.y, p.x)));
+        setBounds(b);
       }
       onSuccess?.(limited);
       return;
@@ -110,17 +100,17 @@ export default function useKakaoSearch() {
           address_name: d.address_name, road_address_name: d.road_address_name,
           phone: d.phone, category_name: d.category_name,
         }));
-        const limited = (options?.limit ? list.slice(0, options.limit) : list);
+        const limited = options?.limit ? list.slice(0, options.limit) : list;
 
         cacheRef.current.set(key, list);
         setSearchResults(limited);
 
-        const first = limited[0];
-        setCenter({ lat: parseFloat(first.y), lng: parseFloat(first.x) });
+        const f = limited[0];
+        setCenter({ lat: parseFloat(f.y), lng: parseFloat(f.x) });
 
-        const newBounds = new window.kakao.maps.LatLngBounds();
-        limited.forEach(place => newBounds.extend(new window.kakao.maps.LatLng(place.y, place.x)));
-        setBounds(newBounds);
+        const b = new window.kakao.maps.LatLngBounds();
+        limited.forEach(p => b.extend(new window.kakao.maps.LatLng(p.y, p.x)));
+        setBounds(b);
 
         onSuccess?.(limited);
       } else {
@@ -135,7 +125,6 @@ export default function useKakaoSearch() {
       searchOpts.radius = Math.min(1000, Math.max(1, options.radius!));
     }
 
-    // 카테고리 그룹코드가 있으면 우선 카테고리로 스캔 후, 필요 시 키워드 보강
     const cg = (options?.categoryGroupCodes || []).filter((s): s is string => typeof s === 'string' && s.length > 0);
     if (cg.length > 0) {
       let acc: any[] = [];
@@ -144,15 +133,12 @@ export default function useKakaoSearch() {
       const doCategory = (idx: number) => {
         if (idx >= cg.length) {
           if (acc.length < (options?.limit ?? 15)) {
-            // 보강: 키워드
             ps.keywordSearch(keyword, (data: any[], status: any) => {
               if (ver !== verRef.current) return;
               if (status === kakao.maps.services.Status.OK) acc = acc.concat(data);
               cb(acc, kakao.maps.services.Status.OK);
             }, searchOpts);
-          } else {
-            cb(acc, kakao.maps.services.Status.OK);
-          }
+          } else cb(acc, kakao.maps.services.Status.OK);
           return;
         }
         ps.categorySearch(cg[idx], (data: any[], status: any) => {
@@ -169,7 +155,60 @@ export default function useKakaoSearch() {
     }
   };
 
+  /** 길찾기 탭: 엔터 시 ‘최상위 1개’만 필요할 때 */
+  const searchOnce = (keyword: string, options?: SearchOptions): Promise<Place[]> => {
+    return new Promise<Place[]>((resolve) => {
+      if (!window.kakao?.maps?.services) return resolve([]);
+      const q = (keyword || '').trim();
+      if (q.length < 2) return resolve([]);
+
+      const ps = new window.kakao.maps.services.Places();
+      const searchOpts: any = {};
+      if (options?.center && (options.radius ?? 0) > 0) {
+        searchOpts.location = new window.kakao.maps.LatLng(options.center.lat, options.center.lng);
+        searchOpts.radius = Math.min(1000, Math.max(1, options.radius!));
+      }
+
+      ps.keywordSearch(q, (data: any[], status: kakao.maps.services.Status) => {
+        if (status !== kakao.maps.services.Status.OK || !data?.length) return resolve([]);
+        const list: Place[] = data.map((d: any) => ({
+          id: d.id, place_name: d.place_name, x: d.x, y: d.y,
+          address_name: d.address_name, road_address_name: d.road_address_name,
+          phone: d.phone, category_name: d.category_name,
+        }));
+        resolve(options?.limit ? list.slice(0, options.limit) : list);
+      }, searchOpts);
+    });
+  };
+
+  /** 길찾기 탭: 엔터 시 ‘리스트를 띄울’ 때 */
+  const searchManyOnce = (keyword: string, limit = 12, options?: SearchOptions): Promise<Place[]> => {
+    return new Promise<Place[]>((resolve) => {
+      if (!window.kakao?.maps?.services) return resolve([]);
+      const q = (keyword || '').trim();
+      if (q.length < 2) return resolve([]);
+
+      const ps = new window.kakao.maps.services.Places();
+      const searchOpts: any = {};
+      if (options?.center && (options.radius ?? 0) > 0) {
+        searchOpts.location = new window.kakao.maps.LatLng(options.center.lat, options.center.lng);
+        searchOpts.radius = Math.min(1000, Math.max(1, options.radius!));
+      }
+
+      ps.keywordSearch(q, (data: any[], status: kakao.maps.services.Status) => {
+        if (status !== kakao.maps.services.Status.OK || !data?.length) return resolve([]);
+        const list: Place[] = data.map((d: any) => ({
+          id: d.id, place_name: d.place_name, x: d.x, y: d.y,
+          address_name: d.address_name, road_address_name: d.road_address_name,
+          phone: d.phone, category_name: d.category_name,
+        }));
+        resolve(list.slice(0, limit));
+      }, searchOpts);
+    });
+  };
+
   return {
+    // 상태형(탐색 탭)
     searchResults,
     center,
     bounds,
@@ -177,5 +216,9 @@ export default function useKakaoSearch() {
     hoveredIndex,
     setHoveredIndex,
     searchPlaces,
+
+    // 엔터형(길찾기 탭)
+    searchOnce,
+    searchManyOnce,
   };
 }

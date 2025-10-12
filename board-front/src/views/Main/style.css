@@ -313,34 +313,3 @@
 .main-wrapper { position: relative; overflow: hidden; }
 
 
-/* 디테일카드 전체 레이어: 화면은 덮되, 기본은 이벤트 통과 */
-.pd-layer {
-  position: fixed;
-  top: 64px;             /* 헤더 높이에 맞춰 조정 */
-  left: 0; right: 0; bottom: 0;
-  z-index: 950;          /* 지도(폴리라인)보다 위, 검색/헤더보다 낮게 */
-  pointer-events: none;  /* 핵심: 기본은 이벤트를 막지 않음 */
-}
-
-/* 카드 박스 영역만 클릭/스크롤 허용 */
-.pd-hitbox {
-  pointer-events: auto;
-}
-
-/* 카드 내부에서 렌더되는 백드롭/딤(전체 고정 레이어)을 무력화 */
-.pd-hitbox .pd-backdrop,
-.pd-hitbox .backdrop,
-.pd-hitbox .modal-backdrop,
-.pd-hitbox [data-backdrop],
-.pd-hitbox [class*="Backdrop"],
-.pd-hitbox [role="presentation"][style*="position: fixed"],
-.pd-hitbox [style*="position: fixed"][style*="inset: 0"] {
-  pointer-events: none !important;
-  background: transparent !important;
-}
-
-/* 검색창/헤더/사이드바가 카드보다 위에 오게 (클래스명에 맞춰 필요 시 수정) */
-.search-sidebar, .sidebar, .search-panel, .app-header {
-  position: relative;
-  z-index: 1000;
-}

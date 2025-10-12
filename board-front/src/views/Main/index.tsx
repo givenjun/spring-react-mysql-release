@@ -1,5 +1,7 @@
 // src/views/Main/index.tsx
-import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import React, {
+  useEffect, useMemo, useState, useCallback, useRef, useDeferredValue,
+} from 'react';
 import { Map, MapMarker, MapTypeControl, Polyline, ZoomControl, CustomOverlayMap } from 'react-kakao-maps-sdk';
 import SearchSidebar from 'components/Map/SearchSidebar';
 import useKakaoSearch from 'hooks/Map/useKakaoSearch.hook';
@@ -13,6 +15,7 @@ import useRelativeStore from 'stores/relativeStore';
 
 const DOMAIN = process.env.REACT_APP_API_URL;
 
+// ⚠️ requestIdleCallback는 재선언하지 않습니다
 declare global { interface Window { kakao: any } }
 const kakao = (typeof window !== 'undefined' ? (window as any).kakao : undefined);
 
@@ -465,6 +468,36 @@ export default function Main() {
     });
   }, [routePlaces, foodTab]);
 
+  /* ===== 1) 리스트는 지연, 2) 마커는 점진 렌더 ===== */
+  const deferredFiltered = useDeferredValue(filteredRoutePlaces);
+
+  const [markerItems, setMarkerItems] = useState<any[]>([]);
+  useEffect(() => {
+    const list = Array.isArray(filteredRoutePlaces) ? filteredRoutePlaces : [];
+    let cancelled = false;
+    let i = 0;
+    const CHUNK = 60;
+    setMarkerItems([]);
+
+    const pump = () => {
+      if (cancelled) return;
+      const next = list.slice(i, i + CHUNK);
+      if (next.length) setMarkerItems(prev => prev.concat(next));
+      i += CHUNK;
+      if (i < list.length) {
+        // ⇩ 타입 충돌 없이 안전 호출
+        const rIC = (typeof window !== 'undefined' && 'requestIdleCallback' in window)
+          ? (window as any).requestIdleCallback as (cb: () => void, opts?: { timeout?: number }) => number
+          : undefined;
+        if (rIC) rIC(pump, { timeout: 120 });
+        else setTimeout(pump, 16);
+      }
+    };
+
+    pump();
+    return () => { cancelled = true; };
+  }, [filteredRoutePlaces]);
+
   const JOKBAL_KEYWORDS = [
     '족발','보쌈','왕족발','족발보쌈','보쌈정식','마늘보쌈','수육',
     '가장맛있는족발','원할머니보쌈','장충동왕족발','족발야시장','미쓰족발','삼대족발'
@@ -485,12 +518,10 @@ export default function Main() {
 
   const calcBudget = (path?: LL[]) => {
     const km = pathKm(path);
-    // 긴 경로에서 충분히 많이 보이도록 상한을 늘림
     return Math.min(1200, Math.max(400, Math.round(120 + 60 * km)));
   };
 
-  // 옵션 생성 (fast/full 자동 선택)
-  const optsForTab = (tab: FoodTab, path?: LL[]) => {
+  const optsForTab = (tab: typeof FOOD_TABS[number], path?: LL[]) => {
     const km = pathKm(path);
     const adaptiveStep = makeAdaptiveStep(path);
     const useFull = km >= 5;
@@ -530,16 +561,13 @@ export default function Main() {
   const runAlongPathTwoStage = useCallback((path: LL[]) => {
     if (!Array.isArray(path) || path.length < 2) return;
 
-    // 1) 빠르게 첫 화면
     const fast = { ...optsForTab(foodTab, path), mode: 'fast' as const, timeBudgetMs: 1500 };
     searchAlongPath(path, fast);
 
-    // 현재 쿼리 버전 스냅샷
     const myVer = ++routeQueryVerRef.current;
 
-    // 2) 잠시 뒤 여전히 같은 경로라면 full로 보강
     window.setTimeout(() => {
-      if (routeQueryVerRef.current !== myVer) return; // 경로/검색 바뀜 → 취소
+      if (routeQueryVerRef.current !== myVer) return;
       const full = { ...optsForTab(foodTab, path), mode: 'full' as const };
       searchAlongPath(path, full);
     }, 1000);
@@ -555,7 +583,7 @@ export default function Main() {
     setExtraPlacePath([]); setExtraPlaceTarget(null); setExtraPlaceETAsec(null);
     setOnlySelectedMarker(false);
     resetRoutePlaces?.();
-    routeQueryVerRef.current++; // 기존 보강 취소
+    routeQueryVerRef.current++;
 
     setPlaceCardOpen(true);
     runAlongPathTwoStage(r.path);
@@ -571,42 +599,42 @@ export default function Main() {
     setOnlySelectedMarker(false);
 
     setPlaceCardOpen(true);
-    routeQueryVerRef.current++; // 기존 보강 취소
+    routeQueryVerRef.current++;
     runAlongPathTwoStage(r.path);
   }, [routeOptions, runAlongPathTwoStage]);
 
   const onFocusOrDoubleToRoute = useCallback(
-  async (p: { lat: number|string; lng: number|string; name?: string; place_name?: string }) => {
-    const lat = typeof p.lat === 'string' ? parseFloat(p.lat) : p.lat;
-    const lng = typeof p.lng === 'string' ? parseFloat(p.lng) : p.lng;
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    async (p: { lat: number|string; lng: number|string; name?: string; place_name?: string }) => {
+      const lat = typeof p.lat === 'string' ? parseFloat(p.lat) : p.lat;
+      const lng = typeof p.lng === 'string' ? parseFloat(p.lng) : p.lng;
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
-    panToPlace(lat, lng, 3);
+      panToPlace(lat, lng, 3);
 
-    const start = autoRouteEndpoints?.start;
-    if (!start) return;
+      const start = autoRouteEndpoints?.start;
+      if (!start) return;
 
-    try {
-      const geo = await callTmap({ start, end: { lat, lng } });
-      const fs  = geo?.features ?? [];
-      const ls  = fs.filter((f: any) => f?.geometry?.type === 'LineString');
-      const coords = ls.flatMap((f: any) =>
-        (f.geometry.coordinates ?? []).map(([lng2, lat2]: [number, number]) => ({ lat: lat2, lng: lng2 }))
-      );
+      try {
+        const geo = await callTmap({ start, end: { lat, lng } });
+        const fs  = geo?.features ?? [];
+        const ls  = fs.filter((f: any) => f?.geometry?.type === 'LineString');
+        const coords = ls.flatMap((f: any) =>
+          (f.geometry.coordinates ?? []).map(([lng2, lat2]: [number, number]) => ({ lat: lat2, lng: lng2 }))
+        );
 
-      const sum = fs.find((f: any) => f?.properties?.totalTime || f?.properties?.totalDistance)?.properties ?? {};
-      const etaSec =
-        typeof sum.totalTime === 'number' ? sum.totalTime :
-        (typeof sum.time === 'number' ? sum.time : null);
+        const sum = fs.find((f: any) => f?.properties?.totalTime || f?.properties?.totalDistance)?.properties ?? {};
+        const etaSec =
+          typeof sum.totalTime === 'number' ? sum.totalTime :
+          (typeof sum.time === 'number' ? sum.time : null);
 
-      setExtraPlacePath(coords);
-      setExtraPlaceTarget({ lat, lng, name: (p?.name || p?.place_name || '목적지') as string });
-      setExtraPlaceETAsec(etaSec);
-      setOnlySelectedMarker(true);
-    } catch { /* ignore */ }
-  },
-  [autoRouteEndpoints?.start, panToPlace]
-);
+        setExtraPlacePath(coords);
+        setExtraPlaceTarget({ lat, lng, name: (p?.name || p?.place_name || '목적지') as string });
+        setExtraPlaceETAsec(etaSec);
+        setOnlySelectedMarker(true);
+      } catch { /* ignore */ }
+    },
+    [autoRouteEndpoints?.start, panToPlace]
+  );
 
   const handleMapClick = (_: kakao.maps.Map, mouseEvent: kakao.maps.event.MouseEvent) => {
     const clickedLatLng = mouseEvent.latLng;
@@ -652,13 +680,12 @@ export default function Main() {
         isOpen={isSidebarOpen}
         toggleOpen={() => setIsSidebarOpen(prev => !prev)}
         onSearch={(kw: string) => {
-          // 새 검색 시작 → 진행 중인 경로 보강 취소 & 경로 맛집 초기화
           routeQueryVerRef.current++;
           resetRoutePlaces?.();
           if (kw) (searchPlaces as any)(kw);
         }}
         onRouteByCoords={handleRouteByCoords}
-        routePlaces={filteredRoutePlaces as any}
+        routePlaces={deferredFiltered as any}
         routeLoading={routePlacesLoading}
         routeError={routePlacesError ?? null}
         onFocusRoutePlace={() => {}}
@@ -696,10 +723,10 @@ export default function Main() {
           ) : (
             <>
               <div className="pd-list-summary">
-                경로 주변 맛집 <b>총 {Array.isArray(filteredRoutePlaces) ? filteredRoutePlaces.length : 0}곳</b>
+                경로 주변 맛집 <b>총 {Array.isArray(deferredFiltered) ? deferredFiltered.length : 0}곳</b>
               </div>
               <PlaceList
-                places={filteredRoutePlaces as any}
+                places={deferredFiltered as any}
                 isLoading={routePlacesLoading}
                 hiddenWhileLoading
                 onItemDoubleClick={(p) => onFocusOrDoubleToRoute(p)}
@@ -852,18 +879,8 @@ export default function Main() {
           </>
         )}
 
-        {extraPlacePath.length > 1 && (
-          <Polyline
-            path={extraPlacePath}
-            strokeWeight={6}
-            strokeColor={'#2E86DE'}
-            strokeOpacity={0.95}
-            strokeStyle={'solid'}
-            zIndex={78}
-          />
-        )}
-
-        {!onlySelectedMarker && Array.isArray(filteredRoutePlaces) && filteredRoutePlaces.map((p: any, idx: number) => {
+        {/* 점진적으로 채워지는 마커 */}
+        {!onlySelectedMarker && Array.isArray(markerItems) && markerItems.map((p: any, idx: number) => {
           const lat = typeof p.lat === 'string' ? parseFloat(p.lat) : p.lat;
           const lng = typeof p.lng === 'string' ? parseFloat(p.lng) : p.lng;
           if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
@@ -874,6 +891,17 @@ export default function Main() {
             </React.Fragment>
           );
         })}
+
+        {extraPlacePath.length > 1 && (
+          <Polyline
+            path={extraPlacePath}
+            strokeWeight={6}
+            strokeColor={'#2E86DE'}
+            strokeOpacity={0.95}
+            strokeStyle={'solid'}
+            zIndex={78}
+          />
+        )}
 
         {onlySelectedMarker && extraPlaceTarget && (
           <>

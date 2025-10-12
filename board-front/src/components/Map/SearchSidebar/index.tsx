@@ -1,9 +1,8 @@
-// src/components/Map/SearchSidebar/index.tsx
-
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './style.css';
 import { useNavigate } from 'react-router-dom';
 import { BOARD_PATH, USER_PATH } from 'constant';
+import useKakaoSearch from 'hooks/Map/useKakaoSearch.hook';
 
 declare global { interface Window { kakao: any; } }
 const kakao = (typeof window !== 'undefined' ? (window as any).kakao : undefined);
@@ -154,176 +153,74 @@ export default function SearchSidebar({
     onSearch(q, '');
   };
 
-  // ====== 길찾기 탭(자동완성) ======
+  // ====== 길찾기 탭 (엔터 시 리스트 노출, 클릭으로 확정) ======
   type Field = 'start' | 'end';
   const [routeQuery, setRouteQuery] = useState({ start: '', end: '' });
   const [picked, setPicked] = useState<{ start: CoordsPick | null; end: CoordsPick | null }>({ start: null, end: null });
   const [suggestions, setSuggestions] = useState<{ start: Place[]; end: Place[] }>({ start: [], end: [] });
   const [openDrop, setOpenDrop] = useState<{ start: boolean; end: boolean }>({ start: false, end: false });
-  const [suppressDrop, setSuppressDrop] = useState<{ start: boolean; end: boolean }>({ start: false, end: false });
 
   // ✅ 거리 제한 메시지 상태
   const [distanceInfo, setDistanceInfo] = useState<{ type: 'info' | 'error'; text: string } | null>(null);
 
   const routeQueryRef = useRef(routeQuery); useEffect(()=>{ routeQueryRef.current = routeQuery; },[routeQuery]);
   const pickedRef = useRef(picked); useEffect(()=>{ pickedRef.current = picked; },[picked]);
-  const suppressDropRef = useRef(suppressDrop); useEffect(()=>{ suppressDropRef.current = suppressDrop; },[suppressDrop]);
 
-  const lastQueryRef = useRef<{ start: string; end: string }>({ start: '', end: '' });
-
-  const places = useMemo(() => (kakao?.maps?.services ? new kakao.maps.services.Places() : null), []);
-  const timerRef = useRef<number | null>(null);
-  const clearTimer = () => { if (timerRef.current) { window.clearTimeout(timerRef.current); timerRef.current = null; } };
-  useEffect(()=>clearTimer, []);
-
-  // ===== 자동완성 최적화 상수 & 캐시/버전 토큰 =====
-  const AC_MIN_LEN = 2;      // 2글자 미만은 호출 안 함
-  const AC_DEBOUNCE = 350;   // ms
-  const AC_TIMEOUT = 1800;   // ms
-  const AC_RETRIES = 1;      // 재시도 1회
-  const AC_LIMIT = 12;       // 표시 최대 개수
-
-  const acCacheRef = useRef<{ start: Map<string, Place[]>; end: Map<string, Place[]> }>({
-    start: new Map(),
-    end: new Map(),
-  });
-  const acVersionRef = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
-
-  // Kakao keywordSearch를 Promise + 타임아웃으로 래핑
-  function keywordSearchWithTimeout(svc: any, q: string, opts: any): Promise<any[]> {
-    return new Promise<any[]>((resolve) => {
-      let finished = false;
-      const timer = window.setTimeout(() => {
-        if (!finished) { finished = true; resolve([]); }
-      }, AC_TIMEOUT);
-
-      svc.keywordSearch(q, (data: any[], status: string) => {
-        if (finished) return;
-        finished = true;
-        window.clearTimeout(timer);
-        if (status === kakao.maps.services.Status.OK) {
-          resolve((data || []).slice(0, AC_LIMIT));
-        } else {
-          resolve([]);
-        }
-      }, opts);
-    });
-  }
-
-  async function withRetry<T>(fn: () => Promise<T>, retries = AC_RETRIES): Promise<T> {
-    try {
-      return await fn();
-    } catch {
-      if (retries <= 0) throw new Error('fail');
-      return await withRetry(fn, retries - 1);
-    }
-  }
-
-  // ✅ 최적화된 디바운스 자동완성
-  const debouncedSearch = (field: Field, q: string) => {
-    if (!places) return;
-    clearTimer();
-    const qTrim = q.trim();
-
-    // 2글자 미만이면 닫고 종료
-    if (qTrim.length < AC_MIN_LEN) {
-      setSuggestions((s)=>({ ...s, [field]: [] }));
-      setOpenDrop((o)=>({ ...o, [field]: false }));
-      return;
-    }
-
-    timerRef.current = window.setTimeout(async () => {
-      lastQueryRef.current[field] = qTrim;
-      const myVersion = ++acVersionRef.current[field];
-
-      // 1) 캐시 히트면 즉시 표시
-      const cache = acCacheRef.current[field];
-      const cached = cache.get(qTrim);
-      if (cached && cached.length > 0) {
-        if (!suppressDropRef.current[field] && !pickedRef.current[field]) {
-          setSuggestions((s)=>({ ...s, [field]: cached }));
-          setOpenDrop((o)=>({ ...o, [field]: true }));
-        }
-      }
-
-      // 2) 네트워크 호출 (타임아웃 + 재시도)
-      const opts = {}; // 필요 시 { location, radius } 옵션 추가 가능
-      try {
-        const raw = await withRetry(() => keywordSearchWithTimeout(places, qTrim, opts), AC_RETRIES);
-        // 최신 요청인지 확인
-        if (acVersionRef.current[field] !== myVersion) return;
-        if (suppressDropRef.current[field]) return;
-        if ((pickedRef.current as any)[field]) return;
-        if (lastQueryRef.current[field] !== qTrim) return;
-
-        // Place[]로 매핑 + 캐시 저장
-        const list: Place[] = (raw || []).map((d: any) => ({
-          id: d.id, place_name: d.place_name, x: d.x, y: d.y,
-          address_name: d.address_name, road_address_name: d.road_address_name,
-          phone: d.phone, category_name: d.category_name
-        }));
-        cache.set(qTrim, list);
-        // ✅ LRU 100개 제한 (안전 가드: next() 결과 확인)
-        if (cache.size > 100) {
-          const it = cache.keys().next();
-          if (!it.done) cache.delete(it.value);
-        }
-
-        setSuggestions((s)=>({ ...s, [field]: list }));
-        setOpenDrop((o)=>({ ...o, [field]: list.length > 0 }));
-      } catch {
-        if (acVersionRef.current[field] !== myVersion) return;
-        setOpenDrop((o)=>({ ...o, [field]: false }));
-      }
-    }, AC_DEBOUNCE);
-  };
+  const { searchManyOnce } = useKakaoSearch();
 
   const onRouteChange = (field: Field, v: string) => {
     setRouteQuery((q)=>({ ...q, [field]: v }));
     setPicked((p)=>({ ...p, [field]: null }));
-    setSuppressDrop((s)=>({ ...s, [field]: false }));
-    setDistanceInfo(null); // 입력 바꿀 때 메시지 초기화
-    if (v.trim()) debouncedSearch(field, v);
-    else { setSuggestions((s)=>({ ...s, [field]: [] })); setOpenDrop((o)=>({ ...o, [field]: false })); }
+    setDistanceInfo(null);
   };
 
+  // ⌨️ 엔터 → 해당 필드에 대해 1회 검색, 목록 열기
+  const openSuggestionsByEnter = async (field: Field) => {
+    const q = routeQueryRef.current[field].trim();
+    if (q.length < 2) return;
+    const list = await searchManyOnce(q, 12);
+    setSuggestions((s)=>({ ...s, [field]: list }));
+    setOpenDrop((o)=>({ ...o, [field]: list.length > 0 }));
+  };
+
+  const onKeyDownInput = (field: Field) => (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      openSuggestionsByEnter(field);
+    }
+  };
+
+  // 목록에서 클릭하면 “확정”
   const pickSuggestion = (field: Field, p: Place) => {
     const item: CoordsPick = { name: p.place_name, lat: parseFloat(p.y), lng: parseFloat(p.x) };
     setPicked(prev=>({ ...prev, [field]: item }));
     setRouteQuery(q=>({ ...q, [field]: `${p.place_name} (${p.road_address_name || p.address_name || ''})` }));
     setSuggestions(s=>({ ...s, [field]: [] }));
     setOpenDrop(o=>({ ...o, [field]: false }));
-    setSuppressDrop(s=>({ ...s, [field]: true }));
-    setDistanceInfo(null); // 선택 시 메시지 초기화
-    clearTimer();
+    setDistanceInfo(null);
   };
 
   const canSubmit = !!picked.start && !!picked.end;
 
-  // ✅ 경로 보기 제출 시 거리 제한 검사
+  // ✅ 경로 보기(확정 두 개가 있어야 진행)
   const submitRoute = (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!canSubmit) return;
+    const s = pickedRef.current.start;
+    const t = pickedRef.current.end;
+    if (!s || !t) return;
 
-    const s = pickedRef.current.start!;
-    const t = pickedRef.current.end!;
-    const distKm = haversineKm({ lat: s.lat, lng: s.lng }, { lat: t.lat, lng: t.lng }); // 직선 거리로 1차 컷
-
-    const baseLimit = distanceLimitKm;               // 기본 20km
-    const tol = Math.max(0, distanceToleranceRatio); // 기본 0.05 (±5%)
+    const distKm = haversineKm({ lat: s.lat, lng: s.lng }, { lat: t.lat, lng: t.lng });
+    const baseLimit = distanceLimitKm;
+    const tol = Math.max(0, distanceToleranceRatio);
     const allowedKm = baseLimit * (1 + tol);
 
     if (distKm > allowedKm) {
-      // 완전 차단 + 상세 메시지
-      const over = distKm - baseLimit;
       setDistanceInfo({
         type: 'error',
-        text: `거리가 너무 멉니다! 제한 ${baseLimit.toFixed(1)}km (허용오차 +${Math.round(tol*100)}% → ${allowedKm.toFixed(1)}km), 현재 ${distKm.toFixed(1)}km (＋${over.toFixed(1)}km 초과)`
+        text: `거리가 너무 멉니다! 제한 ${baseLimit.toFixed(1)}km (허용오차 +${Math.round(tol*100)}% → ${allowedKm.toFixed(1)}km), 현재 ${distKm.toFixed(1)}km (＋${(distKm-baseLimit).toFixed(1)}km 초과)`
       });
-      return; // 경로 호출 중단
+      return;
     }
-
-    // 제한은 초과했지만 오차 이내면 알림만 띄우고 진행
     if (distKm > baseLimit && distKm <= allowedKm) {
       setDistanceInfo({
         type: 'info',
@@ -337,48 +234,21 @@ export default function SearchSidebar({
     else if (onRouteSearch) onRouteSearch(s.name, t.name);
   };
 
-  // 출발/도착 스왑
+  // 출발/도착 스왑(확정값도 같이 스왑)
   const swapEndpoints = () => {
     setRouteQuery(q=>({ start: q.end, end: q.start }));
     setPicked(p=>({ start: p.end, end: p.start }));
-    setOpenDrop({ start:false, end:false });
-    setSuggestions({ start:[], end:[] });
-    setSuppressDrop({ start:true, end:true });
+    setSuggestions({ start: [], end: [] });
+    setOpenDrop({ start: false, end: false });
     setDistanceInfo(null);
-
-    const s = pickedRef.current.end;
-    const e = pickedRef.current.start;
-    if (s && e) {
-      // 스왑 후에도 거리 제한 메시지 갱신(표시만)
-      const distKm = haversineKm({ lat: s.lat, lng: s.lng }, { lat: e.lat, lng: e.lng });
-      const baseLimit = distanceLimitKm;
-      const tol = Math.max(0, distanceToleranceRatio);
-      const allowedKm = baseLimit * (1 + tol);
-      if (distKm > allowedKm) {
-        setDistanceInfo({
-          type: 'error',
-          text: `거리가 너무 멉니다! 제한 ${baseLimit.toFixed(1)}km (허용오차 +${Math.round(tol*100)}% → ${allowedKm.toFixed(1)}km), 현재 ${distKm.toFixed(1)}km (＋${(distKm-baseLimit).toFixed(1)}km 초과)`
-        });
-        return;
-      } else if (distKm > baseLimit) {
-        setDistanceInfo({
-          type: 'info',
-          text: `거리 제한 ${baseLimit.toFixed(1)}km를 살짝 초과했지만(현재 ${distKm.toFixed(1)}km), 허용오차 +${Math.round(tol*100)}% 이내입니다.`
-        });
-      } else setDistanceInfo(null);
-
-      if (onRouteByCoords) onRouteByCoords(s, e);
-      else if (onRouteSearch) onRouteSearch(s.name, e.name);
-    }
   };
 
   // 둘 다 초기화
   const clearBoth = () => {
     setRouteQuery({ start:'', end:'' });
     setPicked({ start:null, end:null });
-    setOpenDrop({ start:false, end:false });
-    setSuggestions({ start:[], end:[] });
-    setSuppressDrop({ start:false, end:false });
+    setSuggestions({ start: [], end: [] });
+    setOpenDrop({ start: false, end: false });
     setDistanceInfo(null);
   };
 
@@ -497,21 +367,18 @@ export default function SearchSidebar({
           </>
         )}
 
-        {/* 길찾기 탭 */}
+        {/* 길찾기 탭 (엔터 시 목록 노출 → 클릭으로 확정) */}
         {mode === 'route' && (
           <div className="route-only-wrap">
             <form className="route-form" onSubmit={submitRoute}>
               {/* 출발지 */}
-              <div
-                className="route-field"
-                style={{ position: 'relative', marginBottom: GAP_BETWEEN }}
-              >
+              <div className="route-field" style={{ position: 'relative', marginBottom: GAP_BETWEEN }}>
                 <input
                   type="text"
-                  placeholder="출발지를 입력하세요"
+                  placeholder="출발지를 입력하고 Enter로 목록 보기"
                   value={routeQuery.start}
                   onChange={(e)=>onRouteChange('start', e.target.value)}
-                  onFocus={()=> routeQuery.start && !suppressDrop.start && setOpenDrop(o=>({ ...o, start:true }))}
+                  onKeyDown={onKeyDownInput('start')}
                   style={{
                     width: '100%',
                     height: ROW_HEIGHT,
@@ -522,7 +389,7 @@ export default function SearchSidebar({
                     outline: 'none',
                   }}
                 />
-                {/* 자동완성 */}
+                {/* 엔터 후 자동완성 목록 */}
                 {openDrop.start && suggestions.start.length > 0 && (
                   <ul
                     className="route-suggest"
@@ -585,10 +452,10 @@ export default function SearchSidebar({
               <div className="route-field" style={{ position: 'relative' }}>
                 <input
                   type="text"
-                  placeholder="도착지를 입력하세요"
+                  placeholder="도착지를 입력하고 Enter로 목록 보기"
                   value={routeQuery.end}
                   onChange={(e)=>onRouteChange('end', e.target.value)}
-                  onFocus={()=> routeQuery.end && !suppressDrop.end && setOpenDrop(o=>({ ...o, end:true }))}
+                  onKeyDown={onKeyDownInput('end')}
                   style={{
                     width: '100%',
                     height: ROW_HEIGHT,
@@ -599,7 +466,7 @@ export default function SearchSidebar({
                     outline: 'none',
                   }}
                 />
-                {/* 자동완성 */}
+                {/* 엔터 후 자동완성 목록 */}
                 {openDrop.end && suggestions.end.length > 0 && (
                   <ul
                     className="route-suggest"
