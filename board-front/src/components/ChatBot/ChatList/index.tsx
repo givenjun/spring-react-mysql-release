@@ -157,8 +157,9 @@ export default function ChatList({ onSelectSession, onNewChat }: ChatListProps) 
 
                                 if (typeof lastMessageContent === 'string') {
                                     previewText = lastMessageContent;
-                                } else if (lastMessageContent && 'place_name' in lastMessageContent) {
-                                    previewText = `[맛집 추천] ${lastMessageContent.place_name}\n${lastMessageContent.reason}`;
+                                } 
+                                else if (lastMessageContent && typeof lastMessageContent === 'object' && 'comment' in lastMessageContent) {
+                                    previewText = lastMessageContent.comment;
                                 }
 
                                 return previewText.length < 50 ? 
