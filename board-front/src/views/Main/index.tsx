@@ -609,7 +609,12 @@ export default function Main() {
       const lng = typeof p.lng === 'string' ? parseFloat(p.lng) : p.lng;
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
+      // 지도 이동
       panToPlace(lat, lng, 3);
+
+      // ★ 연관 게시물 패널 트리거 (맛집 더블클릭 시)
+      const name = (p?.name || p?.place_name)?.toString();
+      if (name) setSelectedPlaceName(name);
 
       const start = autoRouteEndpoints?.start;
       if (!start) return;
@@ -633,7 +638,7 @@ export default function Main() {
         setOnlySelectedMarker(true);
       } catch { /* ignore */ }
     },
-    [autoRouteEndpoints?.start, panToPlace]
+    [autoRouteEndpoints?.start, panToPlace, setSelectedPlaceName]
   );
 
   const handleMapClick = (_: kakao.maps.Map, mouseEvent: kakao.maps.event.MouseEvent) => {
@@ -688,7 +693,16 @@ export default function Main() {
         routePlaces={deferredFiltered as any}
         routeLoading={routePlacesLoading}
         routeError={routePlacesError ?? null}
-        onFocusRoutePlace={() => {}}
+        // ★ 좌측(경로 맛집 리스트) 더블클릭 시에도 연관게시물 열기
+        onFocusRoutePlace={(p: any) => {
+          const lat = Number((p?.lat ?? p?.y));
+          const lng = Number((p?.lng ?? p?.x));
+          if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            panToPlace(lat, lng, 3);
+          }
+          const name = (p?.name || p?.place_name);
+          if (name) setSelectedPlaceName(String(name));
+        }}
         routeOptions={routeOptions}
         selectedRouteIdx={selectedRouteIdx}
         onSelectRoute={selectRoute}
