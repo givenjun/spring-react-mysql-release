@@ -33,7 +33,7 @@ export default function ChartSection() {
     <div className="chart-section">
       <h3 className="chart-title">📈 주간 가입자 및 게시글 추이</h3>
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 20, right: 30, left: 10, bottom: 10 }}>
+        <LineChart data={data} margin={{ top: 20, right: 50, left: 0, bottom: 10 }}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="date" />
           <YAxis />
