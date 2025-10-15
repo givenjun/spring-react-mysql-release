@@ -147,7 +147,7 @@ FROM email_verification_token
 GROUP BY user_email;
 
 -- user 테이블에 role 컬럼 추가
-ALTER TABLE user ADD COLUMN role ENUM('USER', 'ADMIN') DEFAULT 'USER' NOT NULL;
+ALTER TABLE user ADD COLUMN role ENUM('USER', 'SUB_ADMIN', 'ADMIN') DEFAULT 'USER' NOT NULL;
 
 -- 1️⃣ 댓글 → 게시글 관계 CASCADE 적용
 ALTER TABLE comment DROP FOREIGN KEY FK_board_TO_comment;

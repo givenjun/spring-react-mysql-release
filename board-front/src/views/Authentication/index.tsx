@@ -65,7 +65,7 @@ export default function Authentication() {
       setCookie('accessToken', token, { expires, path: MAIN_PATH() });
       localStorage.setItem('accessToken', token); // ✅ 추가
 
-      if (decoded.role === 'ADMIN') navigate('/admin/layout');
+      if (decoded.role === 'ADMIN' || decoded.role === 'SUB_ADMIN') navigate('/admin/layout');
       else navigate(BOARD_PATH());
 
     }

@@ -6,6 +6,7 @@ import com.capstone.board_back.dto.response.notice.*;
 import com.capstone.board_back.service.NoticeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -36,6 +37,7 @@ public class NoticeController {
 
     // ✅ 공지사항 등록 (관리자 전용)
     @PostMapping("/admin")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUB_ADMIN')")
     public ResponseEntity<? super PostNoticeResponseDto> postNotice(
             @RequestBody @Valid PostNoticeRequestDto requestBody,
             @AuthenticationPrincipal String email
@@ -46,6 +48,7 @@ public class NoticeController {
 
     // ✅ 공지사항 수정 (관리자 전용)
     @PatchMapping("/admin/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUB_ADMIN')")
     public ResponseEntity<? super PatchNoticeResponseDto> patchNotice(
             @PathVariable("id") Long id,
             @RequestBody @Valid PatchNoticeRequestDto requestBody,
@@ -57,6 +60,7 @@ public class NoticeController {
 
     // ✅ 공지사항 삭제 (관리자 전용)
     @DeleteMapping("/admin/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUB_ADMIN')")
     public ResponseEntity<? super DeleteNoticeResponseDto> deleteNotice(
             @PathVariable("id") Long id,
             @AuthenticationPrincipal String email

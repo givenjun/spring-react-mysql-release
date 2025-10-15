@@ -16,7 +16,7 @@ export function useAdminAuth() {
 
     try {
       const decoded: any = jwtDecode(token);
-      if (decoded.role !== "ADMIN") {
+      if (decoded.role !== "ADMIN" && decoded.role !== "SUB_ADMIN") {
         customErrToast("관리자 전용 페이지입니다.");
         navigate("/");
       }

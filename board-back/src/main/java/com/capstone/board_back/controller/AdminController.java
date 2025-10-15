@@ -18,7 +18,7 @@ public class AdminController {
 
     // ✅ 회원 전체 조회
     @GetMapping("/user-list")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUB_ADMIN')")
     public ResponseEntity<? super GetUserListResponseDto> getUserList() {
         ResponseEntity<? super GetUserListResponseDto> response = adminService.getUserList();
         return response;
@@ -32,6 +32,13 @@ public class AdminController {
     ) {
         ResponseEntity<? super DeleteUserResponseDto> response = adminService.deleteUser(email);
         return response;
+    }
+
+    // ✅ 회원 복구 (PUT)
+    @PutMapping("/user/restore/{email}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<? super PutRestoreUserResponseDto> restoreUser(@PathVariable("email") String email) {
+        return adminService.restoreUser(email);
     }
 
     // ✅ 회원 비밀번호 변경
@@ -49,7 +56,7 @@ public class AdminController {
 
     // ✅ 게시글 전체 조회
     @GetMapping("/board-list")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUB_ADMIN')")
     public ResponseEntity<? super GetBoardListResponseDto> getBoardList() {
         ResponseEntity<? super GetBoardListResponseDto> response = adminService.getBoardList();
         return response;
@@ -57,7 +64,7 @@ public class AdminController {
 
     // ✅ 게시글 삭제
     @DeleteMapping("/board/{boardNumber}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUB_ADMIN')")
     public ResponseEntity<? super DeleteBoardResponseDto> deleteBoard(
             @PathVariable("boardNumber") Integer boardNumber
     ) {
@@ -67,22 +74,15 @@ public class AdminController {
 
     // ✅ 대시보드 요약 정보
     @GetMapping("/dashboard")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUB_ADMIN')")
     public ResponseEntity<? super GetDashboardResponseDto> getDashboard() {
         return adminService.getDashboardData();
     }
 
     // ✅ 대시보드 차트 정보
     @GetMapping("/dashboard/trend")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUB_ADMIN')")
     public ResponseEntity<? super GetDashboardTrendResponseDto> getDashboardTrend() {
         return adminService.getDashboardTrend();
-    }
-
-    // ✅ 회원 복구 (PUT)
-    @PutMapping("/user/restore/{email}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<? super PutRestoreUserResponseDto> restoreUser(@PathVariable("email") String email) {
-        return adminService.restoreUser(email);
     }
 }

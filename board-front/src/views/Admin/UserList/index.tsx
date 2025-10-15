@@ -3,9 +3,10 @@ import "./style.css";
 import "../common/style.css";
 import axios from "axios";
 import useAdminAuth from "hooks/useadminauth.hook";
+import { jwtDecode } from "jwt-decode";
 import { customErrToast, usePagination } from "hooks";
-import DeleteConfirmModal from '../common/DeleteConfirmModal';
-import RestoreConfirmModal from './RestoreConfirmModal';
+import DeleteConfirmModal from "../common/DeleteConfirmModal";
+import RestoreConfirmModal from "./RestoreConfirmModal";
 
 interface User {
   deleted: boolean;
@@ -16,11 +17,17 @@ interface User {
   role: "USER" | "ADMIN";
 }
 
+interface JwtPayload {
+  role: "ADMIN" | "SUB_ADMIN";
+  exp?: number;
+}
+
 const DOMAIN = process.env.REACT_APP_API_URL;
 
 export default function AdminUserList() {
   useAdminAuth();
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState<"ADMIN" | "SUB_ADMIN" | null>(null);
 
   // ✅ 페이지네이션 훅 (페이지당 10명씩)
   const {
@@ -38,13 +45,30 @@ export default function AdminUserList() {
   const [showModal, setShowModal] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
-
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [targetEmail, setTargetEmail] = useState("");
 
+  // ✅ 토큰에서 role 추출
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+    try {
+      const decoded = jwtDecode<JwtPayload>(token);
+      setUserRole(decoded.role);
+    } catch {
+      setUserRole(null);
+    }
+  }, []);
+
   // ✅ 회원 목록 불러오기
   const getAdminUserList = async () => {
+    if (userRole === "SUB_ADMIN") {
+      customErrToast("부관리자는 회원 목록을 볼 수 없습니다.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const token = localStorage.getItem("accessToken");
       const response = await axios.get(`${DOMAIN}/api/v1/admin/user-list`, {
@@ -62,8 +86,19 @@ export default function AdminUserList() {
     }
   };
 
-  // ✅ 회원 삭제 함수
+  // ✅ 관리자 권한 확인 함수
+  const checkAdminPermission = (): boolean => {
+    if (userRole !== "ADMIN") {
+      customErrToast("관리자만 가능한 기능입니다.");
+      return false;
+    }
+    return true;
+  };
+
+  // ✅ 회원 삭제
   const confirmDeleteUser = async () => {
+    if (!checkAdminPermission()) return;
+
     try {
       const token = localStorage.getItem("accessToken");
       const response = await axios.delete(`${DOMAIN}/api/v1/admin/user/${targetEmail}`, {
@@ -85,8 +120,10 @@ export default function AdminUserList() {
     }
   };
 
-  // ✅ 회원 복구 함수
+  // ✅ 회원 복구
   const confirmRestoreUser = async () => {
+    if (!checkAdminPermission()) return;
+
     try {
       const token = localStorage.getItem("accessToken");
       const response = await axios.put(`${DOMAIN}/api/v1/admin/user/restore/${targetEmail}`, {}, {
@@ -108,9 +145,10 @@ export default function AdminUserList() {
     }
   };
 
-
-  // ✅ 비밀번호 변경 요청
+  // ✅ 비밀번호 변경
   const updateUserPassword = async () => {
+    if (!checkAdminPermission()) return;
+
     if (!newPassword || newPassword.length < 8) {
       customErrToast("비밀번호는 8자 이상이어야 합니다.");
       return;
@@ -140,7 +178,7 @@ export default function AdminUserList() {
 
   useEffect(() => {
     getAdminUserList();
-  }, []);
+  }, [userRole]);
 
   if (loading) return <div className="admin-user-list">로딩 중...</div>;
 
@@ -150,7 +188,9 @@ export default function AdminUserList() {
         <h2>👥 회원 관리</h2>
       </div>
 
-      {viewList.length === 0 ? (
+      {userRole === "SUB_ADMIN" ? (
+        <p>부관리자는 회원 관리 기능을 이용할 수 없습니다.</p>
+      ) : viewList.length === 0 ? (
         <p>등록된 회원이 없습니다.</p>
       ) : (
         <>
@@ -261,33 +301,6 @@ export default function AdminUserList() {
             </button>
           </div>
         </>
-      )}
-
-      {/* ✅ 비밀번호 변경 모달 */}
-      {showModal && (
-        <div className="modal-overlay">
-          <div
-            className="modal-container"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3>🔐 비밀번호 변경</h3>
-            <p>{selectedEmail}</p>
-            <input
-              type="password"
-              placeholder="새 비밀번호를 입력하세요"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-            />
-            <div className="modal-actions">
-              <button className="cancel-btn" onClick={() => setShowModal(false)}>
-                취소
-              </button>
-              <button className="confirm-btn" onClick={updateUserPassword}>
-                변경
-              </button>
-            </div>
-          </div>
-        </div>
       )}
       {showDeleteModal && (
         <DeleteConfirmModal
