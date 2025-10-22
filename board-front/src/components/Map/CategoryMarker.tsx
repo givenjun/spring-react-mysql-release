@@ -17,6 +17,7 @@ const ICON: Record<FoodCategory, string> = {
   중식: "/assets/markers/중식.png",
   일식: "/assets/markers/일식.png",
   패스트푸드: "/assets/markers/패스트푸드.png",
+  치킨: "/assets/markers/치킨.png", 
   분식: "/assets/markers/분식.png",
   카페: "/assets/markers/카페.png",
   피자: "/assets/markers/피자.png",
