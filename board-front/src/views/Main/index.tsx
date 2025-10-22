@@ -1,4 +1,4 @@
-// src/views/Main/index.tsx
+// // src/views/Main/index.tsx
 import React, {
   useEffect, useMemo, useState, useCallback, useRef, useDeferredValue,
 } from 'react';
@@ -12,6 +12,9 @@ import './style.css';
 import 'components/Map/marker-label.css';
 import MenuButton from 'components/Menu/MenuButton';
 import useRelativeStore from 'stores/relativeStore';
+
+// ✅ 카테고리별 PNG 마커 컴포넌트
+import CategoryMarker from 'components/Map/CategoryMarker';
 
 const DOMAIN = process.env.REACT_APP_API_URL;
 
@@ -165,10 +168,10 @@ export default function Main() {
 
   // 더블클릭 추가 경로(출발지 → 선택 맛집) + 라벨용 정보
   const [extraPlacePath, setExtraPlacePath] = useState<LL[]>([]);
-  const [extraPlaceTarget, setExtraPlaceTarget] = useState<{ lat: number; lng: number; name: string } | null>(null);
+  const [extraPlaceTarget, setExtraPlaceTarget] = useState<{ lat: number; lng: number; name: string; category?: string } | null>(null);
   const [extraPlaceETAsec, setExtraPlaceETAsec] = useState<number | null>(null);
 
-  // ★ 더블클릭 시 해당 맛집만 마커 표시
+  // (이제 사용하지 않지만 남겨둠) 더블클릭 시 해당 맛집만 마커 표시
   const [onlySelectedMarker, setOnlySelectedMarker] = useState(false);
 
   type RouteOption = {
@@ -485,7 +488,6 @@ export default function Main() {
       if (next.length) setMarkerItems(prev => prev.concat(next));
       i += CHUNK;
       if (i < list.length) {
-        // ⇩ 타입 충돌 없이 안전 호출
         const rIC = (typeof window !== 'undefined' && 'requestIdleCallback' in window)
           ? (window as any).requestIdleCallback as (cb: () => void, opts?: { timeout?: number }) => number
           : undefined;
@@ -506,8 +508,7 @@ export default function Main() {
   const makeAdaptiveStep = (path?: LL[]) => {
     if (!path || path.length < 2) return 150;
     const cum = buildCumulativeDist(path);
-    const total = cum[cum.length - 1] || 0;
-    return Math.max(100, Math.min(300, Math.round(total / 400)));
+    return Math.max(100, Math.min(300, Math.round((cum[cum.length - 1] || 0) / 400)));
   };
 
   const pathKm = (p?: LL[]) => {
@@ -603,8 +604,12 @@ export default function Main() {
     runAlongPathTwoStage(r.path);
   }, [routeOptions, runAlongPathTwoStage]);
 
+  // 탭 → 아이콘 파일명 정규화
+  const tabToIconCategory = (tab: FoodTab): string =>
+    tab === '카페' ? '카페' : (tab === '족발/보쌈' ? '족발' : tab);
+
   const onFocusOrDoubleToRoute = useCallback(
-    async (p: { lat: number|string; lng: number|string; name?: string; place_name?: string }) => {
+    async (p: { lat: number|string; lng: number|string; name?: string; place_name?: string; category_name?: string }) => {
       const lat = typeof p.lat === 'string' ? parseFloat(p.lat) : p.lat;
       const lng = typeof p.lng === 'string' ? parseFloat(p.lng) : p.lng;
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
@@ -612,7 +617,7 @@ export default function Main() {
       // 지도 이동
       panToPlace(lat, lng, 3);
 
-      // ★ 연관 게시물 패널 트리거 (맛집 더블클릭 시)
+      // 연관 게시물 패널 트리거
       const name = (p?.name || p?.place_name)?.toString();
       if (name) setSelectedPlaceName(name);
 
@@ -632,10 +637,20 @@ export default function Main() {
           typeof sum.totalTime === 'number' ? sum.totalTime :
           (typeof sum.time === 'number' ? sum.time : null);
 
+        // 선택 지점 카테고리 계산 → 아이콘에 사용
+        const tab = classifyPlace(p);
+        const categoryForIcon = tabToIconCategory(tab);
+
         setExtraPlacePath(coords);
-        setExtraPlaceTarget({ lat, lng, name: (p?.name || p?.place_name || '목적지') as string });
+        setExtraPlaceTarget({
+          lat, lng,
+          name: (p?.name || p?.place_name || '목적지') as string,
+          category: categoryForIcon,
+        });
         setExtraPlaceETAsec(etaSec);
-        setOnlySelectedMarker(true);
+
+        // 전체 마커 유지 (숨기지 않음)
+        setOnlySelectedMarker(false);
       } catch { /* ignore */ }
     },
     [autoRouteEndpoints?.start, panToPlace, setSelectedPlaceName]
@@ -693,7 +708,6 @@ export default function Main() {
         routePlaces={deferredFiltered as any}
         routeLoading={routePlacesLoading}
         routeError={routePlacesError ?? null}
-        // ★ 좌측(경로 맛집 리스트) 더블클릭 시에도 연관게시물 열기
         onFocusRoutePlace={(p: any) => {
           const lat = Number((p?.lat ?? p?.y));
           const lng = Number((p?.lng ?? p?.x));
@@ -802,8 +816,8 @@ export default function Main() {
       >
         <MapTypeControl position="TOPRIGHT" />
         <ZoomControl position="RIGHT" />
-
-        {searchResults.map((place, index) => (
+        /*아래코드 파란색 기본 마커 표시하는코드*/
+        {/* {searchResults.map((place, index) => (
           <MapMarker
             key={`search-${index}`}
             position={{ lat: parseFloat(place.y), lng: parseFloat(place.x) }}
@@ -815,7 +829,7 @@ export default function Main() {
           >
             {selectedIndex === index && <div className="marker-info"><strong>{place.place_name}</strong></div>}
           </MapMarker>
-        ))}
+        ))} */}
 
         {isRouteMode && routeSelectPoints.map((p, idx) => (
           <MapMarker
@@ -893,16 +907,27 @@ export default function Main() {
           </>
         )}
 
-        {/* 점진적으로 채워지는 마커 */}
+        {/* 점진적으로 채워지는 마커 → 카테고리별 아이콘 사용 */}
         {!onlySelectedMarker && Array.isArray(markerItems) && markerItems.map((p: any, idx: number) => {
           const lat = typeof p.lat === 'string' ? parseFloat(p.lat) : p.lat;
           const lng = typeof p.lng === 'string' ? parseFloat(p.lng) : p.lng;
           if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+          const tab = classifyPlace(p);
+          const categoryForIcon = tabToIconCategory(tab);
+
           const key = (p?.id ?? `${lat},${lng}`) + '-' + idx;
+          const size = 115;
           return (
-            <React.Fragment key={`routeplace-${key}`}>
-              <MapMarker position={{ lat, lng }} />
-            </React.Fragment>
+            <CategoryMarker
+              key={`routeplace-${key}`}
+              lat={lat}
+              lng={lng}
+              category={categoryForIcon}
+              size={size}
+              anchorY={size}
+              zIndex={110}  // ← 라인보다 위
+            />
           );
         })}
 
@@ -917,10 +942,18 @@ export default function Main() {
           />
         )}
 
-        {onlySelectedMarker && extraPlaceTarget && (
+        {/* 선택 지점 강조: 전체 마커 유지 + 선택만 크게 */}
+        {extraPlaceTarget && (
           <>
-            <MapMarker position={{ lat: extraPlaceTarget.lat, lng: extraPlaceTarget.lng }} />
-            <CustomOverlayMap position={{ lat: extraPlaceTarget.lat, lng: extraPlaceTarget.lng }} yAnchor={1.25} zIndex={95}>
+            <CategoryMarker
+              lat={extraPlaceTarget.lat}
+              lng={extraPlaceTarget.lng}
+              category={extraPlaceTarget.category}
+              size={96}
+              anchorY={96}
+              zIndex={130}
+            />
+            <CustomOverlayMap position={{ lat: extraPlaceTarget.lat, lng: extraPlaceTarget.lng }} yAnchor={1.25} zIndex={135}>
               <div className="km-label">
                 {extraPlaceTarget.name}
                 {typeof extraPlaceETAsec === 'number' && <> · {Math.round(extraPlaceETAsec / 60)} min</>}
@@ -933,4 +966,4 @@ export default function Main() {
       <div><MenuButton/></div>
     </div>
   );
-}
+} 
