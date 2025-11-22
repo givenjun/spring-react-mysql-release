@@ -36,3 +36,21 @@ export async function getPedestrianRoute(req: GetPedestrianRouteRequest): Promis
 
   return { path, totalDistance, totalTime };
 }
+export async function getRouteTimeFromTmap(req: GetPedestrianRouteRequest) {
+  const { totalTime, totalDistance } = await getPedestrianRoute(req);
+
+  // totalTime은 초 단위, totalDistance는 m 단위라고 가정
+  const totalTimeSeconds = totalTime ?? 0;
+  const totalDistanceMeters = totalDistance ?? 0;
+
+  const durationMinutes = Math.round(totalTimeSeconds / 60);
+  const distanceKm = totalDistanceMeters / 1000;
+
+  return {
+    totalTimeSeconds,
+    totalDistanceMeters,
+    durationMinutes,
+    distanceKm,
+    formatted: `약 ${durationMinutes}분 (거리 ${distanceKm.toFixed(1)}km)`,
+  };
+}

@@ -1,4 +1,3 @@
-
 // src/components/Map/PlaceList/index.tsx
 import React from "react";
 import "./style.css";
@@ -9,15 +8,20 @@ export type PlaceItem = {
   place_name?: string;
   lat: number | string;
   lng: number | string;
+
+  /** 🔥 Main에서 계산해서 넣어주는 ETA(분) */
+  etaMinFromBase?: number;
 };
 
 interface Props {
   places: PlaceItem[];
   isLoading?: boolean;
   hiddenWhileLoading?: boolean;
-  /** 과거 호환용으로 남겨두지만 실제로는 호출하지 않습니다(= 단일 클릭 무시). */
+
+  // 단일 클릭은 무시(이전 호환)
   onItemClick?: (p: PlaceItem) => void;
-  /** 더블클릭만 사용: 지도 이동 + 추가경로 생성 */
+
+  // 더블클릭: 지도 이동 + 추가경로 생성
   onItemDoubleClick?: (p: PlaceItem) => void;
 }
 
@@ -25,8 +29,7 @@ export default function PlaceList({
   places,
   isLoading = false,
   hiddenWhileLoading = false,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  onItemClick, // 단일 클릭은 더 이상 사용하지 않음(요구사항)
+  onItemClick,
   onItemDoubleClick,
 }: Props) {
   if (isLoading && hiddenWhileLoading) {
@@ -42,29 +45,64 @@ export default function PlaceList({
         const title = p.name || p.place_name || "이름 없음";
         const key = (p.id ?? `${p.lat},${p.lng}`) + "-" + idx;
 
+        const eta =
+          typeof p.etaMinFromBase === "number"
+            ? p.etaMinFromBase
+            : undefined;
+
         return (
           <li
             key={key}
             className="place-list-item"
-            // ❗ 단일 클릭 핸들러 없음
             onDoubleClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
               onItemDoubleClick?.(p);
             }}
-            title="두 번 클릭하면 지도 이동 + 추가 경로 표시"
             style={{
               cursor: "pointer",
               userSelect: "none",
-              padding: "10px 12px",
+              padding: "12px 14px",
               borderBottom: "1px solid #eee",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
             }}
           >
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>{title}</div>
-            <div style={{ fontSize: 12, color: "#666" }}>
-              {typeof p.lat === "string" ? p.lat : p.lat?.toFixed?.(6)} ,{" "}
-              {typeof p.lng === "string" ? p.lng : p.lng?.toFixed?.(6)}
+            {/* 왼쪽: 이름/좌표 */}
+            <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+              <div
+                style={{
+                  fontWeight: 600,
+                  marginBottom: 4,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {title}
+              </div>
+
+              <div style={{ fontSize: 12, color: "#666" }}>
+                {typeof p.lat === "string" ? p.lat : p.lat?.toFixed?.(6)},{" "}
+                {typeof p.lng === "string" ? p.lng : p.lng?.toFixed?.(6)}
+              </div>
             </div>
+
+            {/* 오른쪽: ETA(분) */}
+            {eta !== undefined && (
+              <div
+                style={{
+                  marginLeft: 12,
+                  fontSize: 13,
+                  color: "#333",
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                예상소요시간 {eta}분
+              </div>
+            )}
           </li>
         );
       })}

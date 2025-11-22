@@ -49,7 +49,7 @@ interface SearchSidebarProps {
   toggleOpen: () => void;
 
   // 일반 검색
-  onSearch: (start: string, goal: string) => void;
+  onSearch: (keyword: string) => void;
 
   // 길찾기
   onRouteByCoords?: (start: CoordsPick, end: CoordsPick) => void;
@@ -74,6 +74,9 @@ interface SearchSidebarProps {
   distanceLimitKm?: number;
   /** (선택) 허용 오차 비율 – 기본 0.05(±5%) */
   distanceToleranceRatio?: number;
+
+  /** 🔥 Main 쪽 지도 모드 변경 콜백: 'explore' | 'route' */
+  onChangeMapMode?: (mode: 'explore' | 'route') => void;
 }
 
 /** 거리 계산 (하버사인, km) */
@@ -143,17 +146,29 @@ export default function SearchSidebar({
   // 거리 제한 설정(기본 20km, 허용오차 ±5%)
   distanceLimitKm = 20,
   distanceToleranceRatio = 0.05,
+
+  // 🔥 Main에 지도 모드 알려주는 콜백
+  onChangeMapMode,
 }: SearchSidebarProps) {
   const navigate = useNavigate();
   const { loginUser } = useLoginUserStore();
+
+  // 내부 탭 상태: search(탐색) | route(길찾기)
   const [mode, setMode] = useState<'search' | 'route'>('search');
+
+  // 🔥 탭 전환 헬퍼: 내부 mode + 부모 mapMode 동기화
+  const switchMode = (next: 'search' | 'route') => {
+    setMode(next);
+    if (next === 'search') onChangeMapMode?.('explore'); // 탐색 → 지도는 explore 모드
+    else onChangeMapMode?.('route');                     // 길찾기 → route 모드
+  };
 
   // ====== 탐색 탭 ======
   const [keyword, setKeyword] = useState('');
   const onSearchClick = () => {
     const q = keyword.trim();
     if (!q) return;
-    onSearch(q, '');
+    onSearch(q);
   };
 
   // ====== 길찾기 탭 (엔터 시 리스트 노출, 클릭으로 확정) ======
@@ -319,13 +334,37 @@ export default function SearchSidebar({
           <div className="button-group">
             {mode === 'search' ? (
               <>
-                <button type="button" className="button active" onClick={() => setMode('search')}>탐색</button>
-                <button type="button" className="button" onClick={() => setMode('route')}>길찾기</button>
+                <button
+                  type="button"
+                  className="button active"
+                  onClick={() => switchMode('search')}
+                >
+                  탐색
+                </button>
+                <button
+                  type="button"
+                  className="button"
+                  onClick={() => switchMode('route')}
+                >
+                  길찾기
+                </button>
               </>
             ) : (
               <>
-                <button type="button" className="button" onClick={() => setMode('search')}>탐색</button>
-                <button type="button" className="button active" onClick={() => setMode('route')}>길찾기</button>
+                <button
+                  type="button"
+                  className="button"
+                  onClick={() => switchMode('search')}
+                >
+                  탐색
+                </button>
+                <button
+                  type="button"
+                  className="button active"
+                  onClick={() => switchMode('route')}
+                >
+                  길찾기
+                </button>
               </>
             )}
             <button type="button" className="button" onClick={onBoardClickHandler}>커뮤니티</button>
@@ -592,7 +631,7 @@ export default function SearchSidebar({
                               border: '1px solid',
                               borderColor:
                                 r.name === '빠른길' ? '#ffaf00' :
-                                  r.name === '권장길' ? '#8a2ea1' : '#3aa757',
+                                r.name === '권장길' ? '#8a2ea1' : '#3aa757',
                             }}
                           >
                             {badge}
@@ -607,7 +646,7 @@ export default function SearchSidebar({
                 </div>
               )}
 
-              {/* 주변 맛집 리스트 */}
+              {/* 주변 맛집 리스트 (좌측, 필요할 때만 사용) */}
               {showRoutePlacesInSidebar && (
                 <div className="route-places-wrap">
                   {routeLoading && <div className="muted">경로 주변 맛집 검색 중…</div>}

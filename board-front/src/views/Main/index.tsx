@@ -16,7 +16,11 @@ import useRelativeStore from 'stores/relativeStore';
 // ✅ 카테고리별 PNG 마커 컴포넌트
 import CategoryMarker from 'components/Map/CategoryMarker';
 
-const DOMAIN = process.env.REACT_APP_API_URL;
+// ✅ SK Tmap 경로 API (시간/거리 포함) 사용
+import { getPedestrianRoute } from 'apis/tmap';
+
+// ✅ 거리 정렬 유틸
+import { sortPlacesByDistance } from 'utils';
 
 // ⚠️ requestIdleCallback는 재선언하지 않습니다
 declare global { interface Window { kakao: any } }
@@ -74,18 +78,25 @@ function slicePathRange(path: LL[], cum: number[], a: number, b: number): LL[] {
   return seg;
 }
 function bearing(a: LL, b: LL) {
-  const y = Math.sin(toRad(b.lng - a.lng)) * Math.cos(toRad(b.lat));
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+
+  const y = Math.sin(dLng) * Math.cos(lat2);
   const x =
-    Math.cos(toRad(a.lat)) * Math.sin(toRad(b.lat)) -
-    Math.sin(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.cos(toRad(b.lng - a.lng));
+    Math.cos(lat1) * Math.sin(lat2) -
+    Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+
   return Math.atan2(y, x);
 }
 function offsetByMeters(p: LL, azimuthRad: number, d: number, side: 'left' | 'right'): LL {
   const mPerDegLat = 110540;
   const mPerDegLng = 111320 * Math.cos(toRad(p.lat));
   const theta = azimuthRad + (side === 'left' ? -Math.PI / 2 : Math.PI / 2);
+
   const dx = (d * Math.cos(theta)) / mPerDegLng;
   const dy = (d * Math.sin(theta)) / mPerDegLat;
+
   return { lat: p.lat + dy, lng: p.lng + dx };
 }
 function makeOffsetVias(basePath: LL[], d = 60): { left?: LL; right?: LL } {
@@ -106,7 +117,10 @@ function makeOffsetVias(basePath: LL[], d = 60): { left?: LL; right?: LL } {
   const a = basePath[i], b = basePath[i + 1];
   const az = bearing(a, b);
   const mid: LL = { lat: (a.lat + b.lat) / 2, lng: (a.lng + b.lng) / 2 };
-  return { left: offsetByMeters(mid, az, d, 'left'), right: offsetByMeters(mid, az, d, 'right') };
+  return {
+    left:  offsetByMeters(mid, az, d, 'left'),
+    right: offsetByMeters(mid, az, d, 'right'),
+  };
 }
 function complexityScore(path: LL[]): number {
   if (!path || path.length < 3) return 0;
@@ -146,6 +160,7 @@ export default function Main() {
   const [map, setMap] = useState<kakao.maps.Map | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [mapMode, setMapMode] = useState<'explore' | 'route'>('explore');
 
   const [isDistanceMode, setIsDistanceMode] = useState(false);
   const [distancePoints, setDistancePoints] = useState<kakao.maps.LatLng[]>([]);
@@ -165,6 +180,10 @@ export default function Main() {
   const [autoRouteEndpoints, setAutoRouteEndpoints] = useState<{ start?: LL; end?: LL } | null>(null);
   const [autoRouteLoading, setAutoRouteLoading] = useState(false);
   const [autoRouteError, setAutoRouteError] = useState<string | null>(null);
+
+  // 🔥 거리 기준 (출발지 / 도착지 / 미사용) – 경로 주변 맛집 정렬 + ETA 계산용
+  type DistanceBase = 'origin' | 'destination' | null;
+  const [distanceBase, setDistanceBase] = useState<DistanceBase>(null);
 
   // 더블클릭 추가 경로(출발지 → 선택 맛집) + 라벨용 정보
   const [extraPlacePath, setExtraPlacePath] = useState<LL[]>([]);
@@ -212,18 +231,7 @@ export default function Main() {
     (map as any).panTo(pos);
   }, [map]);
 
-  /* Tmap 호출 */
-  const callTmap = (body: { start: LL; end: LL; viaPoints?: LL[] }) =>
-    fetch(`${DOMAIN}/api/tmap/pedestrian`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    }).then(async (r) => {
-      if (!r.ok) throw new Error(`HTTP ${r.status} ${await r.text()}`);
-      return r.json();
-    });
-
-  /* 수동 경로 계산 */
+  /* 수동 경로 계산 (SK Tmap 시간/거리 사용) */
   const runManualRoute = (sLL: kakao.maps.LatLng, eLL: kakao.maps.LatLng) => {
     setIsRouteMode(true);
     setRouteSelectPoints([sLL, eLL]);
@@ -232,24 +240,29 @@ export default function Main() {
     setRoutePath([]);
     setRouteInfo(null);
 
-    callTmap({ start: { lat: sLL.getLat(), lng: sLL.getLng() }, end: { lat: eLL.getLat(), lng: eLL.getLng() } })
-      .then((geojson) => {
-        const features = geojson?.features ?? [];
-        const lines = features.filter((f: any) => f?.geometry?.type === 'LineString');
-        const coords: LL[] = lines.flatMap((f: any) =>
-          (f.geometry.coordinates ?? []).map(([lng, lat]: [number, number]) => ({ lat, lng }))
-        );
-        const sum = features.find((f: any) => f?.properties?.totalDistance || f?.properties?.totalTime)?.properties ?? {};
-        setRoutePath(coords);
-        setRouteInfo(sum ? { totalDistance: sum.totalDistance, totalTime: sum.totalTime } : null);
+    const req = {
+      start: { lat: sLL.getLat(), lng: sLL.getLng() },
+      end:   { lat: eLL.getLat(), lng: eLL.getLng() },
+    };
+
+    getPedestrianRoute(req)
+      .then((route) => {
+        setRoutePath(route.path || []);
+        setRouteInfo({
+          totalDistance: route.totalDistance,
+          totalTime: route.totalTime,
+        });
       })
       .catch(() => setRouteError('경로를 불러오지 못했습니다.'))
       .finally(() => setRouteLoading(false));
   };
 
-  /* 3경로 생성 */
+  /* 3경로 생성 (SK Tmap 기반) */
+  const routeQueryVerRef = useRef(0);
+
   const handleRouteByCoords = useCallback(
     async (start: { lat: number; lng: number; name: string }, end: { lat: number; lng: number; name: string }) => {
+      setMapMode('route');
       setAutoRouteLoading(true);
       setAutoRouteError(null);
       setAutoRoutePath([]);
@@ -262,32 +275,44 @@ export default function Main() {
       setPlaceCardOpen(false);
       setExtraPlacePath([]); setExtraPlaceTarget(null); setExtraPlaceETAsec(null);
       setOnlySelectedMarker(false); // 새 경로 시작 시 전체 모드로
+      setDistanceBase(null);       // 🔥 새 경로 시작할 때는 정렬/ETA 꺼진 상태
 
       try {
-        const geo0 = await callTmap({ start: { lat: start.lat, lng: start.lng }, end: { lat: end.lat, lng: end.lng } });
-        const fs0 = geo0?.features ?? [];
-        const ls0 = fs0.filter((f: any) => f?.geometry?.type === 'LineString');
-        const path0: LL[] = ls0.flatMap((f: any) =>
-          (f.geometry.coordinates ?? []).map(([lng, lat]: [number, number]) => ({ lat, lng }))
-        );
+        const baseReq = {
+          start: { lat: start.lat, lng: start.lng },
+          end:   { lat: end.lat,   lng: end.lng },
+        };
+
+        // 기본 경로
+        const route0 = await getPedestrianRoute(baseReq);
+        const path0 = route0.path || [];
         if (path0.length < 2) throw new Error('경로 없음');
 
+        // 좌우로 약간 틀어진 경유지를 만든 후, 각각 경로 요청
         const vias = makeOffsetVias(path0, 60);
-        const calls: Array<Promise<any>> = [Promise.resolve(geo0)];
-        if (vias.left)  calls.push(callTmap({ start: { lat: start.lat, lng: start.lng }, end: { lat: end.lat, lng: end.lng }, viaPoints: [vias.left] }));
-        if (vias.right) calls.push(callTmap({ start: { lat: start.lat, lng: start.lng }, end: { lat: end.lat, lng: end.lng }, viaPoints: [vias.right] }));
+        const calls: Array<Promise<ReturnType<typeof getPedestrianRoute> extends Promise<infer R> ? R : never>> = [
+          Promise.resolve(route0),
+        ];
 
-        const geos = await Promise.all(calls);
+        if (vias.left) {
+          calls.push(getPedestrianRoute({
+            ...baseReq,
+            viaPoints: [vias.left],
+          } as any));
+        }
+        if (vias.right) {
+          calls.push(getPedestrianRoute({
+            ...baseReq,
+            viaPoints: [vias.right],
+          } as any));
+        }
 
-        const candidates: RouteOption[] = geos.map((geo: any, idx: number) => {
-          const fs = geo?.features ?? [];
-          const ls = fs.filter((f: any) => f?.geometry?.type === 'LineString');
-          const path: LL[] = ls.flatMap((f: any) =>
-            (f.geometry.coordinates ?? []).map(([lng, lat]: [number, number]) => ({ lat, lng }))
-          );
-          const s = fs.find((f: any) => f?.properties?.totalDistance || f?.properties?.totalTime)?.properties ?? {};
-          const t = Number(s.totalTime ?? s.time ?? 0);
-          const d = Number(s.totalDistance ?? s.distance ?? 0);
+        const routes = await Promise.all(calls);
+
+        const candidates: RouteOption[] = routes.map((r, idx) => {
+          const path = r.path || [];
+          const t = Number(r.totalTime ?? 0);
+          const d = Number(r.totalDistance ?? 0);
           return {
             id: `cand-${idx}`,
             name: '권장길',
@@ -411,39 +436,6 @@ export default function Main() {
     [autoRoutePath, autoCum, autoPhase]
   );
 
-  // 🔥 autoRoutePath 변경될 때 자동 확대/이동 + 사이드바 고려해서 약간 오른쪽으로
-  useEffect(() => {
-    if (!map) return;
-    if (!autoRoutePath || autoRoutePath.length < 2) return;
-
-    const bounds = new kakao.maps.LatLngBounds();
-    autoRoutePath.forEach(p => {
-      bounds.extend(new kakao.maps.LatLng(p.lat, p.lng));
-    });
-
-    map.setBounds(bounds);
-
-    // 사이드바가 가리는 왼쪽 영역만큼 중심을 살짝 왼쪽으로 이동 → 경로는 화면 기준 오른쪽 쪽에 보이게 됨
-    const sidebarWidth = isSidebarOpen ? 340 : 16; // PlaceDetailCard랑 맞춰서 사용 중인 값
-    map.panBy(-sidebarWidth / 2, 0);
-  }, [map, autoRoutePath, isSidebarOpen]);
-
-  // 🔥 manual routePath일 때 자동 확대/이동 + 사이드바 보정
-  useEffect(() => {
-    if (!map) return;
-    if (!routePath || routePath.length < 2) return;
-
-    const bounds = new kakao.maps.LatLngBounds();
-    routePath.forEach(p => {
-      bounds.extend(new kakao.maps.LatLng(p.lat, p.lng));
-    });
-
-    map.setBounds(bounds);
-
-    const sidebarWidth = isSidebarOpen ? 340 : 16;
-    map.panBy(-sidebarWidth / 2, 0);
-  }, [map, routePath, isSidebarOpen]);
-
   /* 음식 탭/필터 */
   const FOOD_TABS = ['전체','한식','중식','일식','피자','패스트푸드','치킨','분식','카페','족발/보쌈','기타'] as const;
   type FoodTab = typeof FOOD_TABS[number];
@@ -558,7 +550,7 @@ export default function Main() {
   const optsForTab = (tab: typeof FOOD_TABS[number], path?: LL[]) => {
     const km = pathKm(path);
     const adaptiveStep = makeAdaptiveStep(path);
-       const useFull = km >= 5;
+    const useFull = km >= 5;
     const budget = calcBudget(path);
     const timeBudgetMs = useFull ? Math.min(9000, 3500 + Math.round(400 * km)) : 2000;
 
@@ -590,7 +582,6 @@ export default function Main() {
   };
 
   /* ---------- 2단계(빠른 → 보강) 검색 로직 ---------- */
-  const routeQueryVerRef = useRef(0);
 
   const runAlongPathTwoStage = useCallback((path: LL[]) => {
     if (!Array.isArray(path) || path.length < 2) return;
@@ -611,6 +602,7 @@ export default function Main() {
   const selectRoute = useCallback(async (i: number) => {
     if (!routeOptions[i]) return;
     const r = routeOptions[i];
+    setMapMode('route');
     setSelectedRouteIdx(i);
     setAutoRoutePath(r.path);
     setAutoRouteInfo({ totalDistance: r.distanceM, totalTime: r.timeSec });
@@ -618,6 +610,7 @@ export default function Main() {
     setOnlySelectedMarker(false);
     resetRoutePlaces?.();
     routeQueryVerRef.current++;
+    setDistanceBase(null); // 🔥 다른 경로 선택 시에도 정렬/ETA 초기화
 
     setPlaceCardOpen(true);
     runAlongPathTwoStage(r.path);
@@ -626,11 +619,13 @@ export default function Main() {
   const openRouteDetail = useCallback(async (i: number) => {
     if (!routeOptions[i]) return;
     const r = routeOptions[i];
+    setMapMode('route');
     setSelectedRouteIdx(i);
     setAutoRoutePath(r.path);
     setAutoRouteInfo({ totalDistance: r.distanceM, totalTime: r.timeSec });
     setExtraPlacePath([]); setExtraPlaceTarget(null); setExtraPlaceETAsec(null);
     setOnlySelectedMarker(false);
+    setDistanceBase(null);
 
     setPlaceCardOpen(true);
     routeQueryVerRef.current++;
@@ -658,17 +653,14 @@ export default function Main() {
       if (!start) return;
 
       try {
-        const geo = await callTmap({ start, end: { lat, lng } });
-        const fs  = geo?.features ?? [];
-        const ls  = fs.filter((f: any) => f?.geometry?.type === 'LineString');
-        const coords = ls.flatMap((f: any) =>
-          (f.geometry.coordinates ?? []).map(([lng2, lat2]: [number, number]) => ({ lat: lat2, lng: lng2 }))
-        );
+        const route = await getPedestrianRoute({
+          start,
+          end: { lat, lng },
+        } as any);
 
-        const sum = fs.find((f: any) => f?.properties?.totalTime || f?.properties?.totalDistance)?.properties ?? {};
+        const coords = route.path || [];
         const etaSec =
-          typeof sum.totalTime === 'number' ? sum.totalTime :
-          (typeof sum.time === 'number' ? sum.time : null);
+          typeof route.totalTime === 'number' ? route.totalTime : null;
 
         // 선택 지점 카테고리 계산 → 아이콘에 사용
         const tab = classifyPlace(p);
@@ -720,25 +712,108 @@ export default function Main() {
     }
   };
 
+  const isExploreMode = mapMode === 'explore';
+  const isRouteModeView = mapMode === 'route';
+
+  // 🔥 거리 기준 좌표 (출발지 / 도착지)
+  const basePoint = useMemo<LL | null>(() => {
+    if (!distanceBase) return null;
+    const originPoint = autoRouteEndpoints?.start ?? null;
+    const destPoint = autoRouteEndpoints?.end ?? null;
+
+    if (distanceBase === 'origin') return originPoint;
+    if (distanceBase === 'destination') return destPoint;
+
+    return null;
+  }, [distanceBase, autoRouteEndpoints]);
+
+  // 🔥 경로 주변 맛집 리스트 정렬 (출발지/도착지 기준 거리순)
+  const sortedRoutePlacesForList = useMemo(() => {
+    if (!Array.isArray(deferredFiltered)) return deferredFiltered;
+    if (!basePoint) return deferredFiltered;
+    return sortPlacesByDistance(
+      deferredFiltered as any[],
+      basePoint.lat,
+      basePoint.lng
+    );
+  }, [deferredFiltered, basePoint]);
+
+  // 🔥 ETA(분) 계산 – 직선거리 기준 보행 속도 가정
+  const WALK_M_PER_MIN = 70; // 70m/분 ≈ 4.2km/h
+  const placesWithEta = useMemo(() => {
+    if (!Array.isArray(sortedRoutePlacesForList)) return sortedRoutePlacesForList;
+    if (!basePoint) return sortedRoutePlacesForList;
+
+    return (sortedRoutePlacesForList as any[]).map((p) => {
+      const rawLat = (p as any).lat ?? (p as any).y;
+      const rawLng = (p as any).lng ?? (p as any).x;
+      const lat = typeof rawLat === 'string' ? parseFloat(rawLat) : rawLat;
+      const lng = typeof rawLng === 'string' ? parseFloat(rawLng) : rawLng;
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return p;
+
+      const distM = haversine(basePoint, { lat, lng });
+      const etaMin = Math.max(1, Math.round(distM / WALK_M_PER_MIN));
+
+      return { ...p, etaMinFromBase: etaMin };
+    });
+  }, [sortedRoutePlacesForList, basePoint]);
+
+  // 🔥 autoRoutePath 변경될 때 자동 확대/이동 + 사이드바 고려해서 약간 오른쪽으로
+  useEffect(() => {
+    if (!map) return;
+    if (!autoRoutePath || autoRoutePath.length < 2) return;
+
+    const bounds = new kakao.maps.LatLngBounds();
+    autoRoutePath.forEach(p => {
+      bounds.extend(new kakao.maps.LatLng(p.lat, p.lng));
+    });
+
+    map.setBounds(bounds);
+
+    const sidebarWidth = isSidebarOpen ? 340 : 16;
+    map.panBy(-sidebarWidth / 2, 0);
+  }, [map, autoRoutePath, isSidebarOpen]);
+
+  // 🔥 manual routePath일 때 자동 확대/이동 + 사이드바 보정
+  useEffect(() => {
+    if (!map) return;
+    if (!routePath || routePath.length < 2) return;
+
+    const bounds = new kakao.maps.LatLngBounds();
+    routePath.forEach(p => {
+      bounds.extend(new kakao.maps.LatLng(p.lat, p.lng));
+    });
+
+    map.setBounds(bounds);
+
+    const sidebarWidth = isSidebarOpen ? 340 : 16;
+    map.panBy(-sidebarWidth / 2, 0);
+  }, [map, routePath, isSidebarOpen]);
+
   return (
     <div className='main-wrapper'>
       <SearchSidebar
-        searchResults={searchResults}
+        searchResults={searchResults as any}
         onClickItem={(place: any) => {
           const lat = Number(place?.y); const lng = Number(place?.x);
-          if (!Number.isNaN(lat) && !Number.isNaN(lng)) { setSelectedIndex((searchResults as any).indexOf(place)); panToPlace(lat, lng, 3); }
+          if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+            setSelectedIndex((searchResults as any).indexOf(place));
+            panToPlace(lat, lng, 3);
+          }
           if (place?.place_name) { setSelectedPlaceName(place.place_name); }
         }}
         selectedIndex={selectedIndex}
         isOpen={isSidebarOpen}
         toggleOpen={() => setIsSidebarOpen(prev => !prev)}
         onSearch={(kw: string) => {
+          setMapMode('explore');
           routeQueryVerRef.current++;
           resetRoutePlaces?.();
           if (kw) (searchPlaces as any)(kw);
         }}
         onRouteByCoords={handleRouteByCoords}
-        routePlaces={deferredFiltered as any}
+        routePlaces={sortedRoutePlacesForList as any}
         routeLoading={routePlacesLoading}
         routeError={routePlacesError ?? null}
         onFocusRoutePlace={(p: any) => {
@@ -755,6 +830,8 @@ export default function Main() {
         onSelectRoute={selectRoute}
         onOpenRouteDetail={openRouteDetail}
         showRoutePlacesInSidebar={false}
+        // 🔥 탐색/길찾기 탭에서 모드 바꾸는 콜백 (SearchSidebar에서 호출)
+        onChangeMapMode={(mode: 'explore' | 'route') => setMapMode(mode)}
       />
 
       {routeTargetPlace && placeCardOpen && (
@@ -767,6 +844,47 @@ export default function Main() {
           topOffset={64}
           width={520}
         >
+          {/* 🔥 출발지/도착지 기준 토글 + 거리순 정렬/ETA 안내 */}
+          <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+            <div style={{ fontSize: 13, color: '#555' }}>
+              정렬 기준:
+            </div>
+            <div style={{ display: 'flex', gap: 6, fontSize: 12 }}>
+              <button
+                type="button"
+                onClick={() => setDistanceBase(prev => (prev === 'origin' ? null : 'origin'))}
+                disabled={!autoRouteEndpoints?.start}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: 999,
+                  border: '1px solid',
+                  borderColor: distanceBase === 'origin' ? '#8a2ea1' : '#e5e7eb',
+                  background: distanceBase === 'origin' ? '#f5ecff' : '#fff',
+                  cursor: autoRouteEndpoints?.start ? 'pointer' : 'not-allowed',
+                  opacity: autoRouteEndpoints?.start ? 1 : 0.4,
+                }}
+              >
+                출발지 기준 정렬
+              </button>
+              <button
+                type="button"
+                onClick={() => setDistanceBase(prev => (prev === 'destination' ? null : 'destination'))}
+                disabled={!autoRouteEndpoints?.end}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: 999,
+                  border: '1px solid',
+                  borderColor: distanceBase === 'destination' ? '#8a2ea1' : '#e5e7eb',
+                  background: distanceBase === 'destination' ? '#f5ecff' : '#fff',
+                  cursor: autoRouteEndpoints?.end ? 'pointer' : 'not-allowed',
+                  opacity: autoRouteEndpoints?.end ? 1 : 0.4,
+                }}
+              >
+                도착지 기준 정렬
+              </button>
+            </div>
+          </div>
+
           <div className="pd-tabs">
             {FOOD_TABS.map(t => (
               <button
@@ -784,10 +902,10 @@ export default function Main() {
           ) : (
             <>
               <div className="pd-list-summary">
-                경로 주변 맛집 <b>총 {Array.isArray(deferredFiltered) ? deferredFiltered.length : 0}곳</b>
+                경로 주변 맛집 <b>총 {Array.isArray(placesWithEta) ? placesWithEta.length : 0}곳</b>
               </div>
               <PlaceList
-                places={deferredFiltered as any}
+                places={placesWithEta as any}
                 isLoading={routePlacesLoading}
                 hiddenWhileLoading
                 onItemDoubleClick={(p) => onFocusOrDoubleToRoute(p)}
@@ -849,19 +967,30 @@ export default function Main() {
       >
         <MapTypeControl position="TOPRIGHT" />
         <ZoomControl position="RIGHT" />
-        {/* {searchResults.map((place, index) => (
-          <MapMarker
-            key={`search-${index}`}
-            position={{ lat: parseFloat(place.y), lng: parseFloat(place.x) }}
-            onClick={() => {
-              const lat = Number(place?.y); const lng = Number(place?.x);
-              if (!Number.isNaN(lat) && !Number.isNaN(lng)) { setSelectedIndex(index); panToPlace(lat, lng, 3); }
-            }}
-            clickable
-          >
-            {selectedIndex === index && <div className="marker-info"><strong>{place.place_name}</strong></div>}
-          </MapMarker>
-        ))} */}
+
+        {/* 🔍 탐색 모드: 장소 검색 결과도 카테고리 마커로 표시 */}
+        {isExploreMode && Array.isArray(searchResults) && searchResults.map((place: any, index: number) => {
+          const lat = Number(place?.y);
+          const lng = Number(place?.x);
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+          const tab = classifyPlace(place);
+          const categoryForIcon = tabToIconCategory(tab);
+          const key = (place?.id ?? `${lat},${lng}`) + '-' + index;
+          const size = 115;
+
+          return (
+            <CategoryMarker
+              key={`explore-${key}`}
+              lat={lat}
+              lng={lng}
+              category={categoryForIcon}
+              size={size}
+              anchorY={size}
+              zIndex={105}
+            />
+          );
+        })}
 
         {isRouteMode && routeSelectPoints.map((p, idx) => (
           <MapMarker
@@ -939,8 +1068,8 @@ export default function Main() {
           </>
         )}
 
-        {/* 점진적으로 채워지는 마커 → 카테고리별 아이콘 사용 */}
-        {!onlySelectedMarker && Array.isArray(markerItems) && markerItems.map((p: any, idx: number) => {
+        {/* 🍽 길찾기 모드: 경로 주변 맛집 카테고리 마커 */}
+        {isRouteModeView && !onlySelectedMarker && Array.isArray(markerItems) && markerItems.map((p: any, idx: number) => {
           const lat = typeof p.lat === 'string' ? parseFloat(p.lat) : p.lat;
           const lng = typeof p.lng === 'string' ? parseFloat(p.lng) : p.lng;
           if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
@@ -963,7 +1092,7 @@ export default function Main() {
           );
         })}
 
-        {extraPlacePath.length > 1 && (
+        {isRouteModeView && extraPlacePath.length > 1 && (
           <Polyline
             path={extraPlacePath}
             strokeWeight={6}
@@ -975,7 +1104,7 @@ export default function Main() {
         )}
 
         {/* 선택 지점 강조: 전체 마커 유지 + 선택만 크게 */}
-        {extraPlaceTarget && (
+        {isRouteModeView && extraPlaceTarget && (
           <>
             <CategoryMarker
               lat={extraPlaceTarget.lat}
