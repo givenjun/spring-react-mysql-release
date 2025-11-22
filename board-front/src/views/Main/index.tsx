@@ -122,6 +122,21 @@ function makeOffsetVias(basePath: LL[], d = 60): { left?: LL; right?: LL } {
     right: offsetByMeters(mid, az, d, 'right'),
   };
 }
+
+// ✅ 여러 개의 우회 후보(viaPoints 세트) 생성 – 오프셋 거리만 다르게
+function buildViaCandidates(basePath: LL[]): LL[][] {
+  const result: LL[][] = [];
+  const offsets = [80, 150, 250]; // m: 점점 더 멀리 돌아가는 후보
+
+  for (const d of offsets) {
+    const vias = makeOffsetVias(basePath, d);
+    if (vias.left) result.push([vias.left]);
+    if (vias.right) result.push([vias.right]);
+  }
+
+  return result;
+}
+
 function complexityScore(path: LL[]): number {
   if (!path || path.length < 3) return 0;
   let turnSum = 0, zigzag = 0, shortSeg = 0, totalLen = 0, prevSign = 0;
@@ -283,82 +298,153 @@ export default function Main() {
           end:   { lat: end.lat,   lng: end.lng },
         };
 
-        // 기본 경로
-        const route0 = await getPedestrianRoute(baseReq);
-        const path0 = route0.path || [];
-        if (path0.length < 2) throw new Error('경로 없음');
+        // 1) 기본 경로 먼저 요청
+        const baseRoute = await getPedestrianRoute(baseReq);
+        const basePath = baseRoute.path || [];
+        const baseTimeSec = Number(baseRoute.totalTime ?? 0);
+        const baseDistM   = Number(baseRoute.totalDistance ?? 0);
 
-        // 좌우로 약간 틀어진 경유지를 만든 후, 각각 경로 요청
-        const vias = makeOffsetVias(path0, 60);
-        const calls: Array<Promise<ReturnType<typeof getPedestrianRoute> extends Promise<infer R> ? R : never>> = [
-          Promise.resolve(route0),
-        ];
+        if (basePath.length < 2) throw new Error('경로 없음');
 
-        if (vias.left) {
-          calls.push(getPedestrianRoute({
+        // 2) 우회 후보(viaPoints) 여러 개 생성
+        const viaCandidates = buildViaCandidates(basePath);
+        const limitedViaCandidates = viaCandidates.slice(0, 6); // 과도한 호출 방지
+
+        // 3) 각 via 후보마다 Tmap 호출
+        const viaPromises = limitedViaCandidates.map(vias =>
+          getPedestrianRoute({
             ...baseReq,
-            viaPoints: [vias.left],
-          } as any));
-        }
-        if (vias.right) {
-          calls.push(getPedestrianRoute({
-            ...baseReq,
-            viaPoints: [vias.right],
-          } as any));
-        }
+            // Tmap 보행자 API는 viaPoints를 배열로 받는다고 가정
+            viaPoints: vias as any,
+          }).then(route => ({ route, vias }))
+            .catch(() => null)
+        );
 
-        const routes = await Promise.all(calls);
+        const viaResultsRaw = await Promise.all(viaPromises);
+        const viaResults = viaResultsRaw.filter((v): v is { route: any; vias: LL[] } => !!v);
 
-        const candidates: RouteOption[] = routes.map((r, idx) => {
-          const path = r.path || [];
-          const t = Number(r.totalTime ?? 0);
-          const d = Number(r.totalDistance ?? 0);
-          return {
-            id: `cand-${idx}`,
+        // 4) base + via 결과를 RouteOption으로 변환
+        let candidates: RouteOption[] = [];
+
+        // 기본 경로 (무조건 후보에 포함)
+        candidates.push({
+          id: 'base',
+          name: '권장길',
+          path: basePath,
+          timeSec: Math.round(baseTimeSec),
+          distanceM: Math.round(baseDistM),
+          complexity: complexityScore(basePath),
+        });
+
+        // via 경로들
+        for (const { route } of viaResults) {
+          const path = route.path || [];
+          if (!path || path.length < 2) continue;
+          const t = Number(route.totalTime ?? 0);
+          const d = Number(route.totalDistance ?? 0);
+
+          candidates.push({
+            id: `via-${Math.random().toString(36).slice(2, 8)}`,
             name: '권장길',
             path,
             timeSec: Math.round(t),
             distanceM: Math.round(d),
             complexity: complexityScore(path),
-          } as RouteOption;
-        }).filter(c => c.path.length > 1);
+          });
+        }
 
+        // 혹시라도 중복/에러로 비어 있으면 에러 처리
+        candidates = candidates.filter(c => c.path.length > 1);
         if (candidates.length === 0) throw new Error('대안 경로 생성 실패');
 
-        const times = candidates.map(s => s.timeSec);
-        const comps = candidates.map(s => s.complexity);
-        const tMin = Math.min(...times), tMax = Math.max(...times);
-        const cMin = Math.min(...comps), cMax = Math.max(...comps);
-        const norm = (v: number, lo: number, hi: number) => (hi === lo ? 0 : (v - lo) / (hi - lo));
-        const pickMinIdx = (arr: number[], exclude = new Set<number>()) => {
-          let best = -1, bestVal = Infinity;
-          arr.forEach((v, i) => { if (!exclude.has(i) && v < bestVal) { best = i; bestVal = v; } });
-          return best;
-        };
-        const idxFast = pickMinIdx(times);
-        const excluded = new Set<number>([idxFast]);
-        let idxEasy = pickMinIdx(comps, excluded);
-        if (idxEasy === -1) idxEasy = idxFast;
-        excluded.add(idxEasy);
-        const balScore = candidates.map(s => 0.8 * norm(s.timeSec, tMin, tMax) + 0.2 * norm(s.complexity, cMin, cMax));
-        let idxBal = pickMinIdx(balScore, excluded);
-        if (idxBal === -1) idxBal = [0,1,2].find(i => !excluded.has(i)) ?? idxFast;
+        // 5) 빠른길 / 권장길 / 쉬운길 선택 규칙
 
-        const named = candidates.map((s, i) => {
-          let name: RouteOption['name'] = '권장길';
-          if (i === idxFast) name = '빠른길';
-          else if (i === idxEasy) name = '쉬운길';
-          else if (i === idxBal) name = '권장길';
-          return { ...s, id: `route-${i}`, name };
+        // 5-1) 빠른길 = 가장 빠른 경로
+        const timesAll = candidates.map(c => c.timeSec);
+        const fastestTime = Math.min(...timesAll);
+        const idxFast = timesAll.indexOf(fastestTime);
+        const fastRoute = candidates[idxFast];
+
+        // 5-2) 권장길 후보: 빠른길보다 +3분 ~ +10분 사이
+        const MIN_EXTRA_RECOMMEND = 180; // +3분
+        const MAX_EXTRA_RECOMMEND = 600; // +10분
+        const TARGET_EXTRA_RECOMMEND = 240; // 타깃: +4분
+
+        const recommendCandidates = candidates.filter((c, idx) => {
+          if (idx === idxFast) return false;
+          const extra = c.timeSec - fastestTime;
+          return extra >= MIN_EXTRA_RECOMMEND && extra <= MAX_EXTRA_RECOMMEND;
         });
 
-        const ord = { '빠른길': 0, '권장길': 1, '쉬운길': 2 } as const;
-        named.sort((a, b) => ord[a.name] - ord[b.name]);
+        let recommendRoute: RouteOption | null = null;
+        if (recommendCandidates.length > 0) {
+          let bestScore = Infinity;
+          for (const c of recommendCandidates) {
+            const extra = c.timeSec - fastestTime;
+            const diffToTarget = Math.abs(extra - TARGET_EXTRA_RECOMMEND);
+            // 시간 타깃과의 차이 + 복잡도(가중치)로 점수 부여
+            const score = diffToTarget + 30 * c.complexity;
+            if (score < bestScore) {
+              bestScore = score;
+              recommendRoute = c;
+            }
+          }
+        }
 
-        setRouteOptions(named);
+        // 5-3) 쉬운길 후보: 빠른길보다 +2분 이상 ~ +15분 이내, 복잡도 최소
+        const MIN_EXTRA_EASY = 120;  // +2분
+        const MAX_EXTRA_EASY = 900;  // +15분
+
+        const easyCandidates = candidates.filter((c) => {
+          if (c.id === fastRoute.id) return false;
+          if (recommendRoute && c.id === recommendRoute.id) return false;
+          const extra = c.timeSec - fastestTime;
+          return extra >= MIN_EXTRA_EASY && extra <= MAX_EXTRA_EASY;
+        });
+
+        let easyRoute: RouteOption | null = null;
+        if (easyCandidates.length > 0) {
+          let bestComplexity = Infinity;
+          for (const c of easyCandidates) {
+            if (c.complexity < bestComplexity) {
+              bestComplexity = c.complexity;
+              easyRoute = c;
+            }
+          }
+        }
+
+        // 5-4) 최종 라벨링
+        const finalRoutes: RouteOption[] = [];
+
+        if (fastRoute) {
+          finalRoutes.push({ ...fastRoute, name: '빠른길' });
+        }
+
+        if (recommendRoute && recommendRoute.id !== fastRoute.id) {
+          finalRoutes.push({ ...recommendRoute, name: '권장길' });
+        }
+
+        if (easyRoute &&
+            easyRoute.id !== fastRoute.id &&
+            (!recommendRoute || easyRoute.id !== recommendRoute.id)) {
+          finalRoutes.push({ ...easyRoute, name: '쉬운길' });
+        }
+
+        // 혹시 조건에 맞는 후보가 너무 없으면 → 빠른길만이라도 노출
+        if (finalRoutes.length === 0) {
+          finalRoutes.push({ ...fastRoute, name: '빠른길' });
+        }
+
+        // 3개 이상이면 상위 3개만 사용
+        const trimmed = finalRoutes.slice(0, 3);
+
+        const ord = { '빠른길': 0, '권장길': 1, '쉬운길': 2 } as const;
+        trimmed.sort((a, b) => ord[a.name] - ord[b.name]);
+
+        setRouteOptions(trimmed);
         setSelectedRouteIdx(0);
-        setAutoRoutePath(named[0].path);
-        setAutoRouteInfo({ totalDistance: named[0].distanceM, totalTime: named[0].timeSec });
+        setAutoRoutePath(trimmed[0].path);
+        setAutoRouteInfo({ totalDistance: trimmed[0].distanceM, totalTime: trimmed[0].timeSec });
       } catch {
         setAutoRouteError('경로를 불러오지 못했습니다.');
       } finally {
