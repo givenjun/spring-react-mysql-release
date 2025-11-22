@@ -411,6 +411,39 @@ export default function Main() {
     [autoRoutePath, autoCum, autoPhase]
   );
 
+  // 🔥 autoRoutePath 변경될 때 자동 확대/이동 + 사이드바 고려해서 약간 오른쪽으로
+  useEffect(() => {
+    if (!map) return;
+    if (!autoRoutePath || autoRoutePath.length < 2) return;
+
+    const bounds = new kakao.maps.LatLngBounds();
+    autoRoutePath.forEach(p => {
+      bounds.extend(new kakao.maps.LatLng(p.lat, p.lng));
+    });
+
+    map.setBounds(bounds);
+
+    // 사이드바가 가리는 왼쪽 영역만큼 중심을 살짝 왼쪽으로 이동 → 경로는 화면 기준 오른쪽 쪽에 보이게 됨
+    const sidebarWidth = isSidebarOpen ? 340 : 16; // PlaceDetailCard랑 맞춰서 사용 중인 값
+    map.panBy(-sidebarWidth / 2, 0);
+  }, [map, autoRoutePath, isSidebarOpen]);
+
+  // 🔥 manual routePath일 때 자동 확대/이동 + 사이드바 보정
+  useEffect(() => {
+    if (!map) return;
+    if (!routePath || routePath.length < 2) return;
+
+    const bounds = new kakao.maps.LatLngBounds();
+    routePath.forEach(p => {
+      bounds.extend(new kakao.maps.LatLng(p.lat, p.lng));
+    });
+
+    map.setBounds(bounds);
+
+    const sidebarWidth = isSidebarOpen ? 340 : 16;
+    map.panBy(-sidebarWidth / 2, 0);
+  }, [map, routePath, isSidebarOpen]);
+
   /* 음식 탭/필터 */
   const FOOD_TABS = ['전체','한식','중식','일식','피자','패스트푸드','치킨','분식','카페','족발/보쌈','기타'] as const;
   type FoodTab = typeof FOOD_TABS[number];
@@ -525,7 +558,7 @@ export default function Main() {
   const optsForTab = (tab: typeof FOOD_TABS[number], path?: LL[]) => {
     const km = pathKm(path);
     const adaptiveStep = makeAdaptiveStep(path);
-    const useFull = km >= 5;
+       const useFull = km >= 5;
     const budget = calcBudget(path);
     const timeBudgetMs = useFull ? Math.min(9000, 3500 + Math.round(400 * km)) : 2000;
 
@@ -816,7 +849,6 @@ export default function Main() {
       >
         <MapTypeControl position="TOPRIGHT" />
         <ZoomControl position="RIGHT" />
-        /*아래코드 파란색 기본 마커 표시하는코드*/
         {/* {searchResults.map((place, index) => (
           <MapMarker
             key={`search-${index}`}
@@ -966,4 +998,4 @@ export default function Main() {
       <div><MenuButton/></div>
     </div>
   );
-} 
+}

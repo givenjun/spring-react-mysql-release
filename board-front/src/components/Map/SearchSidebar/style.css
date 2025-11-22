@@ -1,25 +1,29 @@
 /* === 사이드바 컨테이너: 화면 높이에 딱 맞추기 === */
 .slideContainer {
-  position: fixed;             /* absolute → fixed */
+  position: fixed;
   top: 0;
   left: 0;
-  height: 100vh;               /* 화면 전체 높이 */
   width: 360px;
-  background-color: white;
-  transform: translateX(-338px);
-  transition: transform 0.3s ease-in-out;
-  z-index: 1000;               /* 지도보다 위 */
+  height: 100vh;
+  background: white;
+  transition: transform .3s ease;
+  transform: translateX(-100%);     /* ← 전체를 완전히 숨김 */
+  z-index: 1000;
   box-shadow: 2px 0 6px rgba(0, 0, 0, 0.2);
 }
 .slideContainer.active { transform: translateX(0); }
 
 /* 열기/닫기 핸들 */
 .slideBtnContainer {
-  position: absolute;
+  position: fixed;
   top: 50%;
-  right: -22px;
-  transform: translateY(-50%);
-  z-index: 10;
+  left: 0;
+  transform: translate(-50%, -50%);  /* ← 화면 left 바깥에서 절반만 보이도록 */
+  z-index: 1100;                     /* sidebar보다 위 */
+  transition: transform .3s ease;
+}
+.slideContainer.active + .slideBtnContainer {
+  transform: translate(calc(-50% + 360px), -50%);
 }
 .slideBtn {
   display: flex;
