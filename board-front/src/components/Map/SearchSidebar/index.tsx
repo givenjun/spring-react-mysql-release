@@ -1,3 +1,4 @@
+// board-front/src/components/Map/SearchSidebar/index.tsx
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './style.css';
 import { useNavigate } from 'react-router-dom';
@@ -165,9 +166,18 @@ export default function SearchSidebar({
 
   // ====== 탐색 탭 ======
   const [keyword, setKeyword] = useState('');
+
+  // 🔹 공백 + 엔터 → 초기화 신호(onSearch('')) 보내기
   const onSearchClick = () => {
     const q = keyword.trim();
-    if (!q) return;
+
+    if (!q) {
+      // 공백 또는 빈 문자열이면: 입력창 비우고 "초기화" 의미로 빈 문자열 전달
+      setKeyword('');
+      onSearch('');
+      return;
+    }
+
     onSearch(q);
   };
 
@@ -388,7 +398,12 @@ export default function SearchSidebar({
                     placeholder="장소, 주소 검색"
                     value={keyword}
                     onChange={(e) => setKeyword(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && onSearchClick()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        onSearchClick();
+                      }
+                    }}
                   />
                   <div className="search-icon" onClick={onSearchClick} role="button" tabIndex={0}>
                     <div className="icon search-light-icon" />

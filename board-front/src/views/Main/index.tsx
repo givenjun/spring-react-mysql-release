@@ -1,4 +1,4 @@
-// // src/views/Main/index.tsx
+// board-front/src/views/Main/index.tsx
 import React, {
   useEffect, useMemo, useState, useCallback, useRef, useDeferredValue,
 } from 'react';
@@ -42,7 +42,7 @@ function haversine(a: LL, b: LL) {
   const dLng = toRad(b.lng - a.lng);
   const lat1 = toRad(a.lat);
   const lat2 = toRad(b.lat);
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) ** 2 * Math.sin(dLng / 2) ** 2;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 function buildCumulativeDist(path: LL[]) {
@@ -263,6 +263,7 @@ export default function Main() {
   const [placeCardOpen, setPlaceCardOpen] = useState(false);
   const [routeTargetPlace, setRouteTargetPlace] = useState<PlaceDetail | null>(null);
 
+  // 🔥 초기 진입 시 기본 장소 검색 (초기 리스트)
   useEffect(() => { (searchPlaces as any)('한밭대학교'); }, []); // eslint-disable-line
 
   const panToPlace = useCallback((lat: number, lng: number, targetLevel: number | null = 3) => {
@@ -942,10 +943,18 @@ export default function Main() {
           routeQueryVerRef.current++;
           resetRoutePlaces?.();
           setMiniViewerPlace(null);
-          if (kw) {
-            setHasUserSearched(true);
-            (searchPlaces as any)(kw);
+
+          const trimmed = kw.trim();
+
+          // ✅ 공백 + 엔터 → 초기 상태로 되돌리기 (프론트 처음 켰을 때 리스트, 마커는 숨김)
+          if (!trimmed) {
+            setHasUserSearched(false);           // 기본 마커 숨기기
+            (searchPlaces as any)('한밭대학교'); // 초기 리스트만 다시 불러오기
+            return;
           }
+
+          setHasUserSearched(true);
+          (searchPlaces as any)(trimmed);
         }}
         onRouteByCoords={handleRouteByCoords}
         routePlaces={sortedRoutePlacesForList as any}
