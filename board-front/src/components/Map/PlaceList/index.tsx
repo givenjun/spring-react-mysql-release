@@ -11,6 +11,10 @@ export type PlaceItem = {
 
   /** 🔥 Main에서 계산해서 넣어주는 ETA(분) */
   etaMinFromBase?: number;
+
+  /** 🔥 카카오 place URL */
+  place_url?: string;
+  placeUrl?: string;
 };
 
 interface Props {
@@ -18,7 +22,7 @@ interface Props {
   isLoading?: boolean;
   hiddenWhileLoading?: boolean;
 
-  // 단일 클릭은 무시(이전 호환)
+  // 단일 클릭: 미니뷰어 열기 등
   onItemClick?: (p: PlaceItem) => void;
 
   // 더블클릭: 지도 이동 + 추가경로 생성
@@ -54,6 +58,11 @@ export default function PlaceList({
           <li
             key={key}
             className="place-list-item"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onItemClick?.(p);
+            }}
             onDoubleClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -83,26 +92,26 @@ export default function PlaceList({
                 {title}
               </div>
 
-              <div style={{ fontSize: 12, color: "#666" }}>
-                {typeof p.lat === "string" ? p.lat : p.lat?.toFixed?.(6)},{" "}
-                {typeof p.lng === "string" ? p.lng : p.lng?.toFixed?.(6)}
+                <div style={{ fontSize: 12, color: "#666" }}>
+                 {/*} {typeof p.lat === "string" ? p.lat : p.lat?.toFixed?.(6)},{" "}
+                  {typeof p.lng === "string" ? p.lng : p.lng?.toFixed?.(6)} */}
+                </div>
               </div>
-            </div>
 
-            {/* 오른쪽: ETA(분) */}
-            {eta !== undefined && (
-              <div
-                style={{
-                  marginLeft: 12,
-                  fontSize: 13,
-                  color: "#333",
-                  fontWeight: 600,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                예상소요시간 {eta}분
-              </div>
-            )}
+              {/* 오른쪽: ETA(분) */}
+              {eta !== undefined && (
+                <div
+                  style={{
+                    marginLeft: 12,
+                    fontSize: 13,
+                    color: "#333",
+                    fontWeight: 600,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  예상소요시간 {eta}분
+                </div>
+              )}
           </li>
         );
       })}

@@ -22,6 +22,9 @@ import { getPedestrianRoute } from 'apis/tmap';
 // ✅ 거리 정렬 유틸
 import { sortPlacesByDistance } from 'utils';
 
+// ✅ 카카오맵 미니 뷰어
+import PlaceMiniViewer from 'components/Map/PlaceMiniViewer';
+
 // ⚠️ requestIdleCallback는 재선언하지 않습니다
 declare global { interface Window { kakao: any } }
 const kakao = (typeof window !== 'undefined' ? (window as any).kakao : undefined);
@@ -39,7 +42,7 @@ function haversine(a: LL, b: LL) {
   const dLng = toRad(b.lng - a.lng);
   const lat1 = toRad(a.lat);
   const lat2 = toRad(b.lat);
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) ** 2 * Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 function buildCumulativeDist(path: LL[]) {
@@ -52,15 +55,15 @@ function interpolateAt(path: LL[], cum: number[], s: number): LL {
   if (s <= 0) return path[0];
   const total = cum[cum.length - 1] || 0;
   if (s >= total) return path[path.length - 1];
-  let lo = 0, hi = cum.length - 1;
+  let lo = 0; let hi = cum.length - 1;
   while (lo < hi) {
     const mid = Math.floor((lo + hi) / 2);
     if (cum[mid] < s) lo = mid + 1; else hi = mid;
   }
   const i = Math.max(1, lo);
-  const s0 = cum[i - 1], s1 = cum[i];
+  const s0 = cum[i - 1]; const s1 = cum[i];
   const t = (s - s0) / (s1 - s0);
-  const P = path[i - 1], Q = path[i];
+  const P = path[i - 1]; const Q = path[i];
   return { lat: P.lat + (Q.lat - P.lat) * t, lng: P.lng + (Q.lng - P.lng) * t };
 }
 function slicePathRange(path: LL[], cum: number[], a: number, b: number): LL[] {
@@ -71,7 +74,7 @@ function slicePathRange(path: LL[], cum: number[], a: number, b: number): LL[] {
   b = clamp(b, 0, total);
   if (b <= a) return [];
   const start = interpolateAt(path, cum, a);
-  const end   = interpolateAt(path, cum, b);
+  const end = interpolateAt(path, cum, b);
   const seg: LL[] = [start];
   for (let i = 1; i < path.length; i++) if (cum[i] > a && cum[i] < b) seg.push(path[i]);
   seg.push(end);
@@ -114,11 +117,11 @@ function makeOffsetVias(basePath: LL[], d = 60): { left?: LL; right?: LL } {
   let idx = 0;
   for (; idx < segLen.length; idx++) { if (acc + segLen[idx] >= target) break; acc += segLen[idx]; }
   const i = Math.min(Math.max(0, idx), basePath.length - 2);
-  const a = basePath[i], b = basePath[i + 1];
+  const a = basePath[i]; const b = basePath[i + 1];
   const az = bearing(a, b);
   const mid: LL = { lat: (a.lat + b.lat) / 2, lng: (a.lng + b.lng) / 2 };
   return {
-    left:  offsetByMeters(mid, az, d, 'left'),
+    left: offsetByMeters(mid, az, d, 'left'),
     right: offsetByMeters(mid, az, d, 'right'),
   };
 }
@@ -126,7 +129,7 @@ function makeOffsetVias(basePath: LL[], d = 60): { left?: LL; right?: LL } {
 // ✅ 여러 개의 우회 후보(viaPoints 세트) 생성 – 오프셋 거리만 다르게
 function buildViaCandidates(basePath: LL[]): LL[][] {
   const result: LL[][] = [];
-  const offsets = [80, 150, 250]; // m: 점점 더 멀리 돌아가는 후보
+  const offsets = [80, 150, 250];
 
   for (const d of offsets) {
     const vias = makeOffsetVias(basePath, d);
@@ -137,9 +140,32 @@ function buildViaCandidates(basePath: LL[]): LL[][] {
   return result;
 }
 
+/** 🔥 경로 모양을 정규화해서 "같은 길인지" 비교하기 위한 시그니처 */
+function routeSignature(path: LL[]): string {
+  if (!path || path.length === 0) return 'empty';
+  const cum = buildCumulativeDist(path);
+  const total = cum[cum.length - 1] || 0;
+  if (total === 0) {
+    const p = path[0];
+    const lat = Math.round(p.lat * 1e4);
+    const lng = Math.round(p.lng * 1e4);
+    return `point:${lat},${lng}`;
+  }
+  const parts: string[] = [];
+  const N = 10;
+  for (let i = 0; i <= N; i++) {
+    const s = (total * i) / N;
+    const p = interpolateAt(path, cum, s);
+    const lat = Math.round(p.lat * 1e4);
+    const lng = Math.round(p.lng * 1e4);
+    parts.push(`${lat},${lng}`);
+  }
+  return parts.join('|');
+}
+
 function complexityScore(path: LL[]): number {
   if (!path || path.length < 3) return 0;
-  let turnSum = 0, zigzag = 0, shortSeg = 0, totalLen = 0, prevSign = 0;
+  let turnSum = 0; let zigzag = 0; let shortSeg = 0; let totalLen = 0; let prevSign = 0;
   for (let i = 1; i < path.length; i++) {
     const seg = haversine(path[i - 1], path[i]);
     totalLen += seg;
@@ -196,7 +222,6 @@ export default function Main() {
   const [autoRouteLoading, setAutoRouteLoading] = useState(false);
   const [autoRouteError, setAutoRouteError] = useState<string | null>(null);
 
-  // 🔥 거리 기준 (출발지 / 도착지 / 미사용) – 경로 주변 맛집 정렬 + ETA 계산용
   type DistanceBase = 'origin' | 'destination' | null;
   const [distanceBase, setDistanceBase] = useState<DistanceBase>(null);
 
@@ -205,11 +230,16 @@ export default function Main() {
   const [extraPlaceTarget, setExtraPlaceTarget] = useState<{ lat: number; lng: number; name: string; category?: string } | null>(null);
   const [extraPlaceETAsec, setExtraPlaceETAsec] = useState<number | null>(null);
 
-  // (이제 사용하지 않지만 남겨둠) 더블클릭 시 해당 맛집만 마커 표시
   const [onlySelectedMarker, setOnlySelectedMarker] = useState(false);
-
-  // 🔥 사용자가 직접 검색을 했는지 여부 (초기 한밭대 검색은 제외)
   const [hasUserSearched, setHasUserSearched] = useState(false);
+
+  // 🔥 미니뷰어에 넘길 데이터
+  const [miniViewerPlace, setMiniViewerPlace] = useState<{
+    name: string;
+    lat: number;
+    lng: number;
+    placeUrl?: string;
+  } | null>(null);
 
   type RouteOption = {
     id: string;
@@ -233,10 +263,8 @@ export default function Main() {
   const [placeCardOpen, setPlaceCardOpen] = useState(false);
   const [routeTargetPlace, setRouteTargetPlace] = useState<PlaceDetail | null>(null);
 
-  /* 초기 검색 */
   useEffect(() => { (searchPlaces as any)('한밭대학교'); }, []); // eslint-disable-line
 
-  /* 맵 이동 함수 */
   const panToPlace = useCallback((lat: number, lng: number, targetLevel: number | null = 3) => {
     if (!map) return;
     const pos = new kakao.maps.LatLng(lat, lng);
@@ -249,7 +277,6 @@ export default function Main() {
     (map as any).panTo(pos);
   }, [map]);
 
-  /* 수동 경로 계산 (SK Tmap 시간/거리 사용) */
   const runManualRoute = (sLL: kakao.maps.LatLng, eLL: kakao.maps.LatLng) => {
     setIsRouteMode(true);
     setRouteSelectPoints([sLL, eLL]);
@@ -260,7 +287,7 @@ export default function Main() {
 
     const req = {
       start: { lat: sLL.getLat(), lng: sLL.getLng() },
-      end:   { lat: eLL.getLat(), lng: eLL.getLng() },
+      end: { lat: eLL.getLat(), lng: eLL.getLng() },
     };
 
     getPedestrianRoute(req)
@@ -275,7 +302,6 @@ export default function Main() {
       .finally(() => setRouteLoading(false));
   };
 
-  /* 3경로 생성 (SK Tmap 기반) */
   const routeQueryVerRef = useRef(0);
 
   const handleRouteByCoords = useCallback(
@@ -287,48 +313,44 @@ export default function Main() {
       setAutoRouteInfo(null);
       setAutoRouteEndpoints({ start: { lat: start.lat, lng: start.lng }, end: { lat: end.lat, lng: end.lng } });
       resetRoutePlaces?.();
-      routeQueryVerRef.current++; // 진행 중이던 보강 취소
+      routeQueryVerRef.current++;
       setRouteOptions([]);
       setRouteTargetPlace({ name: '두 경로사이 맛집리스트', categoryText: '' } as PlaceDetail);
       setPlaceCardOpen(false);
       setExtraPlacePath([]); setExtraPlaceTarget(null); setExtraPlaceETAsec(null);
-      setOnlySelectedMarker(false); // 새 경로 시작 시 전체 모드로
-      setDistanceBase(null);       // 🔥 새 경로 시작할 때는 정렬/ETA 꺼진 상태
+      setOnlySelectedMarker(false);
+      setDistanceBase(null);
+      setMiniViewerPlace(null);
 
       try {
         const baseReq = {
           start: { lat: start.lat, lng: start.lng },
-          end:   { lat: end.lat,   lng: end.lng },
+          end: { lat: end.lat, lng: end.lng },
         };
 
-        // 1) 기본 경로 먼저 요청
         const baseRoute = await getPedestrianRoute(baseReq);
         const basePath = baseRoute.path || [];
         const baseTimeSec = Number(baseRoute.totalTime ?? 0);
-        const baseDistM   = Number(baseRoute.totalDistance ?? 0);
+        const baseDistM = Number(baseRoute.totalDistance ?? 0);
 
         if (basePath.length < 2) throw new Error('경로 없음');
 
-        // 2) 우회 후보(viaPoints) 여러 개 생성
         const viaCandidates = buildViaCandidates(basePath);
-        const limitedViaCandidates = viaCandidates.slice(0, 6); // 과도한 호출 방지
+        const limitedViaCandidates = viaCandidates.slice(0, 6);
 
-        // 3) 각 via 후보마다 Tmap 호출
-        const viaPromises = limitedViaCandidates.map(vias =>
+        const viaPromises = limitedViaCandidates.map((vias) =>
           getPedestrianRoute({
             ...baseReq,
             viaPoints: vias as any,
-          }).then(route => ({ route, vias }))
-            .catch(() => null)
+          }).then((route) => ({ route, vias }))
+            .catch(() => null),
         );
 
         const viaResultsRaw = await Promise.all(viaPromises);
         const viaResults = viaResultsRaw.filter((v): v is { route: any; vias: LL[] } => !!v);
 
-        // 4) base + via 결과를 RouteOption으로 변환
         let allCandidates: RouteOption[] = [];
 
-        // 기본 경로 (무조건 후보에 포함)
         const baseComplexity = complexityScore(basePath);
         allCandidates.push({
           id: 'base',
@@ -339,7 +361,6 @@ export default function Main() {
           complexity: baseComplexity,
         });
 
-        // via 경로들
         for (const { route } of viaResults) {
           const path = route.path || [];
           if (!path || path.length < 2) continue;
@@ -356,16 +377,20 @@ export default function Main() {
           });
         }
 
-        allCandidates = allCandidates.filter(c => c.path.length > 1);
-        if (allCandidates.length === 0) throw new Error('대안 경로 생성 실패');
+        const sigMap: Record<string, RouteOption> = {};
+        for (const cand of allCandidates) {
+          const sig = routeSignature(cand.path);
+          const prev = sigMap[sig];
+          if (!prev || cand.timeSec < prev.timeSec) sigMap[sig] = cand;
+        }
+        allCandidates = Object.values(sigMap);
 
-        // ⛔ 경로 필터링
         const MAX_COMPLEXITY_FACTOR = 1.8;
-        const MAX_COMPLEXITY_ABS    = 10;
-        const MAX_DIST_FACTOR       = 1.6;
+        const MAX_COMPLEXITY_ABS = 10;
+        const MAX_DIST_FACTOR = 1.6;
 
         let candidates = allCandidates.filter((c, idx) => {
-          if (idx === 0) return true; // 기준 경로는 무조건 유지
+          if (idx === 0) return true;
 
           if (!Number.isFinite(c.complexity)) return false;
           if (baseComplexity > 0 && c.complexity > MAX_COMPLEXITY_FACTOR * baseComplexity) return false;
@@ -383,16 +408,14 @@ export default function Main() {
         const usable = candidates.length > 0 ? candidates : [allCandidates[0]];
         if (usable.length === 0) throw new Error('대안 경로 생성 실패');
 
-        // 5) 빠른길 / 권장길 / 쉬운길 선택 규칙
-        const timesAll = usable.map(c => c.timeSec);
+        const timesAll = usable.map((c) => c.timeSec);
         const fastestTime = Math.min(...timesAll);
         const idxFast = timesAll.indexOf(fastestTime);
         const fastRoute = usable[idxFast];
 
-        // 5-2) 권장길 후보
-        const MIN_EXTRA_RECOMMEND = 180; // +3분
-        const MAX_EXTRA_RECOMMEND = 600; // +10분
-        const TARGET_EXTRA_RECOMMEND = 240; // +4분
+        const MIN_EXTRA_RECOMMEND = 180;
+        const MAX_EXTRA_RECOMMEND = 600;
+        const TARGET_EXTRA_RECOMMEND = 240;
 
         const recommendCandidates = usable.filter((c, idx) => {
           if (idx === idxFast) return false;
@@ -414,9 +437,8 @@ export default function Main() {
           }
         }
 
-        // 5-3) 쉬운길 후보
-        const MIN_EXTRA_EASY = 120;  // +2분
-        const MAX_EXTRA_EASY = 900;  // +15분
+        const MIN_EXTRA_EASY = 120;
+        const MAX_EXTRA_EASY = 900;
 
         const easyCandidates = usable.filter((c) => {
           if (c.id === fastRoute.id) return false;
@@ -436,20 +458,19 @@ export default function Main() {
           }
         }
 
-        // 5-4) 최종 라벨링
         const finalRoutes: RouteOption[] = [];
 
-        if (fastRoute) {
-          finalRoutes.push({ ...fastRoute, name: '빠른길' });
-        }
+        if (fastRoute) finalRoutes.push({ ...fastRoute, name: '빠른길' });
 
         if (recommendRoute && recommendRoute.id !== fastRoute.id) {
           finalRoutes.push({ ...recommendRoute, name: '권장길' });
         }
 
-        if (easyRoute &&
-            easyRoute.id !== fastRoute.id &&
-            (!recommendRoute || easyRoute.id !== recommendRoute.id)) {
+        if (
+          easyRoute &&
+          easyRoute.id !== fastRoute.id &&
+          (!recommendRoute || easyRoute.id !== recommendRoute.id)
+        ) {
           finalRoutes.push({ ...easyRoute, name: '쉬운길' });
         }
 
@@ -458,8 +479,7 @@ export default function Main() {
         }
 
         const trimmed = finalRoutes.slice(0, 3);
-
-        const ord = { '빠른길': 0, '권장길': 1, '쉬운길': 2 } as const;
+        const ord = { 빠른길: 0, 권장길: 1, 쉬운길: 2 } as const;
         trimmed.sort((a, b) => ord[a.name] - ord[b.name]);
 
         setRouteOptions(trimmed);
@@ -472,18 +492,16 @@ export default function Main() {
         setAutoRouteLoading(false);
       }
     },
-    [resetRoutePlaces]
+    [resetRoutePlaces],
   );
 
-  /* === 개미행렬 설정 === */
-  const DASH_LEN = 40;  // m
-  const GAP_LEN  = 220;  // m
-  const OVERLAP  = 40;   // m
+  const DASH_LEN = 40;
+  const GAP_LEN = 220;
+  const OVERLAP = 40;
 
   const [routePhase, setRoutePhase] = useState(0);
-  const [autoPhase,  setAutoPhase]  = useState(0);
+  const [autoPhase, setAutoPhase] = useState(0);
 
-  // 지도 이동 중 여부 → 이동 중엔 개미행렬 숨김
   const [isMoving, setIsMoving] = useState(false);
 
   useEffect(() => {
@@ -491,8 +509,8 @@ export default function Main() {
     const tick = (now: number) => {
       const dt = (now - last) / 1000; last = now;
       if (!isMoving) {
-        setRoutePhase(p => p + dt * 100);
-        setAutoPhase (p => p + dt * 120);
+        setRoutePhase((p) => p + dt * 100);
+        setAutoPhase((p) => p + dt * 120);
       }
       raf = requestAnimationFrame(tick);
     };
@@ -504,16 +522,16 @@ export default function Main() {
   useEffect(() => { setRoutePhase(0); }, [routePath]);
 
   const routeCum = useMemo(() => (routePath.length > 1 ? buildCumulativeDist(routePath) : [0]), [routePath]);
-  const autoCum  = useMemo(() => (autoRoutePath.length > 1 ? buildCumulativeDist(autoRoutePath) : [0]), [autoRoutePath]);
+  const autoCum = useMemo(() => (autoRoutePath.length > 1 ? buildCumulativeDist(autoRoutePath) : [0]), [autoRoutePath]);
 
   function makeAntSegments(
     path: LL[],
     cum: number[],
     phase: number,
     dashLen: number = DASH_LEN,
-    gapLen: number  = GAP_LEN,
+    gapLen: number = GAP_LEN,
     overlap: number = OVERLAP,
-    maxSeg: number  = 2000
+    maxSeg: number = 2000,
   ): LL[][] {
     const total = cum[cum.length - 1] || 0;
     if (total <= 0 || path.length < 2) return [];
@@ -536,15 +554,14 @@ export default function Main() {
 
   const routeBorderSegs = useMemo(
     () => makeAntSegments(routePath, routeCum, routePhase, DASH_LEN, GAP_LEN, OVERLAP),
-    [routePath, routeCum, routePhase]
+    [routePath, routeCum, routePhase],
   );
   const autoBorderSegs = useMemo(
     () => makeAntSegments(autoRoutePath, autoCum, autoPhase, DASH_LEN, GAP_LEN, OVERLAP),
-    [autoRoutePath, autoCum, autoPhase]
+    [autoRoutePath, autoCum, autoPhase],
   );
 
-  /* 음식 탭/필터 */
-  const FOOD_TABS = ['전체','한식','중식','일식','피자','패스트푸드','치킨','분식','카페','족발/보쌈','기타'] as const;
+  const FOOD_TABS = ['전체', '한식', '중식', '일식', '피자', '패스트푸드', '치킨', '분식', '카페', '족발/보쌈', '기타'] as const;
   type FoodTab = typeof FOOD_TABS[number];
   const [foodTab, setFoodTab] = useState<FoodTab>('전체');
 
@@ -553,9 +570,9 @@ export default function Main() {
   const classifyPlace = (p: any): FoodTab => {
     const group = ((p?.category_group_code || p?.categoryGroupCode || p?.group) || '').toUpperCase();
     const name = (p?.name || p?.place_name || '').toLowerCase();
-    const cat  = (p?.category_name || '').toLowerCase();
+    const cat = (p?.category_name || '').toLowerCase();
 
-    const text   = `${name} ${cat}`;
+    const text = `${name} ${cat}`;
     const textNS = normalize(name) + normalize(cat);
 
     const has = (words: string[]) =>
@@ -567,18 +584,18 @@ export default function Main() {
     if (group === 'CE7') return '카페';
 
     if (has([
-      '족발','왕족발','족발보쌈','보쌈정식','마늘보쌈','수육',
-      '가장맛있는족발','가장 맛있는 족발','원할머니보쌈','장충동왕족발','족발야시장','미쓰족발','삼대족발'
+      '족발', '왕족발', '족발보쌈', '보쌈정식', '마늘보쌈', '수육',
+      '가장맛있는족발', '가장 맛있는 족발', '원할머니보쌈', '장충동왕족발', '족발야시장', '미쓰족발', '삼대족발',
     ])) return '족발/보쌈';
 
-    if (has(['피자','pizza','도미노','파파존스','피자헛'])) return '피자';
-    if (has(['맥도날드','버거킹','롯데리아','kfc','서브웨이','버거'])) return '패스트푸드';
-    if (has(['치킨','bbq','교촌','bhc','푸라닭','네네','굽네'])) return '치킨';
-    if (has(['분식','떡볶이','김밥','라볶이','순대','핫도그'])) return '분식';
-    if (has(['중식','짜장','짬뽕','탕수육','마라'])) return '중식';
-    if (has(['일식','스시','초밥','라멘','돈카츠','우동'])) return '일식';
+    if (has(['피자', 'pizza', '도미노', '파파존스', '피자헛'])) return '피자';
+    if (has(['맥도날드', '버거킹', '롯데리아', 'kfc', '서브웨이', '버거'])) return '패스트푸드';
+    if (has(['치킨', 'bbq', '교촌', 'bhc', '푸라닭', '네네', '굽네'])) return '치킨';
+    if (has(['분식', '떡볶이', '김밥', '라볶이', '순대', '핫도그'])) return '분식';
+    if (has(['중식', '짜장', '짬뽕', '탕수육', '마라'])) return '중식';
+    if (has(['일식', '스시', '초밥', '라멘', '돈카츠', '우동'])) return '일식';
 
-    if (has(['한식','국밥','백반','비빔밥','설렁탕','갈비','냉면','칼국수','삼겹살','곱창','감자탕'])) return '한식';
+    if (has(['한식', '국밥', '백반', '비빔밥', '설렁탕', '갈비', '냉면', '칼국수', '삼겹살', '곱창', '감자탕'])) return '한식';
 
     return '기타';
   };
@@ -603,7 +620,6 @@ export default function Main() {
     });
   }, [routePlaces, foodTab]);
 
-  /* ===== 1) 리스트는 지연, 2) 마커는 점진 렌더 ===== */
   const deferredFiltered = useDeferredValue(filteredRoutePlaces);
 
   const [markerItems, setMarkerItems] = useState<any[]>([]);
@@ -617,7 +633,7 @@ export default function Main() {
     const pump = () => {
       if (cancelled) return;
       const next = list.slice(i, i + CHUNK);
-      if (next.length) setMarkerItems(prev => prev.concat(next));
+      if (next.length) setMarkerItems((prev) => prev.concat(next));
       i += CHUNK;
       if (i < list.length) {
         const rIC = (typeof window !== 'undefined' && 'requestIdleCallback' in window)
@@ -633,8 +649,8 @@ export default function Main() {
   }, [filteredRoutePlaces]);
 
   const JOKBAL_KEYWORDS = [
-    '족발','보쌈','왕족발','족발보쌈','보쌈정식','마늘보쌈','수육',
-    '가장맛있는족발','원할머니보쌈','장충동왕족발','족발야시장','미쓰족발','삼대족발'
+    '족발', '보쌈', '왕족발', '족발보쌈', '보쌈정식', '마늘보쌈', '수육',
+    '가장맛있는족발', '원할머니보쌈', '장충동왕족발', '족발야시장', '미쓰족발', '삼대족발',
   ];
 
   const makeAdaptiveStep = (path?: LL[]) => {
@@ -690,8 +706,6 @@ export default function Main() {
     return base;
   };
 
-  /* ---------- 2단계(빠른 → 보강) 검색 로직 ---------- */
-
   const runAlongPathTwoStage = useCallback((path: LL[]) => {
     if (!Array.isArray(path) || path.length < 2) return;
 
@@ -707,7 +721,6 @@ export default function Main() {
     }, 1000);
   }, [foodTab, searchAlongPath]);
 
-  /* 경로 선택 시: 맛집 로딩 후 카드 */
   const selectRoute = useCallback(async (i: number) => {
     if (!routeOptions[i]) return;
     const r = routeOptions[i];
@@ -741,12 +754,19 @@ export default function Main() {
     runAlongPathTwoStage(r.path);
   }, [routeOptions, runAlongPathTwoStage]);
 
-  // 탭 → 아이콘 파일명 정규화
   const tabToIconCategory = (tab: FoodTab): string =>
     tab === '카페' ? '카페' : (tab === '족발/보쌈' ? '족발' : tab);
 
   const onFocusOrDoubleToRoute = useCallback(
-    async (p: { lat: number|string; lng: number|string; name?: string; place_name?: string; category_name?: string }) => {
+    async (p: {
+      lat: number | string;
+      lng: number | string;
+      name?: string;
+      place_name?: string;
+      category_name?: string;
+      place_url?: string;
+      placeUrl?: string;
+    }) => {
       const lat = typeof p.lat === 'string' ? parseFloat(p.lat) : p.lat;
       const lng = typeof p.lng === 'string' ? parseFloat(p.lng) : p.lng;
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
@@ -757,33 +777,44 @@ export default function Main() {
       if (name) setSelectedPlaceName(name);
 
       const start = autoRouteEndpoints?.start;
-      if (!start) return;
+      if (start) {
+        try {
+          const route = await getPedestrianRoute({
+            start,
+            end: { lat, lng },
+          } as any);
 
-      try {
-        const route = await getPedestrianRoute({
-          start,
-          end: { lat, lng },
-        } as any);
+          const coords = route.path || [];
+          const etaSec =
+            typeof route.totalTime === 'number' ? route.totalTime : null;
 
-        const coords = route.path || [];
-        const etaSec =
-          typeof route.totalTime === 'number' ? route.totalTime : null;
+          const tab = classifyPlace(p);
+          const categoryForIcon = tabToIconCategory(tab);
 
-        const tab = classifyPlace(p);
-        const categoryForIcon = tabToIconCategory(tab);
+          setExtraPlacePath(coords);
+          setExtraPlaceTarget({
+            lat,
+            lng,
+            name: (p?.name || p?.place_name || '목적지') as string,
+            category: categoryForIcon,
+          });
+          setExtraPlaceETAsec(etaSec);
 
-        setExtraPlacePath(coords);
-        setExtraPlaceTarget({
-          lat, lng,
-          name: (p?.name || p?.place_name || '목적지') as string,
-          category: categoryForIcon,
-        });
-        setExtraPlaceETAsec(etaSec);
+          setOnlySelectedMarker(false);
+        } catch {
+          // ignore
+        }
+      }
 
-        setOnlySelectedMarker(false);
-      } catch { /* ignore */ }
+      // 🔥 미니뷰어 열기
+      setMiniViewerPlace({
+        name: (p?.name || p?.place_name || '선택한 장소') as string,
+        lat,
+        lng,
+        placeUrl: (p as any).place_url || (p as any).placeUrl,
+      });
     },
-    [autoRouteEndpoints?.start, panToPlace, setSelectedPlaceName]
+    [autoRouteEndpoints?.start, panToPlace, setSelectedPlaceName],
   );
 
   const handleMapClick = (_: kakao.maps.Map, mouseEvent: kakao.maps.event.MouseEvent) => {
@@ -820,7 +851,6 @@ export default function Main() {
   const isExploreMode = mapMode === 'explore';
   const isRouteModeView = mapMode === 'route';
 
-  // 🔥 거리 기준 좌표 (출발지 / 도착지)
   const basePoint = useMemo<LL | null>(() => {
     if (!distanceBase) return null;
     const originPoint = autoRouteEndpoints?.start ?? null;
@@ -832,18 +862,16 @@ export default function Main() {
     return null;
   }, [distanceBase, autoRouteEndpoints]);
 
-  // 🔥 경로 주변 맛집 리스트 정렬 (출발지/도착지 기준 거리순)
   const sortedRoutePlacesForList = useMemo(() => {
     if (!Array.isArray(deferredFiltered)) return deferredFiltered;
     if (!basePoint) return deferredFiltered;
     return sortPlacesByDistance(
       deferredFiltered as any[],
       basePoint.lat,
-      basePoint.lng
+      basePoint.lng,
     );
   }, [deferredFiltered, basePoint]);
 
-  // 🔥 ETA(분) 계산 – 직선거리 기준 보행 속도 가정
   const WALK_M_PER_MIN = 70;
   const placesWithEta = useMemo(() => {
     if (!Array.isArray(sortedRoutePlacesForList)) return sortedRoutePlacesForList;
@@ -864,13 +892,12 @@ export default function Main() {
     });
   }, [sortedRoutePlacesForList, basePoint]);
 
-  // 🔥 autoRoutePath 변경될 때 자동 확대/이동 + 사이드바 고려해서 약간 오른쪽으로
   useEffect(() => {
     if (!map) return;
     if (!autoRoutePath || autoRoutePath.length < 2) return;
 
     const bounds = new kakao.maps.LatLngBounds();
-    autoRoutePath.forEach(p => {
+    autoRoutePath.forEach((p) => {
       bounds.extend(new kakao.maps.LatLng(p.lat, p.lng));
     });
 
@@ -880,13 +907,12 @@ export default function Main() {
     map.panBy(-sidebarWidth / 2, 0);
   }, [map, autoRoutePath, isSidebarOpen]);
 
-  // 🔥 manual routePath일 때 자동 확대/이동 + 사이드바 보정
   useEffect(() => {
     if (!map) return;
     if (!routePath || routePath.length < 2) return;
 
     const bounds = new kakao.maps.LatLngBounds();
-    routePath.forEach(p => {
+    routePath.forEach((p) => {
       bounds.extend(new kakao.maps.LatLng(p.lat, p.lng));
     });
 
@@ -897,7 +923,7 @@ export default function Main() {
   }, [map, routePath, isSidebarOpen]);
 
   return (
-    <div className='main-wrapper'>
+    <div className="main-wrapper">
       <SearchSidebar
         searchResults={searchResults as any}
         onClickItem={(place: any) => {
@@ -910,11 +936,12 @@ export default function Main() {
         }}
         selectedIndex={selectedIndex}
         isOpen={isSidebarOpen}
-        toggleOpen={() => setIsSidebarOpen(prev => !prev)}
+        toggleOpen={() => setIsSidebarOpen((prev) => !prev)}
         onSearch={(kw: string) => {
           setMapMode('explore');
           routeQueryVerRef.current++;
           resetRoutePlaces?.();
+          setMiniViewerPlace(null);
           if (kw) {
             setHasUserSearched(true);
             (searchPlaces as any)(kw);
@@ -951,7 +978,6 @@ export default function Main() {
           topOffset={64}
           width={520}
         >
-          {/* 🔥 출발지/도착지 기준 토글 + 거리순 정렬/ETA 안내 */}
           <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
             <div style={{ fontSize: 13, color: '#555' }}>
               정렬 기준:
@@ -959,7 +985,7 @@ export default function Main() {
             <div style={{ display: 'flex', gap: 6, fontSize: 12 }}>
               <button
                 type="button"
-                onClick={() => setDistanceBase(prev => (prev === 'origin' ? null : 'origin'))}
+                onClick={() => setDistanceBase((prev) => (prev === 'origin' ? null : 'origin'))}
                 disabled={!autoRouteEndpoints?.start}
                 style={{
                   padding: '4px 8px',
@@ -975,7 +1001,7 @@ export default function Main() {
               </button>
               <button
                 type="button"
-                onClick={() => setDistanceBase(prev => (prev === 'destination' ? null : 'destination'))}
+                onClick={() => setDistanceBase((prev) => (prev === 'destination' ? null : 'destination'))}
                 disabled={!autoRouteEndpoints?.end}
                 style={{
                   padding: '4px 8px',
@@ -993,7 +1019,7 @@ export default function Main() {
           </div>
 
           <div className="pd-tabs">
-            {FOOD_TABS.map(t => (
+            {FOOD_TABS.map((t) => (
               <button
                 key={t}
                 className={`pd-tab ${foodTab === t ? 'active' : ''}`}
@@ -1056,7 +1082,7 @@ export default function Main() {
           setMap(m);
           try { (m as any).setZoomable?.(true); } catch {}
           kakao.maps.event.addListener(m, 'dragstart', () => setIsMoving(true));
-          kakao.maps.event.addListener(m, 'drag',      () => setIsMoving(true));
+          kakao.maps.event.addListener(m, 'drag', () => setIsMoving(true));
           kakao.maps.event.addListener(m, 'zoom_start', () => setIsMoving(true));
           kakao.maps.event.addListener(m, 'center_changed', () => setIsMoving(true));
           kakao.maps.event.addListener(m, 'idle', () => {
@@ -1075,19 +1101,16 @@ export default function Main() {
         <MapTypeControl position="TOPRIGHT" />
         <ZoomControl position="RIGHT" />
 
-        {/* 🔍 탐색 모드: 사용자가 직접 검색한 이후에만 마커 표시 */}
         {isExploreMode && hasUserSearched && Array.isArray(searchResults) && searchResults.map((place: any, index: number) => {
           const lat = Number(place?.y);
           const lng = Number(place?.x);
           if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
 
-          // 🔥 Kakao에서 내려오는 그룹 코드로 음식점/카페 판별
           const group = (place?.category_group_code || '').toUpperCase();
-          const isFoodGroup = group === 'FD6' || group === 'CE7'; // FD6=음식점, CE7=카페
+          const isFoodGroup = group === 'FD6' || group === 'CE7';
 
           const key = (place?.id ?? `${lat},${lng}`) + '-' + index;
 
-          // 🍽 음식점/카페 → CategoryMarker (음식마커)
           if (isFoodGroup) {
             const tab = classifyPlace(place);
             const categoryForIcon = tabToIconCategory(tab);
@@ -1106,16 +1129,15 @@ export default function Main() {
             );
           }
 
-          // 🍀 비음식점 → 기본 카카오 마커
           return (
             <MapMarker
               key={`explore-${key}`}
               position={{ lat, lng }}
               image={{
-                src: '/assets/markers/기본마커.png', // ✅ 기본마커.png 실제 위치에 맞게 수정
-                size: { width: 36, height: 42 },  // 🔧 원하면 숫자 조절
+                src: '/assets/markers/기본마커.png',
+                size: { width: 36, height: 42 },
                 options: {
-                  offset: { x: 18, y: 42 },       // 마커 아래쪽이 좌표 찍히도록
+                  offset: { x: 18, y: 42 },
                 },
               }}
             />
@@ -1198,7 +1220,6 @@ export default function Main() {
           </>
         )}
 
-        {/* 🍽 길찾기 모드: 경로 주변 맛집 카테고리 마커 */}
         {isRouteModeView && !onlySelectedMarker && Array.isArray(markerItems) && markerItems.map((p: any, idx: number) => {
           const lat = typeof p.lat === 'string' ? parseFloat(p.lat) : p.lat;
           const lng = typeof p.lng === 'string' ? parseFloat(p.lng) : p.lng;
@@ -1233,7 +1254,6 @@ export default function Main() {
           />
         )}
 
-        {/* 선택 지점 강조 */}
         {isRouteModeView && extraPlaceTarget && (
           <>
             <CategoryMarker
@@ -1254,7 +1274,15 @@ export default function Main() {
         )}
       </Map>
 
-      <div><MenuButton/></div>
+      {/* 🔥 오른쪽 카카오맵 미니뷰어 */}
+      {miniViewerPlace && (
+        <PlaceMiniViewer
+          place={miniViewerPlace}
+          onClose={() => setMiniViewerPlace(null)}
+        />
+      )}
+
+      <div><MenuButton /></div>
     </div>
   );
 }

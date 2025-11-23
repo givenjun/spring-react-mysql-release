@@ -1,3 +1,4 @@
+// src/hooks/Map/useKakaoSearch.hook.ts
 import { useEffect, useRef, useState } from 'react';
 import { create } from 'zustand';
 
@@ -17,6 +18,10 @@ export interface Place {
   /** 🔥 음식점/카페 등 그룹 코드/이름 */
   category_group_code?: string;   // FD6, CE7 …
   category_group_name?: string;   // 음식점, 카페 …
+
+  /** 🔥 카카오 상세 페이지 URL */
+  place_url?: string;
+  placeUrl?: string;
 }
 
 interface AiSearchState {
@@ -111,6 +116,9 @@ export default function useKakaoSearch() {
           /** 🔥 그룹 코드/이름도 같이 저장 */
           category_group_code: d.category_group_code,
           category_group_name: d.category_group_name,
+          /** 🔥 카카오 place URL */
+          place_url: d.place_url,
+          placeUrl: d.place_url,
         }));
         const limited = options?.limit ? list.slice(0, options.limit) : list;
 
@@ -194,6 +202,8 @@ export default function useKakaoSearch() {
           category_name: d.category_name,
           category_group_code: d.category_group_code,
           category_group_name: d.category_group_name,
+          place_url: d.place_url,
+          placeUrl: d.place_url,
         }));
         resolve(options?.limit ? list.slice(0, options.limit) : list);
       }, searchOpts);
@@ -227,6 +237,8 @@ export default function useKakaoSearch() {
           category_name: d.category_name,
           category_group_code: d.category_group_code,
           category_group_name: d.category_group_name,
+          place_url: d.place_url,
+          placeUrl: d.place_url,
         }));
         resolve(list.slice(0, limit));
       }, searchOpts);

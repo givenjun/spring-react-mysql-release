@@ -37,6 +37,10 @@ type Place = {
   lng?: number | string; lat?: number | string;
   address_name?: string; road_address_name?: string; phone?: string;
   category_name?: string; category_group_code?: string;
+
+  /** 🔥 카카오 상세 URL */
+  place_url?: string;
+  placeUrl?: string;
 };
 
 function toRad(d: number) { return (d * Math.PI) / 180; }
@@ -93,7 +97,20 @@ function normalizePlace(p: Place) {
   const name = (p.place_name ?? p.name ?? '이름 없음') as string;
   const address = (p.address_name ?? '') as string;
   const roadAddress = (p.road_address_name ?? '') as string;
-  return { ...p, name, place_name: name, lat, lng, address, roadAddress };
+
+  const placeUrl = (p.placeUrl ?? p.place_url) as string | undefined;
+
+  return {
+    ...p,
+    name,
+    place_name: name,
+    lat,
+    lng,
+    address,
+    roadAddress,
+    placeUrl,
+    place_url: placeUrl ?? p.place_url,
+  };
 }
 function toKey(p: any) {
   if (typeof p?.id === 'string' && p.id) return p.id;
