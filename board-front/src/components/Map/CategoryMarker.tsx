@@ -1,10 +1,10 @@
+// src/components/Map/CategoryMarker/index.tsx
 import { MapMarker } from "react-kakao-maps-sdk";
-import { normalizeCategory, FoodCategory } from "constant/category";
 
 type Props = {
   lat: number | string;
   lng: number | string;
-  category?: string;     // "한식" | "족발/보쌈" | "카페" | ...
+  category?: string;     // "한식" | "족발" | "카페" | "기타" | undefined
   size?: number;         // 표시 크기(px). 기본 52
   anchorX?: number;
   anchorY?: number;
@@ -12,7 +12,8 @@ type Props = {
   onClick?: () => void;
 };
 
-const ICON: Record<FoodCategory | "기본", string> = {
+// 키 문자열만 맞추면 되도록 단순 맵으로 변경
+const ICON: { [key: string]: string } = {
   한식: "/assets/markers/한식.png",
   중식: "/assets/markers/중식.png",
   일식: "/assets/markers/일식.png",
@@ -24,25 +25,43 @@ const ICON: Record<FoodCategory | "기본", string> = {
   족발: "/assets/markers/족발.png",
   기타: "/assets/markers/기타.png",
 
-  // ⭐ 음식점/카페가 아닐 때 기본 아이콘
+  // ⭐ 음식점/카페가 아닌 애들 전용 기본 아이콘
   기본: "/assets/markers/기본마커.png",
 };
 
 export default function CategoryMarker({
-  lat, lng, category, size = 52, anchorX, anchorY, zIndex = 110, onClick,
+  lat,
+  lng,
+  category,
+  size = 96,
+  anchorX,
+  anchorY,
+  zIndex = 110,
+  onClick,
 }: Props) {
-  // ⬇️ category가 없으면 "기본" 사용
-  const cat = category ? normalizeCategory(category) : "기본";
-  const src = ICON[cat] ?? ICON["기본"];
+  const key = category ?? "기본";
+  const isBasic = !category || key === "기본";
 
-  const w = size, h = size;
+  // 🔽 기본 마커는 조금 더 작게 (예: 0.6배)
+  const effectiveSize = isBasic ? Math.round(size * 1.0) : size;
+
+  const w = effectiveSize;
+  const h = effectiveSize;
   const ax = anchorX ?? w / 2;
-  const ay = anchorY ?? h;
+
+  // ✅ 기본 마커는 중심 쪽(0.7h) 기준, 음식 마커는 기존처럼 맨 아래(h) 기준
+  const ay = anchorY ?? (isBasic ? Math.round(h * 0.3) : h);
+
+  const src = ICON[key] ?? ICON["기본"];
 
   return (
     <MapMarker
       position={{ lat: Number(lat), lng: Number(lng) }}
-      image={{ src, size: { width: w, height: h }, options: { offset: { x: ax, y: ay } } }}
+      image={{
+        src,
+        size: { width: w, height: h },
+        options: { offset: { x: ax, y: ay } },
+      }}
       clickable
       zIndex={zIndex}
       onClick={onClick}

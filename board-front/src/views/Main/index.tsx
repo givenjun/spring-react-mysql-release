@@ -233,7 +233,7 @@ export default function Main() {
   const [placeCardOpen, setPlaceCardOpen] = useState(false);
   const [routeTargetPlace, setRouteTargetPlace] = useState<PlaceDetail | null>(null);
 
-  /* 초기 검색 (한밭대학교) → hasUserSearched는 false 유지 */
+  /* 초기 검색 */
   useEffect(() => { (searchPlaces as any)('한밭대학교'); }, []); // eslint-disable-line
 
   /* 맵 이동 함수 */
@@ -369,7 +369,6 @@ export default function Main() {
 
           if (!Number.isFinite(c.complexity)) return false;
           if (baseComplexity > 0 && c.complexity > MAX_COMPLEXITY_FACTOR * baseComplexity) return false;
-
           if (c.complexity > MAX_COMPLEXITY_ABS) return false;
 
           if (baseDistM > 0 && c.distanceM > baseDistM * MAX_DIST_FACTOR) return false;
@@ -385,17 +384,15 @@ export default function Main() {
         if (usable.length === 0) throw new Error('대안 경로 생성 실패');
 
         // 5) 빠른길 / 권장길 / 쉬운길 선택 규칙
-
-        // 5-1) 빠른길 = 가장 빠른 경로
         const timesAll = usable.map(c => c.timeSec);
         const fastestTime = Math.min(...timesAll);
         const idxFast = timesAll.indexOf(fastestTime);
         const fastRoute = usable[idxFast];
 
         // 5-2) 권장길 후보
-        const MIN_EXTRA_RECOMMEND = 180;
-        const MAX_EXTRA_RECOMMEND = 600;
-        const TARGET_EXTRA_RECOMMEND = 240;
+        const MIN_EXTRA_RECOMMEND = 180; // +3분
+        const MAX_EXTRA_RECOMMEND = 600; // +10분
+        const TARGET_EXTRA_RECOMMEND = 240; // +4분
 
         const recommendCandidates = usable.filter((c, idx) => {
           if (idx === idxFast) return false;
@@ -418,8 +415,8 @@ export default function Main() {
         }
 
         // 5-3) 쉬운길 후보
-        const MIN_EXTRA_EASY = 120;
-        const MAX_EXTRA_EASY = 900;
+        const MIN_EXTRA_EASY = 120;  // +2분
+        const MAX_EXTRA_EASY = 900;  // +15분
 
         const easyCandidates = usable.filter((c) => {
           if (c.id === fastRoute.id) return false;
@@ -479,9 +476,9 @@ export default function Main() {
   );
 
   /* === 개미행렬 설정 === */
-  const DASH_LEN = 40;
-  const GAP_LEN  = 220;
-  const OVERLAP  = 40;
+  const DASH_LEN = 40;  // m
+  const GAP_LEN  = 220;  // m
+  const OVERLAP  = 40;   // m
 
   const [routePhase, setRoutePhase] = useState(0);
   const [autoPhase,  setAutoPhase]  = useState(0);
@@ -754,10 +751,8 @@ export default function Main() {
       const lng = typeof p.lng === 'string' ? parseFloat(p.lng) : p.lng;
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
-      // 지도 이동
       panToPlace(lat, lng, 3);
 
-      // 연관 게시물 패널 트리거
       const name = (p?.name || p?.place_name)?.toString();
       if (name) setSelectedPlaceName(name);
 
@@ -774,10 +769,8 @@ export default function Main() {
         const etaSec =
           typeof route.totalTime === 'number' ? route.totalTime : null;
 
-        // 선택 지점 카테고리 계산 → 아이콘에 사용
         const tab = classifyPlace(p);
-        const isFood = tab !== '기타';
-        const categoryForIcon = isFood ? tabToIconCategory(tab) : undefined;
+        const categoryForIcon = tabToIconCategory(tab);
 
         setExtraPlacePath(coords);
         setExtraPlaceTarget({
@@ -923,7 +916,7 @@ export default function Main() {
           routeQueryVerRef.current++;
           resetRoutePlaces?.();
           if (kw) {
-            setHasUserSearched(true);      // ✅ 사용자가 직접 검색했을 때만 true
+            setHasUserSearched(true);
             (searchPlaces as any)(kw);
           }
         }}
@@ -1082,28 +1075,49 @@ export default function Main() {
         <MapTypeControl position="TOPRIGHT" />
         <ZoomControl position="RIGHT" />
 
-        {/* 🔍 탐색 모드: 사용자가 직접 검색한 이후에만 searchResults 마커 표시 */}
+        {/* 🔍 탐색 모드: 사용자가 직접 검색한 이후에만 마커 표시 */}
         {isExploreMode && hasUserSearched && Array.isArray(searchResults) && searchResults.map((place: any, index: number) => {
           const lat = Number(place?.y);
           const lng = Number(place?.x);
           if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
 
-          const tab = classifyPlace(place);
-          const isFood = tab !== '기타';
-          const categoryForIcon = isFood ? tabToIconCategory(tab) : undefined;
+          // 🔥 Kakao에서 내려오는 그룹 코드로 음식점/카페 판별
+          const group = (place?.category_group_code || '').toUpperCase();
+          const isFoodGroup = group === 'FD6' || group === 'CE7'; // FD6=음식점, CE7=카페
 
           const key = (place?.id ?? `${lat},${lng}`) + '-' + index;
-          const size = 115;
 
+          // 🍽 음식점/카페 → CategoryMarker (음식마커)
+          if (isFoodGroup) {
+            const tab = classifyPlace(place);
+            const categoryForIcon = tabToIconCategory(tab);
+            const size = 72;
+
+            return (
+              <CategoryMarker
+                key={`explore-${key}`}
+                lat={lat}
+                lng={lng}
+                category={categoryForIcon}
+                size={size}
+                anchorY={size}
+                zIndex={105}
+              />
+            );
+          }
+
+          // 🍀 비음식점 → 기본 카카오 마커
           return (
-            <CategoryMarker
+            <MapMarker
               key={`explore-${key}`}
-              lat={lat}
-              lng={lng}
-              category={categoryForIcon}
-              size={size}
-              anchorY={size}
-              zIndex={105}
+              position={{ lat, lng }}
+              image={{
+                src: '/assets/markers/기본마커.png', // ✅ 기본마커.png 실제 위치에 맞게 수정
+                size: { width: 36, height: 42 },  // 🔧 원하면 숫자 조절
+                options: {
+                  offset: { x: 18, y: 42 },       // 마커 아래쪽이 좌표 찍히도록
+                },
+              }}
             />
           );
         })}
@@ -1191,11 +1205,10 @@ export default function Main() {
           if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
 
           const tab = classifyPlace(p);
-          const isFood = tab !== '기타';
-          const categoryForIcon = isFood ? tabToIconCategory(tab) : undefined;
+          const categoryForIcon = tabToIconCategory(tab);
 
           const key = (p?.id ?? `${lat},${lng}`) + '-' + idx;
-          const size = 115;
+          const size = 112;
           return (
             <CategoryMarker
               key={`routeplace-${key}`}
@@ -1220,7 +1233,7 @@ export default function Main() {
           />
         )}
 
-        {/* 선택 지점 강조: 전체 마커 유지 + 선택만 크게 */}
+        {/* 선택 지점 강조 */}
         {isRouteModeView && extraPlaceTarget && (
           <>
             <CategoryMarker

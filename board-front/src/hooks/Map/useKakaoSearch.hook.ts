@@ -13,6 +13,10 @@ export interface Place {
   road_address_name?: string;
   category_name?: string;
   phone?: string;
+
+  /** 🔥 음식점/카페 등 그룹 코드/이름 */
+  category_group_code?: string;   // FD6, CE7 …
+  category_group_name?: string;   // 음식점, 카페 …
 }
 
 interface AiSearchState {
@@ -96,9 +100,17 @@ export default function useKakaoSearch() {
 
       if (status === kakao.maps.services.Status.OK && data.length > 0) {
         const list: Place[] = data.map((d: any) => ({
-          id: d.id, place_name: d.place_name, x: d.x, y: d.y,
-          address_name: d.address_name, road_address_name: d.road_address_name,
-          phone: d.phone, category_name: d.category_name,
+          id: d.id,
+          place_name: d.place_name,
+          x: d.x,
+          y: d.y,
+          address_name: d.address_name,
+          road_address_name: d.road_address_name,
+          phone: d.phone,
+          category_name: d.category_name,
+          /** 🔥 그룹 코드/이름도 같이 저장 */
+          category_group_code: d.category_group_code,
+          category_group_name: d.category_group_name,
         }));
         const limited = options?.limit ? list.slice(0, options.limit) : list;
 
@@ -172,9 +184,16 @@ export default function useKakaoSearch() {
       ps.keywordSearch(q, (data: any[], status: kakao.maps.services.Status) => {
         if (status !== kakao.maps.services.Status.OK || !data?.length) return resolve([]);
         const list: Place[] = data.map((d: any) => ({
-          id: d.id, place_name: d.place_name, x: d.x, y: d.y,
-          address_name: d.address_name, road_address_name: d.road_address_name,
-          phone: d.phone, category_name: d.category_name,
+          id: d.id,
+          place_name: d.place_name,
+          x: d.x,
+          y: d.y,
+          address_name: d.address_name,
+          road_address_name: d.road_address_name,
+          phone: d.phone,
+          category_name: d.category_name,
+          category_group_code: d.category_group_code,
+          category_group_name: d.category_group_name,
         }));
         resolve(options?.limit ? list.slice(0, options.limit) : list);
       }, searchOpts);
@@ -198,9 +217,16 @@ export default function useKakaoSearch() {
       ps.keywordSearch(q, (data: any[], status: kakao.maps.services.Status) => {
         if (status !== kakao.maps.services.Status.OK || !data?.length) return resolve([]);
         const list: Place[] = data.map((d: any) => ({
-          id: d.id, place_name: d.place_name, x: d.x, y: d.y,
-          address_name: d.address_name, road_address_name: d.road_address_name,
-          phone: d.phone, category_name: d.category_name,
+          id: d.id,
+          place_name: d.place_name,
+          x: d.x,
+          y: d.y,
+          address_name: d.address_name,
+          road_address_name: d.road_address_name,
+          phone: d.phone,
+          category_name: d.category_name,
+          category_group_code: d.category_group_code,
+          category_group_name: d.category_group_name,
         }));
         resolve(list.slice(0, limit));
       }, searchOpts);
