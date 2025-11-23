@@ -208,6 +208,9 @@ export default function Main() {
   // (이제 사용하지 않지만 남겨둠) 더블클릭 시 해당 맛집만 마커 표시
   const [onlySelectedMarker, setOnlySelectedMarker] = useState(false);
 
+  // 🔥 사용자가 직접 검색을 했는지 여부 (초기 한밭대 검색은 제외)
+  const [hasUserSearched, setHasUserSearched] = useState(false);
+
   type RouteOption = {
     id: string;
     name: '빠른길' | '권장길' | '쉬운길';
@@ -230,7 +233,7 @@ export default function Main() {
   const [placeCardOpen, setPlaceCardOpen] = useState(false);
   const [routeTargetPlace, setRouteTargetPlace] = useState<PlaceDetail | null>(null);
 
-  /* 초기 검색 */
+  /* 초기 검색 (한밭대학교) → hasUserSearched는 false 유지 */
   useEffect(() => { (searchPlaces as any)('한밭대학교'); }, []); // eslint-disable-line
 
   /* 맵 이동 함수 */
@@ -314,7 +317,6 @@ export default function Main() {
         const viaPromises = limitedViaCandidates.map(vias =>
           getPedestrianRoute({
             ...baseReq,
-            // Tmap 보행자 API는 viaPoints를 배열로 받는다고 가정
             viaPoints: vias as any,
           }).then(route => ({ route, vias }))
             .catch(() => null)
@@ -324,16 +326,17 @@ export default function Main() {
         const viaResults = viaResultsRaw.filter((v): v is { route: any; vias: LL[] } => !!v);
 
         // 4) base + via 결과를 RouteOption으로 변환
-        let candidates: RouteOption[] = [];
+        let allCandidates: RouteOption[] = [];
 
         // 기본 경로 (무조건 후보에 포함)
-        candidates.push({
+        const baseComplexity = complexityScore(basePath);
+        allCandidates.push({
           id: 'base',
           name: '권장길',
           path: basePath,
           timeSec: Math.round(baseTimeSec),
           distanceM: Math.round(baseDistM),
-          complexity: complexityScore(basePath),
+          complexity: baseComplexity,
         });
 
         // via 경로들
@@ -343,7 +346,7 @@ export default function Main() {
           const t = Number(route.totalTime ?? 0);
           const d = Number(route.totalDistance ?? 0);
 
-          candidates.push({
+          allCandidates.push({
             id: `via-${Math.random().toString(36).slice(2, 8)}`,
             name: '권장길',
             path,
@@ -353,24 +356,48 @@ export default function Main() {
           });
         }
 
-        // 혹시라도 중복/에러로 비어 있으면 에러 처리
-        candidates = candidates.filter(c => c.path.length > 1);
-        if (candidates.length === 0) throw new Error('대안 경로 생성 실패');
+        allCandidates = allCandidates.filter(c => c.path.length > 1);
+        if (allCandidates.length === 0) throw new Error('대안 경로 생성 실패');
+
+        // ⛔ 경로 필터링
+        const MAX_COMPLEXITY_FACTOR = 1.8;
+        const MAX_COMPLEXITY_ABS    = 10;
+        const MAX_DIST_FACTOR       = 1.6;
+
+        let candidates = allCandidates.filter((c, idx) => {
+          if (idx === 0) return true; // 기준 경로는 무조건 유지
+
+          if (!Number.isFinite(c.complexity)) return false;
+          if (baseComplexity > 0 && c.complexity > MAX_COMPLEXITY_FACTOR * baseComplexity) return false;
+
+          if (c.complexity > MAX_COMPLEXITY_ABS) return false;
+
+          if (baseDistM > 0 && c.distanceM > baseDistM * MAX_DIST_FACTOR) return false;
+
+          return true;
+        });
+
+        if (candidates.length < 2) {
+          candidates = allCandidates;
+        }
+
+        const usable = candidates.length > 0 ? candidates : [allCandidates[0]];
+        if (usable.length === 0) throw new Error('대안 경로 생성 실패');
 
         // 5) 빠른길 / 권장길 / 쉬운길 선택 규칙
 
         // 5-1) 빠른길 = 가장 빠른 경로
-        const timesAll = candidates.map(c => c.timeSec);
+        const timesAll = usable.map(c => c.timeSec);
         const fastestTime = Math.min(...timesAll);
         const idxFast = timesAll.indexOf(fastestTime);
-        const fastRoute = candidates[idxFast];
+        const fastRoute = usable[idxFast];
 
-        // 5-2) 권장길 후보: 빠른길보다 +3분 ~ +10분 사이
-        const MIN_EXTRA_RECOMMEND = 180; // +3분
-        const MAX_EXTRA_RECOMMEND = 600; // +10분
-        const TARGET_EXTRA_RECOMMEND = 240; // 타깃: +4분
+        // 5-2) 권장길 후보
+        const MIN_EXTRA_RECOMMEND = 180;
+        const MAX_EXTRA_RECOMMEND = 600;
+        const TARGET_EXTRA_RECOMMEND = 240;
 
-        const recommendCandidates = candidates.filter((c, idx) => {
+        const recommendCandidates = usable.filter((c, idx) => {
           if (idx === idxFast) return false;
           const extra = c.timeSec - fastestTime;
           return extra >= MIN_EXTRA_RECOMMEND && extra <= MAX_EXTRA_RECOMMEND;
@@ -382,7 +409,6 @@ export default function Main() {
           for (const c of recommendCandidates) {
             const extra = c.timeSec - fastestTime;
             const diffToTarget = Math.abs(extra - TARGET_EXTRA_RECOMMEND);
-            // 시간 타깃과의 차이 + 복잡도(가중치)로 점수 부여
             const score = diffToTarget + 30 * c.complexity;
             if (score < bestScore) {
               bestScore = score;
@@ -391,11 +417,11 @@ export default function Main() {
           }
         }
 
-        // 5-3) 쉬운길 후보: 빠른길보다 +2분 이상 ~ +15분 이내, 복잡도 최소
-        const MIN_EXTRA_EASY = 120;  // +2분
-        const MAX_EXTRA_EASY = 900;  // +15분
+        // 5-3) 쉬운길 후보
+        const MIN_EXTRA_EASY = 120;
+        const MAX_EXTRA_EASY = 900;
 
-        const easyCandidates = candidates.filter((c) => {
+        const easyCandidates = usable.filter((c) => {
           if (c.id === fastRoute.id) return false;
           if (recommendRoute && c.id === recommendRoute.id) return false;
           const extra = c.timeSec - fastestTime;
@@ -430,12 +456,10 @@ export default function Main() {
           finalRoutes.push({ ...easyRoute, name: '쉬운길' });
         }
 
-        // 혹시 조건에 맞는 후보가 너무 없으면 → 빠른길만이라도 노출
         if (finalRoutes.length === 0) {
           finalRoutes.push({ ...fastRoute, name: '빠른길' });
         }
 
-        // 3개 이상이면 상위 3개만 사용
         const trimmed = finalRoutes.slice(0, 3);
 
         const ord = { '빠른길': 0, '권장길': 1, '쉬운길': 2 } as const;
@@ -455,9 +479,9 @@ export default function Main() {
   );
 
   /* === 개미행렬 설정 === */
-  const DASH_LEN = 40;  // m
-  const GAP_LEN  = 220;  // m
-  const OVERLAP  = 40;   // m
+  const DASH_LEN = 40;
+  const GAP_LEN  = 220;
+  const OVERLAP  = 40;
 
   const [routePhase, setRoutePhase] = useState(0);
   const [autoPhase,  setAutoPhase]  = useState(0);
@@ -546,7 +570,7 @@ export default function Main() {
     if (group === 'CE7') return '카페';
 
     if (has([
-      '족발','왕족발','족발보쌈','보쌈','보쌈정식','마늘보쌈','수육',
+      '족발','왕족발','족발보쌈','보쌈정식','마늘보쌈','수육',
       '가장맛있는족발','가장 맛있는 족발','원할머니보쌈','장충동왕족발','족발야시장','미쓰족발','삼대족발'
     ])) return '족발/보쌈';
 
@@ -638,7 +662,9 @@ export default function Main() {
     const adaptiveStep = makeAdaptiveStep(path);
     const useFull = km >= 5;
     const budget = calcBudget(path);
-    const timeBudgetMs = useFull ? Math.min(9000, 3500 + Math.round(400 * km)) : 2000;
+    const timeBudgetMs = useFull
+      ? Math.min(9000, 3500 + Math.round(400 * km))
+      : 2000;
 
     const modeVal: 'fast' | 'full' = useFull ? 'full' : 'fast';
 
@@ -696,7 +722,7 @@ export default function Main() {
     setOnlySelectedMarker(false);
     resetRoutePlaces?.();
     routeQueryVerRef.current++;
-    setDistanceBase(null); // 🔥 다른 경로 선택 시에도 정렬/ETA 초기화
+    setDistanceBase(null);
 
     setPlaceCardOpen(true);
     runAlongPathTwoStage(r.path);
@@ -750,7 +776,8 @@ export default function Main() {
 
         // 선택 지점 카테고리 계산 → 아이콘에 사용
         const tab = classifyPlace(p);
-        const categoryForIcon = tabToIconCategory(tab);
+        const isFood = tab !== '기타';
+        const categoryForIcon = isFood ? tabToIconCategory(tab) : undefined;
 
         setExtraPlacePath(coords);
         setExtraPlaceTarget({
@@ -760,7 +787,6 @@ export default function Main() {
         });
         setExtraPlaceETAsec(etaSec);
 
-        // 전체 마커 유지 (숨기지 않음)
         setOnlySelectedMarker(false);
       } catch { /* ignore */ }
     },
@@ -825,7 +851,7 @@ export default function Main() {
   }, [deferredFiltered, basePoint]);
 
   // 🔥 ETA(분) 계산 – 직선거리 기준 보행 속도 가정
-  const WALK_M_PER_MIN = 70; // 70m/분 ≈ 4.2km/h
+  const WALK_M_PER_MIN = 70;
   const placesWithEta = useMemo(() => {
     if (!Array.isArray(sortedRoutePlacesForList)) return sortedRoutePlacesForList;
     if (!basePoint) return sortedRoutePlacesForList;
@@ -896,7 +922,10 @@ export default function Main() {
           setMapMode('explore');
           routeQueryVerRef.current++;
           resetRoutePlaces?.();
-          if (kw) (searchPlaces as any)(kw);
+          if (kw) {
+            setHasUserSearched(true);      // ✅ 사용자가 직접 검색했을 때만 true
+            (searchPlaces as any)(kw);
+          }
         }}
         onRouteByCoords={handleRouteByCoords}
         routePlaces={sortedRoutePlacesForList as any}
@@ -916,7 +945,6 @@ export default function Main() {
         onSelectRoute={selectRoute}
         onOpenRouteDetail={openRouteDetail}
         showRoutePlacesInSidebar={false}
-        // 🔥 탐색/길찾기 탭에서 모드 바꾸는 콜백 (SearchSidebar에서 호출)
         onChangeMapMode={(mode: 'explore' | 'route') => setMapMode(mode)}
       />
 
@@ -1054,14 +1082,16 @@ export default function Main() {
         <MapTypeControl position="TOPRIGHT" />
         <ZoomControl position="RIGHT" />
 
-        {/* 🔍 탐색 모드: 장소 검색 결과도 카테고리 마커로 표시 */}
-        {isExploreMode && Array.isArray(searchResults) && searchResults.map((place: any, index: number) => {
+        {/* 🔍 탐색 모드: 사용자가 직접 검색한 이후에만 searchResults 마커 표시 */}
+        {isExploreMode && hasUserSearched && Array.isArray(searchResults) && searchResults.map((place: any, index: number) => {
           const lat = Number(place?.y);
           const lng = Number(place?.x);
           if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
 
           const tab = classifyPlace(place);
-          const categoryForIcon = tabToIconCategory(tab);
+          const isFood = tab !== '기타';
+          const categoryForIcon = isFood ? tabToIconCategory(tab) : undefined;
+
           const key = (place?.id ?? `${lat},${lng}`) + '-' + index;
           const size = 115;
 
@@ -1161,7 +1191,8 @@ export default function Main() {
           if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
 
           const tab = classifyPlace(p);
-          const categoryForIcon = tabToIconCategory(tab);
+          const isFood = tab !== '기타';
+          const categoryForIcon = isFood ? tabToIconCategory(tab) : undefined;
 
           const key = (p?.id ?? `${lat},${lng}`) + '-' + idx;
           const size = 115;
@@ -1173,7 +1204,7 @@ export default function Main() {
               category={categoryForIcon}
               size={size}
               anchorY={size}
-              zIndex={110}  // ← 라인보다 위
+              zIndex={110}
             />
           );
         })}
