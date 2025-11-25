@@ -9,6 +9,9 @@ type Props = {
   anchorX?: number;
   anchorY?: number;
   zIndex?: number;
+
+  // 선택적으로 쓰는 클릭 핸들러
+  // 👉 이게 없으면 마커는 클릭 이벤트를 먹지 않고 지도까지 통과
   onClick?: () => void;
 };
 
@@ -49,7 +52,7 @@ export default function CategoryMarker({
   const h = effectiveSize;
   const ax = anchorX ?? w / 2;
 
-  // ✅ 기본 마커는 중심 쪽(0.7h) 기준, 음식 마커는 기존처럼 맨 아래(h) 기준
+  // ✅ 기본 마커는 중심 쪽(0.3h) 기준, 음식 마커는 기존처럼 맨 아래(h) 기준
   const ay = anchorY ?? (isBasic ? Math.round(h * 0.3) : h);
 
   const src = ICON[key] ?? ICON["기본"];
@@ -62,7 +65,9 @@ export default function CategoryMarker({
         size: { width: w, height: h },
         options: { offset: { x: ax, y: ay } },
       }}
-      clickable
+      // 🔥 onClick 이 있을 때만 마커가 클릭을 가로챔
+      //    (없으면 클릭이 지도/폴리라인까지 전달됨)
+      clickable={!!onClick}
       zIndex={zIndex}
       onClick={onClick}
     />
