@@ -282,6 +282,10 @@
   background-color: #6c757d; 
 }
 
+.role-badge.subadmin {
+  background-color: #6aa7ee; 
+}
+
 /* 관리자 */
 .role-badge.admin {
   background-color: #6a5acd; 

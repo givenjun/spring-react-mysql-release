@@ -14,7 +14,7 @@ interface User {
   nickname: string;
   telNumber: string;
   emailVerified: boolean;
-  role: "USER" | "ADMIN";
+  role: "USER" | "ADMIN" | "SUB_ADMIN";
 }
 
 interface JwtPayload {
@@ -237,10 +237,10 @@ export default function AdminUserList() {
                     <td>
                       <span
                         className={`role-badge ${
-                          user.role === "ADMIN" ? "admin" : "user"
+                          user.role === "ADMIN" ? "admin" : user.role === "SUB_ADMIN" ? "subadmin" : "user"
                         }`}
                       >
-                        {user.role === "ADMIN" ? "ROLE_ADMIN" : "ROLE_USER"}
+                        {user.role === "ADMIN" ? "ADMIN" : user.role === "SUB_ADMIN" ? "SUB_ADMIN" : "USER"}
                       </span>
                     </td>
                     <td>{user.telNumber}</td>
