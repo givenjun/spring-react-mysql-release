@@ -9,9 +9,12 @@ export interface PlaceMiniViewerProps {
     placeUrl?: string;
   };
   onClose: () => void;
+
+  // 🔥 "두 경로사이 맛집리스트" 패널 옆에 붙을 left 위치
+  anchorLeft: number;
 }
 
-const PlaceMiniViewer: React.FC<PlaceMiniViewerProps> = ({ place, onClose }) => {
+const PlaceMiniViewer: React.FC<PlaceMiniViewerProps> = ({ place, onClose, anchorLeft }) => {
   const { name, lat, lng, placeUrl } = place;
 
   const kakaoUrl =
@@ -23,7 +26,7 @@ const PlaceMiniViewer: React.FC<PlaceMiniViewerProps> = ({ place, onClose }) => 
     <div
       style={{
         position: 'fixed',
-        right: 230,
+        left: anchorLeft,
         top: 64,
         width: 420,
         height: 540,
@@ -34,6 +37,8 @@ const PlaceMiniViewer: React.FC<PlaceMiniViewerProps> = ({ place, onClose }) => 
         zIndex: 9999,
         display: 'flex',
         flexDirection: 'column',
+        // 🔥 패널과 함께 부드럽게 이동
+        transition: 'left 0.3s ease-in-out, top 0.3s ease-in-out',
       }}
     >
       {/* 헤더 */}

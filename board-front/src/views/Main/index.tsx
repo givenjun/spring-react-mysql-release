@@ -571,7 +571,7 @@ export default function Main() {
   const classifyPlace = (p: any): FoodTab => {
     const group = ((p?.category_group_code || p?.categoryGroupCode || p?.group) || '').toUpperCase();
     const name = (p?.name || p?.place_name || '').toLowerCase();
-    const cat = (p?.category_name || '').toLowerCase();
+       const cat = (p?.category_name || '').toLowerCase();
 
     const text = `${name} ${cat}`;
     const textNS = normalize(name) + normalize(cat);
@@ -923,6 +923,17 @@ export default function Main() {
     map.panBy(-sidebarWidth / 2, 0);
   }, [map, routePath, isSidebarOpen]);
 
+  // 🔥 "두 경로사이 맛집리스트" 패널과 미니뷰어 위치 계산
+  const leftSidebarWidthValue = isSidebarOpen ? 340 : 16;
+  const placeDetailGap = 16;
+  const placeDetailWidth = 520;
+
+  // 패널의 left = 사이드바 폭 + gap
+  const placeDetailLeft = leftSidebarWidthValue + placeDetailGap;
+
+  // 미니뷰어는 패널 오른쪽에 딱 붙게: 패널 left + 패널 width + gap
+  const miniViewerLeft = placeDetailLeft + placeDetailWidth + 16;
+
   return (
     <div className="main-wrapper">
       <SearchSidebar
@@ -982,10 +993,10 @@ export default function Main() {
           open
           place={routeTargetPlace}
           onClose={() => { setPlaceCardOpen(false); }}
-          leftSidebarWidth={isSidebarOpen ? 340 : 16}
-          gap={16}
+          leftSidebarWidth={leftSidebarWidthValue}
+          gap={placeDetailGap}
           topOffset={64}
-          width={520}
+          width={placeDetailWidth}
         >
           <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
             <div style={{ fontSize: 13, color: '#555' }}>
@@ -1283,11 +1294,12 @@ export default function Main() {
         )}
       </Map>
 
-      {/* 🔥 오른쪽 카카오맵 미니뷰어 */}
+      {/* 🔥 두 경로사이 맛집리스트 패널 오른쪽에 딱 붙어서 같이 이동하는 카카오맵 미니뷰어 */}
       {miniViewerPlace && (
         <PlaceMiniViewer
           place={miniViewerPlace}
           onClose={() => setMiniViewerPlace(null)}
+          anchorLeft={miniViewerLeft}
         />
       )}
 
