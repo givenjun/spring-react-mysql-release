@@ -1,5 +1,6 @@
 package com.capstone.board_back.service.implement;
 
+import com.capstone.board_back.common.util.BadWordFilter;
 import com.capstone.board_back.dto.request.board.PatchBoardRequestDto;
 import com.capstone.board_back.dto.request.board.PostBoardRequestDto;
 import com.capstone.board_back.dto.request.board.PostCommentRequestDto;
@@ -7,9 +8,7 @@ import com.capstone.board_back.dto.response.ResponseDto;
 import com.capstone.board_back.dto.response.board.*;
 import com.capstone.board_back.entity.*;
 import com.capstone.board_back.repository.*;
-import com.capstone.board_back.repository.resultSet.GetBoardResultSet;
-import com.capstone.board_back.repository.resultSet.GetCommentListResultSet;
-import com.capstone.board_back.repository.resultSet.GetFavoriteListResultSet;
+import com.capstone.board_back.repository.resultSet.*;
 import com.capstone.board_back.service.BoardService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +33,7 @@ public class BoardServiceImplement implements BoardService{
     private final FavoriteRepository favoriteRepository;
     private final BoardListViewRepository boardListViewRepository;
     private final SearchLogRepository searchLogRepository;
+    private final BadWordFilter badWordFilter;
 
     @Override
     public ResponseEntity<? super GetBoardResponseDto> getBoard(Integer boardNumber) {
@@ -46,11 +46,20 @@ public class BoardServiceImplement implements BoardService{
 
             imageEntities = imageRepository.findByBoardNumber(boardNumber);
 
+            // ▼ ▼ ▼ 욕설 마스킹 핵심 부분 ▼ ▼ ▼
+            String maskedTitle = badWordFilter.mask(resultSet.getTitle());
+            String maskedContent = badWordFilter.mask(resultSet.getContent());
+            String maskedNickname = badWordFilter.mask(resultSet.getWriterNickname());
+
+            GetBoardMaskedResult maskedResult =
+                    new GetBoardMaskedResult(resultSet, maskedTitle, maskedContent, maskedNickname);
+
+            return GetBoardResponseDto.success(maskedResult, imageEntities);
+
         } catch (Exception exception) {
             exception.printStackTrace();
             return ResponseDto.databaseError();
         }
-        return GetBoardResponseDto.success(resultSet,imageEntities);
     }
 
     @Override
@@ -82,12 +91,22 @@ public class BoardServiceImplement implements BoardService{
 
             resultSets = commentRepository.getCommentList(boardNumber);
 
+            // ★ 댓글 마스킹 처리
+            List<GetCommentListResultSet> maskedList = new ArrayList<>();
+
+            for (GetCommentListResultSet item : resultSets) {
+                String maskedContent  = badWordFilter.mask(item.getContent());
+                String maskedNickname = badWordFilter.mask(item.getNickname());
+
+                maskedList.add(new GetCommentMaskedResult(item, maskedContent, maskedNickname));
+            }
+
+            return GetCommentListResponseDto.success(maskedList);
+
         } catch (Exception exception) {
             exception.printStackTrace();
             return ResponseDto.databaseError();
-            // TODO: handle exception
         }
-        return GetCommentListResponseDto.success(resultSets);
     }
 
     // @Override

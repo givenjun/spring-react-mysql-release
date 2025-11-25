@@ -94,6 +94,9 @@
     font-weight: 400;
     line-height: 140%;
 
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     
 }
 
