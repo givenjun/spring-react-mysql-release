@@ -64,7 +64,7 @@ interface SearchSidebarProps {
 
   // 3경로 리스트
   routeOptions?: RouteOptionItem[];
-  selectedRouteIdx?: number;
+  selectedRouteIdx?: number | null;
   onSelectRoute?: (index: number) => void | Promise<void>;
   onOpenRouteDetail?: (index: number) => void | Promise<void>;
 
@@ -606,36 +606,100 @@ export default function SearchSidebar({
                   style={{ marginTop: 10, borderTop: '1px solid #eee', paddingTop: 8 }}
                 >
                   {routeOptions.map((r, i) => {
-                    const deltaMin = fastest ? Math.max(0, Math.round((r.timeSec - fastest) / 60)) : 0;
-                    const badge = r.name === '빠른길' ? '가장 빠름' : r.name === '쉬운길' ? '편안·안전' : '균형 추천';
-                    const selected = i === selectedRouteIdx;
+                    const deltaMin = fastest
+                      ? Math.max(0, Math.round((r.timeSec - fastest) / 60))
+                      : 0;
+
+                    const badge =
+                      r.name === '빠른길'
+                        ? '가장 빠름'
+                        : r.name === '쉬운길'
+                        ? '편안·안전'
+                        : '균형 추천';
+
+                    const selected =
+                      selectedRouteIdx !== null && selectedRouteIdx !== undefined
+                      && i === selectedRouteIdx;
+                    const isLoading = !!routeLoading;
+
+                    // 기본 스타일
+                    const baseStyle: React.CSSProperties = {
+                      width: '100%',
+                      textAlign: 'left',
+                      border: '1px solid #e7e7e7',
+                      borderRadius: 8,
+                      padding: '10px 12px',
+                      marginBottom: 8,
+                      background: '#fff',
+                      cursor: isLoading ? 'not-allowed' : 'pointer',
+                      boxShadow: 'none',
+                      opacity: 1,
+                      transition:
+                        'opacity 0.18s ease, border-color 0.18s ease',
+                    };
+
+                    // 선택된 카드 → 가볍게 반투명 처리
+                    const selectedStyle: React.CSSProperties =
+                      selected && !isLoading
+                        ? {
+                            opacity: 0.75,   // ← 핵심 변경점
+                            borderColor: '#ccc',
+                          }
+                        : {};
+
+                    // 로딩 중 → 더 흐리고 클릭 불가
+                    const disabledStyle: React.CSSProperties = isLoading
+                      ? {
+                          opacity: 0.45,
+                          background: '#f3f3f3',
+                          borderColor: '#d1d5db',
+                        }
+                      : {};
 
                     return (
                       <button
                         key={r.id}
                         className={`item ${selected ? 'selected' : ''}`}
-                        onClick={() => onSelectRoute?.(i)}
-                        onDoubleClick={() => onOpenRouteDetail?.(i)}
+                        onClick={() => !isLoading && onSelectRoute?.(i)}
+                        onDoubleClick={() => !isLoading && onOpenRouteDetail?.(i)}
+                        disabled={isLoading}
                         title={`${r.name} · ${fmtTime(r.timeSec)} · ${fmtDist(r.distanceM)}`}
                         style={{
-                          width: '100%',
-                          textAlign: 'left',
-                          border: `1px solid ${selected ? '#8a2ea1' : '#e7e7e7'}`,
-                          borderRadius: 8,
-                          padding: '10px 12px',
-                          marginBottom: 8,
-                          background: '#fff',
-                          cursor: 'pointer',
-                          boxShadow: selected ? '0 0 0 2px rgba(138,46,161,.15)' : 'none',
+                          ...baseStyle,
+                          ...selectedStyle,
+                          ...disabledStyle,
                         }}
                       >
-                        <div className="row" style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, fontSize: 13 }}>
+                        {/* 상단: 경로명 + 시간 */}
+                        <div
+                          className="row"
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            fontWeight: 600,
+                            fontSize: 13,
+                            color: '#111827',
+                          }}
+                        >
                           <span>{r.name}</span>
                           <span>{fmtTime(r.timeSec)}</span>
                         </div>
-                        <div className="sub" style={{ marginTop: 4, display: 'flex', gap: 8, alignItems: 'center', color: '#666', fontSize: 12 }}>
+
+                        {/* 하단: 거리 + 빠른길 대비 + 배지 */}
+                        <div
+                          className="sub"
+                          style={{
+                            marginTop: 4,
+                            display: 'flex',
+                            gap: 8,
+                            alignItems: 'center',
+                            color: '#666',
+                            fontSize: 12,
+                          }}
+                        >
                           <span>{fmtDist(r.distanceM)}</span>
                           {deltaMin > 0 && <span>빠른길 대비 +{deltaMin}분</span>}
+
                           <span
                             className={`badge ${r.name}`}
                             style={{
@@ -645,8 +709,11 @@ export default function SearchSidebar({
                               borderRadius: 999,
                               border: '1px solid',
                               borderColor:
-                                r.name === '빠른길' ? '#ffaf00' :
-                                r.name === '권장길' ? '#8a2ea1' : '#3aa757',
+                                r.name === '빠른길'
+                                  ? '#ffaf00'
+                                  : r.name === '권장길'
+                                  ? '#8a2ea1'
+                                  : '#3aa757',
                             }}
                           >
                             {badge}
@@ -655,8 +722,9 @@ export default function SearchSidebar({
                       </button>
                     );
                   })}
+
                   <div className="muted" style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
-                    * 경로를 더블클릭하면 오른쪽 상세/맛집 패널이 열립니다.
+                    * 경로를 클릭하면 오른쪽 상세/맛집 패널이 열립니다.
                   </div>
                 </div>
               )}

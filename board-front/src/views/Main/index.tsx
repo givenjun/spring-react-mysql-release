@@ -155,7 +155,7 @@ function routeSignature(path: LL[]): string {
   if (total === 0) {
     const p = path[0];
     const lat = Math.round(p.lat * 1e4);
-       const lng = Math.round(p.lng * 1e4);
+    const lng = Math.round(p.lng * 1e4);
     return `point:${lat},${lng}`;
   }
   const parts: string[] = [];
@@ -262,7 +262,7 @@ export default function Main() {
     complexity: number;
   };
   const [routeOptions, setRouteOptions] = useState<RouteOption[]>([]);
-  const [selectedRouteIdx, setSelectedRouteIdx] = useState<number>(0);
+  const [selectedRouteIdx, setSelectedRouteIdx] = useState<number | null>(null);
 
   const {
     places: routePlaces,
@@ -321,6 +321,9 @@ export default function Main() {
 
   const handleRouteByCoords = useCallback(
     async (start: { lat: number; lng: number; name: string }, end: { lat: number; lng: number; name: string }) => {
+      // 🔥 마커 로딩 중에는 새로운 경로 보기를 막음
+      if (routePlacesLoading) return;
+
       setMapMode('route');
       setAutoRouteLoading(true);
       setAutoRouteError(null);
@@ -495,21 +498,28 @@ export default function Main() {
           finalRoutes.push({ ...fastRoute, name: '빠른길' });
         }
 
-        const trimmed = finalRoutes.slice(0, 3);
+         const trimmed = finalRoutes.slice(0, 3);
         const ord = { 빠른길: 0, 권장길: 1, 쉬운길: 2 } as const;
         trimmed.sort((a, b) => ord[a.name] - ord[b.name]);
 
         setRouteOptions(trimmed);
-        setSelectedRouteIdx(0);
+
+        // ✅ 기본 선택 없음: 사용자가 카드 클릭할 때까지는 "선택" 표시 X
+        setSelectedRouteIdx(null);
+
+        // 여전히 지도에는 기본으로 빠른길(0번)을 그려줌
         setAutoRoutePath(trimmed[0].path);
-        setAutoRouteInfo({ totalDistance: trimmed[0].distanceM, totalTime: trimmed[0].timeSec });
+        setAutoRouteInfo({
+          totalDistance: trimmed[0].distanceM,
+          totalTime: trimmed[0].timeSec,
+        });
       } catch {
         setAutoRouteError('경로를 불러오지 못했습니다.');
       } finally {
         setAutoRouteLoading(false);
       }
     },
-    [resetRoutePlaces],
+    [resetRoutePlaces, routePlacesLoading],
   );
 
   const DASH_LEN = 40;
@@ -696,7 +706,7 @@ export default function Main() {
       ? Math.min(9000, 3500 + Math.round(400 * km))
       : 2000;
 
-    const modeVal: 'fast' | 'full' = useFull ? 'full' : 'fast';
+    const modeVal: 'fast' | 'full' = useFull ? 'full' : 'full'; // 🔥 이제 항상 full로 사용
 
     const base = {
       stepMeters: adaptiveStep,
@@ -723,23 +733,18 @@ export default function Main() {
     return base;
   };
 
-  const runAlongPathTwoStage = useCallback((path: LL[]) => {
+  // 🔥 fast/full 2단계 대신, 항상 full 한 번만 호출해서 "한 번에" 보여주기
+  const runAlongPathOnce = useCallback((path: LL[]) => {
     if (!Array.isArray(path) || path.length < 2) return;
-
-    const fast = { ...optsForTab(foodTab, path), mode: 'fast' as const, timeBudgetMs: 1500 };
-    searchAlongPath(path, fast);
-
-    const myVer = ++routeQueryVerRef.current;
-
-    window.setTimeout(() => {
-      if (routeQueryVerRef.current !== myVer) return;
-      const full = { ...optsForTab(foodTab, path), mode: 'full' as const };
-      searchAlongPath(path, full);
-    }, 1000);
+    const fullOpts = { ...optsForTab(foodTab, path), mode: 'full' as const };
+    searchAlongPath(path, fullOpts);
   }, [foodTab, searchAlongPath]);
 
   const selectRoute = useCallback(async (i: number) => {
     if (!routeOptions[i]) return;
+    // 🔥 마커 로딩 중일 때는 빠른길/권장길/쉬운길 전환 막기
+    if (routePlacesLoading) return;
+
     const r = routeOptions[i];
     setMapMode('route');
     setSelectedRouteIdx(i);
@@ -754,11 +759,14 @@ export default function Main() {
     setDistanceBase(null);
 
     setPlaceCardOpen(true);
-    runAlongPathTwoStage(r.path);
-  }, [routeOptions, resetRoutePlaces, runAlongPathTwoStage]);
+    runAlongPathOnce(r.path);
+  }, [routeOptions, resetRoutePlaces, runAlongPathOnce, routePlacesLoading]);
 
   const openRouteDetail = useCallback(async (i: number) => {
     if (!routeOptions[i]) return;
+    // 🔥 마커 로딩 중일 때는 상세 보기 전환도 막기
+    if (routePlacesLoading) return;
+
     const r = routeOptions[i];
     setMapMode('route');
     setSelectedRouteIdx(i);
@@ -772,8 +780,8 @@ export default function Main() {
 
     setPlaceCardOpen(true);
     routeQueryVerRef.current++;
-    runAlongPathTwoStage(r.path);
-  }, [routeOptions, runAlongPathTwoStage]);
+    runAlongPathOnce(r.path);
+  }, [routeOptions, runAlongPathOnce, routePlacesLoading]);
 
   const tabToIconCategory = (tab: FoodTab): string =>
     tab === '카페' ? '카페' : (tab === '족발/보쌈' ? '족발' : tab);
@@ -1078,15 +1086,15 @@ export default function Main() {
                   setRoutePivot(null);
                   setDistanceBase((prev) => (prev === 'origin' ? null : 'origin'));
                 }}
-                disabled={!autoRouteEndpoints?.start}
+                disabled={!autoRouteEndpoints?.start || routePlacesLoading}
                 style={{
                   padding: '4px 8px',
                   borderRadius: 999,
                   border: '1px solid',
                   borderColor: distanceBase === 'origin' && !isPivotSelectMode ? '#8a2ea1' : '#e5e7eb',
                   background: distanceBase === 'origin' && !isPivotSelectMode ? '#f5ecff' : '#fff',
-                  cursor: autoRouteEndpoints?.start ? 'pointer' : 'not-allowed',
-                  opacity: autoRouteEndpoints?.start ? 1 : 0.4,
+                  cursor: (!autoRouteEndpoints?.start || routePlacesLoading) ? 'not-allowed' : 'pointer',
+                  opacity: (!autoRouteEndpoints?.start || routePlacesLoading) ? 0.4 : 1,
                   whiteSpace: 'nowrap',
                 }}
               >
@@ -1099,15 +1107,15 @@ export default function Main() {
                   setRoutePivot(null);
                   setDistanceBase((prev) => (prev === 'destination' ? null : 'destination'));
                 }}
-                disabled={!autoRouteEndpoints?.end}
+                disabled={!autoRouteEndpoints?.end || routePlacesLoading}
                 style={{
                   padding: '4px 8px',
                   borderRadius: 999,
                   border: '1px solid',
                   borderColor: distanceBase === 'destination' && !isPivotSelectMode ? '#8a2ea1' : '#e5e7eb',
                   background: distanceBase === 'destination' && !isPivotSelectMode ? '#f5ecff' : '#fff',
-                  cursor: autoRouteEndpoints?.end ? 'pointer' : 'not-allowed',
-                  opacity: autoRouteEndpoints?.end ? 1 : 0.4,
+                  cursor: (!autoRouteEndpoints?.end || routePlacesLoading) ? 'not-allowed' : 'pointer',
+                  opacity: (!autoRouteEndpoints?.end || routePlacesLoading) ? 0.4 : 1,
                   whiteSpace: 'nowrap',
                 }}
               >
@@ -1117,6 +1125,7 @@ export default function Main() {
               <button
                 type="button"
                 onClick={() => {
+                  if (routePlacesLoading) return;
                   const next = !isPivotSelectMode;
                   setIsPivotSelectMode(next);
                   if (!next) {
@@ -1130,14 +1139,30 @@ export default function Main() {
                   border: '1px solid',
                   borderColor: isPivotSelectMode ? '#8a2ea1' : '#e5e7eb',
                   background: isPivotSelectMode ? '#f5ecff' : '#fff',
-                  cursor: 'pointer',
+                  cursor: routePlacesLoading ? 'not-allowed' : 'pointer',
+                  opacity: routePlacesLoading ? 0.4 : 1,
                   whiteSpace: 'nowrap',
                 }}
               >
                 경로에서 클릭 지점 기준 정렬
               </button>
 
-              {isPivotSelectMode && routePivot && (
+              {routePlacesLoading && (
+                <div
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: 999,
+                    border: '1px dashed #8a2ea1',
+                    background: '#faf5ff',
+                    color: '#6b21a8',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  경로 주변 맛집 로딩 중...
+                </div>
+              )}
+
+              {isPivotSelectMode && routePivot && !routePlacesLoading && (
                 <div
                   style={{
                     padding: '4px 8px',
@@ -1159,7 +1184,8 @@ export default function Main() {
               <button
                 key={t}
                 className={`pd-tab ${foodTab === t ? 'active' : ''}`}
-                onClick={() => { setFoodTab(t as any); setOnlySelectedMarker(false); }}
+                onClick={() => { if (!routePlacesLoading) { setFoodTab(t as any); setOnlySelectedMarker(false); } }}
+                disabled={routePlacesLoading}
               >
                 {t}
               </button>
@@ -1261,7 +1287,6 @@ export default function Main() {
                 size={size}
                 anchorY={size}
                 zIndex={105}
-                // 🔥 탐색 탭에서는 필요시 onClick을 줄 수 있음 (지금은 안 줌)
               />
             );
           }
@@ -1303,7 +1328,7 @@ export default function Main() {
               strokeStyle="solid"
               zIndex={70}
               onClick={(_, mouseEvent) => {
-                if (!isPivotSelectMode || !mouseEvent) return;
+                if (!isPivotSelectMode || !mouseEvent || routePlacesLoading) return;
                 const latLng = mouseEvent.latLng;
                 if (!latLng) return;
                 setRoutePivot({ lat: latLng.getLat(), lng: latLng.getLng() });
@@ -1349,9 +1374,8 @@ export default function Main() {
               strokeOpacity={0.98}
               strokeStyle="solid"
               zIndex={75}
-              // 🔥 개미행렬(자동 경로) 위 아무 곳이나 클릭 → pivot 모드일 때만 기준점
               onClick={(_, mouseEvent: kakao.maps.event.MouseEvent) => {
-                if (!isPivotSelectMode || !mouseEvent) return;
+                if (!isPivotSelectMode || !mouseEvent || routePlacesLoading) return;
                 const latLng = mouseEvent.latLng;
                 if (!latLng) return;
                 setRoutePivot({ lat: latLng.getLat(), lng: latLng.getLng() });
@@ -1377,7 +1401,7 @@ export default function Main() {
           <MapMarker
             position={{ lat: routePivot.lat, lng: routePivot.lng }}
             image={{
-              src: '/assets/markers/기본마커.png', // 에셋 넣으면 됨
+              src: '/assets/markers/기본마커.png',
               size: { width: 32, height: 40 },
               options: {
                 offset: { x: 16, y: 40 },
@@ -1406,7 +1430,6 @@ export default function Main() {
               size={size}
               anchorY={size}
               zIndex={110}
-              // 🔥 onClick 없음 → clickable={false} → 마커가 클릭을 먹지 않음
             />
           );
         })}
