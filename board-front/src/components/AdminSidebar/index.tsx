@@ -26,6 +26,7 @@ export default function AdminSidebar({
     { label: "공지사항 관리", key: "notices", icon: "📢" },
     { label: "게시판 관리", key: "boards", icon: "📝" },
     { label: "회원 관리", key: "users", icon: "👥" },
+    { label: "비속어 관리", key: "badwords", icon: "🚫" },
     { label: "대시보드", key: "dashboard", icon: "📊" },
   ];
 

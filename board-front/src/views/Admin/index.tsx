@@ -6,6 +6,7 @@ import { useAdminAuth } from "hooks";
 import AdminNoticeList from "./NoticeList";
 import AdminDashboard from "./Dashboard";
 import "./style.css";
+import AdminBadwordList from "./BadwordList";
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -67,6 +68,7 @@ export default function AdminLayout() {
         {section === "notices" && <AdminNoticeList />}
         {section === "boards" && <AdminBoardList />}
         {section === "users" && <AdminUserList />}
+        {section === "badwords" && <AdminBadwordList />}
         {section === "dashboard" && <AdminDashboard />}
       </main>
     </div>
