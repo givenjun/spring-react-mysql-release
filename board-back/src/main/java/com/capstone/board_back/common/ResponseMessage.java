@@ -26,4 +26,9 @@ public interface ResponseMessage {
     // HTTP Status 500
     String DATABASE_ERROR = "Database error.";
 
+    String BADWORD_INVALID_TYPE = "잘못된 욕설 유형입니다.";
+    String BADWORD_DUPLICATED = "이미 존재하는 단어입니다.";
+    String BADWORD_NOT_FOUND = "해당 단어를 찾을 수 없습니다.";
+
+
 }

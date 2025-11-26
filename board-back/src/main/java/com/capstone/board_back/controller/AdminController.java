@@ -1,5 +1,6 @@
 package com.capstone.board_back.controller;
 
+import com.capstone.board_back.dto.request.admin.BadWordRequestDto;
 import com.capstone.board_back.dto.response.admin.*;
 import com.capstone.board_back.service.AdminService;
 import lombok.RequiredArgsConstructor;
@@ -108,4 +109,23 @@ public class AdminController {
     public ResponseEntity<? super GetBadWordListResponseDto> getBadWordFiles() {
         return adminService.getBadWordFiles();
     }
+
+    @PostMapping("/badwords/add")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUB_ADMIN')")
+    public ResponseEntity<?> addBadWord(@RequestBody BadWordRequestDto dto) {
+        return adminService.addBadWord(dto.getType(), dto.getWord());
+    }
+
+    @DeleteMapping("/badwords/delete")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUB_ADMIN')")
+    public ResponseEntity<?> deleteBadWord(@RequestBody BadWordRequestDto dto) {
+        return adminService.deleteBadWord(dto.getType(), dto.getWord());
+    }
+
+    @DeleteMapping("/badwords/reset")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> resetBadWords() {
+        return adminService.resetBadWords();
+    }
+
 }

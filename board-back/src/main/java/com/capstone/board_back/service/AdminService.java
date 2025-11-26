@@ -20,5 +20,7 @@ public interface AdminService {
     );
 
     ResponseEntity<? super GetBadWordListResponseDto> getBadWordFiles();
-
+    ResponseEntity<? super AddBadWordResponseDto> addBadWord(String type, String word);
+    ResponseEntity<? super DeleteBadWordResponseDto> deleteBadWord(String type, String word);
+    ResponseEntity<? super ResetBadWordResponseDto> resetBadWords();
 }

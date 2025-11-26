@@ -3,7 +3,7 @@
 /* ------------------------- */
 
 .admin-badword-list {
-  padding: 25px 32px; /* ✅ 유지 */
+  padding: 25px 24px 25px 32px; /* ✅ 유지 */
   font-family: 'Pretendard', sans-serif;
   background-color: #fafafa;
   display: flex;
@@ -17,14 +17,17 @@
   min-width: 80vw;
   max-width: 100vw;
 
+  
   border-radius: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   box-sizing: border-box;    /* ✅ 추가: 크기 계산 오류 방지 */
 }
 
-
 .badword-page {
-  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;     /* 🔥 수정: max-height:100vh 제거 */
+  overflow: hidden; /* 🔥 자식들이 넘치지 않게 */
 }
 
 .badword-title {
@@ -39,9 +42,13 @@
 /* 2x2 그리드 레이아웃 추가 */
 /* ------------------------- */
 .badword-grid {
+  height: 100%;     /* 🔥 vh 제거 */
   display: grid;
   grid-template-columns: repeat(2, 1fr);
+  padding-top: 2px;
+  padding-right: 4px;
   gap: 20px;
+  overflow-y: auto; /* 🔥 내부 스크롤 */
 }
 
 .badword-grid-item {
@@ -61,13 +68,15 @@
 /* ------------------------- */
 
 .badword-card {
+  display: flex;
+  flex-direction: column;
   background: white;
   border: 1px solid #e6e6e6;
   border-radius: 14px;
-  padding: 20px;
-  margin-bottom: 20px;
+  padding-left: 20px;
+  padding-right: 20px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.04);
-  transition: box-shadow 0.18s ease, transform 0.18s ease;
+  transition: box-shadow 0.18s ease, transform 0.18s ease;  
 }
 
 .badword-card:hover {
@@ -76,9 +85,14 @@
 }
 
 
-/* 회원관리 카드 크기 */
+/* 비속어 관리 카드 크기 */
 .badword-list-card {
-  min-height: 200px;
+  height: 335px;
+  padding-bottom: 10px;
+}
+.badword-upload {
+  height: 335px;
+  padding-bottom: 10px;
 }
 
 /* ------------------------- */
@@ -111,14 +125,12 @@
 /* ------------------------- */
 
 .badword-badge-container {
+  flex: 1;  
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  height: 200px;
   overflow-y: auto;
-  padding-left: 6px;
-  padding-top: 1px;
-  padding-bottom: 3px;
+  padding: 3px;
 }
 
 .badword-badge {
@@ -129,6 +141,8 @@
   background: #f2f2f2;
   border: 1px solid #ddd;
   user-select: none;
+  height: 20px;
+  line-height: 20px;
   display: inline-flex;
   align-items: center;
   transition: all 0.15s ease;
@@ -171,7 +185,6 @@
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  margin-top: 10px;
   transition: background 0.2s ease, transform 0.15s ease;
 }
 
@@ -206,7 +219,7 @@
 .add-row {
   display: flex;
   gap: 8px;
-  margin-top: 10px;
+  padding-bottom: 10px;
 }
 
 .add-row input {
@@ -220,6 +233,49 @@
   padding: 8px 12px;
   background: #4a3aff;
   color: #fff;
+  border: none;
   border-radius: 8px;
   cursor: pointer;
+  background: linear-gradient(135deg, #6a5cff, #4935ff);
+  color: #fff;
+  backdrop-filter: blur(6px);
+  transition: transform 0.3s ease;
+}
+
+.add-row button:hover {
+  background: linear-gradient(135deg, #7a6cff, #5b48ff);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 14px rgba(74, 58, 255, 0.35);
+}
+
+.add-row button:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 10px rgba(74, 58, 255, 0.25);
+}
+/* ------------------------- */
+/* 전체 초기화 버튼 */
+/* ------------------------- */
+
+.reset-all-btn {
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  background: #ff4d4f;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 180px;
+  transition: transform 0.3s ease;
+}
+
+.reset-all-btn:hover {
+  background: linear-gradient(135deg, #ff7575, #ff4d4d);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 14px rgba(255, 77, 77, 0.35);
+}
+
+.reset-all-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 10px rgba(255, 77, 77, 0.25);
 }

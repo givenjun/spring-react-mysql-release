@@ -1,5 +1,7 @@
 package com.capstone.board_back.service.implement;
 
+import com.capstone.board_back.common.util.BadWordFileLoader;
+import com.capstone.board_back.common.util.BadWordFilterProvider;
 import com.capstone.board_back.dto.response.ResponseDto;
 import com.capstone.board_back.dto.response.admin.*;
 import com.capstone.board_back.entity.BoardEntity;
@@ -8,21 +10,22 @@ import com.capstone.board_back.repository.BoardRepository;
 import com.capstone.board_back.repository.NoticeRepository;
 import com.capstone.board_back.repository.UserRepository;
 import com.capstone.board_back.service.AdminService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -38,6 +41,11 @@ public class AdminServiceImplement implements AdminService {
     private final BoardRepository boardRepository;
     private final NoticeRepository noticeRepository;
     private final PasswordEncoder passwordEncoder;
+    private final BadWordFilterProvider badWordFilterProvider;
+    private final BadWordFileLoader badWordFileLoader;
+
+    @Value("${badword.upload-dir}")
+    private String uploadDir;
 
     @Override
     public ResponseEntity<? super GetUserListResponseDto> getUserList() {
@@ -220,20 +228,12 @@ public class AdminServiceImplement implements AdminService {
         }
     }
 
-    @Value("${badword.upload-dir}")
-    private String uploadDir;
-
     @Override
     public ResponseEntity<? super UploadBadWordResponseDto> uploadBadWordFiles(
-            MultipartFile strict,
-            MultipartFile loose,
-            MultipartFile regex
+            MultipartFile strict, MultipartFile loose, MultipartFile regex
     ) {
         try {
-            // ❗ uploadDir 은 절대경로이므로 user.dir 을 절대 붙이면 안 된다
             String base = uploadDir + File.separator;
-
-            // 디렉토리 생성
             File dir = new File(base);
             if (!dir.exists()) dir.mkdirs();
 
@@ -246,11 +246,14 @@ public class AdminServiceImplement implements AdminService {
             if (regex != null && !regex.isEmpty())
                 regex.transferTo(new File(base + "badwords_regex.txt"));
 
-            return ResponseEntity.ok(new UploadBadWordResponseDto());
+            // ★ 중요 : 파일 갱신 후 즉시 메모리에 재적용
+            badWordFileLoader.reload();
+
+            return UploadBadWordResponseDto.success();
 
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body(null);
+            return ResponseDto.databaseError();
         }
     }
 
@@ -263,25 +266,121 @@ public class AdminServiceImplement implements AdminService {
             List<String> loose = readLines(base + "badwords_loose.txt");
             List<String> regex = readLines(base + "badwords_regex.txt");
 
-            return ResponseEntity.ok(new GetBadWordListResponseDto(strict, loose, regex));
+            return GetBadWordListResponseDto.success(strict, loose, regex);
 
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body(null);
+            return ResponseDto.databaseError();
         }
     }
 
     private List<String> readLines(String filePath) {
         try {
-            Path path = Paths.get(filePath);   // ✔ 절대경로 그대로 사용
-            return Files.readAllLines(path, StandardCharsets.UTF_8)
-                    .stream()
-                    .map(String::trim)
-                    .filter(s -> !s.isBlank())
-                    .toList();
+            return Files.readAllLines(Paths.get(filePath));
         } catch (Exception e) {
-            e.printStackTrace();
             return List.of();
         }
     }
+
+    private final String STRICT = "badwords_strict.txt";
+    private final String LOOSE  = "badwords_loose.txt";
+    private final String REGEX  = "badwords_regex.txt";
+
+    private Path resolvePath(String fileName) {
+        return Paths.get(uploadDir + File.separator + fileName);
+    }
+
+    // 파일 읽기
+    private List<String> readFile(String fileName) throws IOException {
+        Path path = resolvePath(fileName);
+        if (!Files.exists(path)) return new ArrayList<>();
+        return Files.readAllLines(path, StandardCharsets.UTF_8);
+    }
+
+    // 파일 저장
+    private void writeFile(String fileName, List<String> data) throws IOException {
+        Path path = resolvePath(fileName);
+        Files.write(path, data, StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING);
+    }
+
+    // type 문자열 → 파일명 변환
+    private String mapTypeToFile(String type) {
+        return switch (type.toLowerCase()) {
+            case "strict" -> STRICT;
+            case "loose" -> LOOSE;
+            case "regex" -> REGEX;
+            default -> null;
+        };
+    }
+
+    @Override
+    public ResponseEntity<? super AddBadWordResponseDto> addBadWord(String type, String word) {
+        try {
+            String fileName = mapTypeToFile(type);
+            if (fileName == null) return AddBadWordResponseDto.invalidType();
+
+            List<String> words = readFile(fileName);
+
+            if (words.contains(word))
+                return AddBadWordResponseDto.alreadyExists();
+
+            words.add(word);
+            writeFile(fileName, words);
+
+            // 메모리 필터 reload
+            badWordFileLoader.reload();
+            badWordFilterProvider.reload();
+
+            return AddBadWordResponseDto.success();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return AddBadWordResponseDto.databaseError();
+        }
+    }
+
+    @Override
+    public ResponseEntity<? super DeleteBadWordResponseDto> deleteBadWord(String type, String word) {
+        try {
+            String fileName = mapTypeToFile(type);
+            if (fileName == null) return DeleteBadWordResponseDto.invalidType();
+
+            List<String> words = readFile(fileName);
+
+            if (!words.remove(word))
+                return DeleteBadWordResponseDto.notFound();
+
+            writeFile(fileName, words);
+
+            badWordFileLoader.reload();
+            badWordFilterProvider.reload();
+
+            return DeleteBadWordResponseDto.success();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return DeleteBadWordResponseDto.databaseError();
+        }
+    }
+
+    @Override
+    public ResponseEntity<? super ResetBadWordResponseDto> resetBadWords() {
+        try {
+            writeFile(STRICT, new ArrayList<>());
+            writeFile(LOOSE,  new ArrayList<>());
+            writeFile(REGEX,  new ArrayList<>());
+
+            badWordFileLoader.reload();
+            badWordFilterProvider.reload();
+
+            return ResetBadWordResponseDto.success();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResetBadWordResponseDto.databaseError();
+        }
+    }
+
 }

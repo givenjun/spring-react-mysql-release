@@ -4,6 +4,8 @@ import "../common/style.css";
 import axios from "axios";
 import useAdminAuth from "hooks/useadminauth.hook";
 import { customErrToast } from "hooks";
+import DeleteConfirmModal from "../common/DeleteConfirmModal"; // 🔥 모달 import
+import GenericModal from "../../../components/Modal/GenericModal";
 
 const DOMAIN = process.env.REACT_APP_API_URL;
 
@@ -24,14 +26,21 @@ export default function AdminBadwordList() {
   const looseRef = useRef<HTMLInputElement>(null);
   const regexRef = useRef<HTMLInputElement>(null);
 
-  const [showAddStrict, setShowAddStrict] = useState(false);
-  const [showAddLoose, setShowAddLoose] = useState(false);
-  const [showAddRegex, setShowAddRegex] = useState(false);
-
   const [newStrictWord, setNewStrictWord] = useState("");
   const [newLooseWord, setNewLooseWord] = useState("");
   const [newRegexWord, setNewRegexWord] = useState("");
 
+  // ------------------------------
+  // 🔥 확인 모달 상태 추가
+  // ------------------------------
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+
+  const isUploadDisabled = !strictFile && !looseFile && !regexFile;
+
+  // ------------------------------
+  // 📌 목록 조회
+  // ------------------------------
   const getBadwordList = async () => {
     try {
       const token = localStorage.getItem("accessToken");
@@ -52,6 +61,13 @@ export default function AdminBadwordList() {
     }
   };
 
+  useEffect(() => {
+    getBadwordList();
+  }, []);
+
+  // ------------------------------
+  // 📌 파일 업로드 (확인 후 실행)
+  // ------------------------------
   const uploadBadwordFiles = async () => {
     try {
       const formData = new FormData();
@@ -89,82 +105,166 @@ export default function AdminBadwordList() {
     }
   };
 
-  useEffect(() => {
-    getBadwordList();
-  }, []);
+  // ------------------------------
+  // 📌 전체 초기화 (확인 후 실행)
+  // ------------------------------
+  const resetAll = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      const response = await axios.delete(
+        `${DOMAIN}/api/v1/admin/badwords/reset`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-  const isUploadDisabled = !strictFile && !looseFile && !regexFile;
-
-  // 추가 함수
-  const addStrict = () => {
-    if (!newStrictWord.trim()) return;
-    setStrict((prev) => [...prev, newStrictWord.trim()]);
-    setNewStrictWord("");
-    setShowAddStrict(false);
+      if (response.data.code === "SU") {
+        customErrToast("초기화 완료");
+        getBadwordList();
+      }
+    } catch {
+      customErrToast("초기화 실패");
+    }
   };
 
-  const addLoose = () => {
-    if (!newLooseWord.trim()) return;
-    setLoose((prev) => [...prev, newLooseWord.trim()]);
-    setNewLooseWord("");
-    setShowAddLoose(false);
-  };
+  // -------------------------
+// 📌 단어 추가 API 호출
+// -------------------------
+const handleAddWord = async (type: string, word: string) => {
+  if (!word.trim()) return;
 
-  const addRegex = () => {
-    if (!newRegexWord.trim()) return;
-    setRegex((prev) => [...prev, newRegexWord.trim()]);
-    setNewRegexWord("");
-    setShowAddRegex(false);
-  };
+  try {
+    const token = localStorage.getItem("accessToken");
+    const response = await axios.post(
+      `${DOMAIN}/api/v1/admin/badwords/add`,
+      { type, word },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (response.data.code === "SU") {
+      customErrToast("단어 추가 완료");
+      getBadwordList();
+    }
+  } catch {
+    customErrToast("단어 추가 실패");
+  }
+};
+
+// -------------------------
+// 📌 단어 삭제 API 호출
+// -------------------------
+const deleteWord = async (type: string, word: string) => {
+  try {
+    const token = localStorage.getItem("accessToken");
+    const response = await axios.delete(
+      `${DOMAIN}/api/v1/admin/badwords/delete`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        data: { type, word },
+      }
+    );
+
+    if (response.data.code === "SU") {
+      customErrToast("삭제 완료");
+      getBadwordList();
+    }
+  } catch {
+    customErrToast("삭제 실패");
+  }
+};
 
   if (loading) return <div className="badword-page">불러오는 중...</div>;
 
   return (
     <div className="admin-badword-list">
-    <div className="badword-page">
-      <h2 className="badword-title">🚫 비속어 관리</h2>
+      <div className="badword-page">
+        <h2 className="badword-title">🚫 비속어 관리</h2>
 
-      <div className="badword-grid">
+        {/* ---------------------------- */}
+        {/* 🔥 전체 초기화 버튼 + 모달  */}
+        {/* ---------------------------- */}
+        <button className="reset-all-btn" onClick={() => setShowResetModal(true)}>
+          ⚠ 전체 초기화
+        </button>
 
-        {/* 업로드 카드 */}
-        <div className="badword-card badword-upload">
-          <h3>📤 파일 업로드</h3>
+        {showResetModal && (
+          <GenericModal
+            title="⚠️ 전체 초기화"
+            message="모든 비속어 목록을 정말 초기화하시겠습니까?"
+            confirmText="초기화"
+            danger={true}
+            onConfirm={() => {
+              setShowResetModal(false);
+              resetAll();
+            }}
+            onCancel={() => setShowResetModal(false)}
+          />
+        )}
 
-          <div className="badword-upload-row">
-            <label>Strict 파일</label>
-            <input ref={strictRef} type="file" onChange={(e) => setStrictFile(e.target.files?.[0] || null)} />
+        <div className="badword-grid">
+
+          {/* ---------------------------- */}
+          {/* 🔥 업로드 카드 + 업로드 확인 모달 */}
+          {/* ---------------------------- */}
+          <div className="badword-card badword-upload">
+            <h3>📤 파일 업로드</h3>
+
+            <div className="badword-upload-row">
+              <label>Strict 파일</label>
+              <input
+                ref={strictRef}
+                type="file"
+                onChange={(e) => setStrictFile(e.target.files?.[0] || null)}
+              />
+            </div>
+
+            <div className="badword-upload-row">
+              <label>Loose 파일</label>
+              <input
+                ref={looseRef}
+                type="file"
+                onChange={(e) => setLooseFile(e.target.files?.[0] || null)}
+              />
+            </div>
+
+            <div className="badword-upload-row">
+              <label>Regex 파일</label>
+              <input
+                ref={regexRef}
+                type="file"
+                onChange={(e) => setRegexFile(e.target.files?.[0] || null)}
+              />
+            </div>
+
+            <button
+              disabled={isUploadDisabled}
+              className={`badword-btn ${isUploadDisabled ? "disabled" : ""}`}
+              onClick={() => setShowUploadModal(true)}
+            >
+              업로드
+            </button>
+
+            {showUploadModal && (
+              <GenericModal
+                title="📤 파일 업로드"
+                message="선택한 파일을 업로드하시겠습니까?"
+                confirmText="업로드"
+                roundedOverlay={true}
+                cardSelector=".badword-card"  // 🔥 카드 영역 지정
+                onConfirm={() => {
+                  setShowUploadModal(false);
+                  uploadBadwordFiles();
+                }}
+                onCancel={() => setShowUploadModal(false)}
+              />
+            )}
           </div>
 
-          <div className="badword-upload-row">
-            <label>Loose 파일</label>
-            <input ref={looseRef} type="file" onChange={(e) => setLooseFile(e.target.files?.[0] || null)} />
-          </div>
+          {/* ---------------------------- */}
+          {/* 아래 STRICT / LOOSE / REGEX 리스트 부분은 동일 */}
+          {/* ---------------------------- */}
 
-          <div className="badword-upload-row">
-            <label>Regex 파일</label>
-            <input ref={regexRef} type="file" onChange={(e) => setRegexFile(e.target.files?.[0] || null)} />
-          </div>
+          <div className="badword-card badword-list-card">
+            <h3>🔴 Strict 리스트 ({strict.length})</h3>
 
-          <button
-            disabled={isUploadDisabled}
-            className={`badword-btn ${isUploadDisabled ? "disabled" : ""}`}
-            onClick={uploadBadwordFiles}
-          >
-            업로드
-          </button>
-        </div>
-
-        {/* STRICT */}
-        <div className="badword-card badword-list-card">
-          <h3>🔴 Strict 리스트 ({strict.length})</h3>
-
-          <div className="badword-badge-container">
-            {strict.map((word, idx) => (
-              <span key={idx} className="badword-badge badword-strict">{word}</span>
-            ))}
-          </div>
-
-          {showAddStrict && (
             <div className="add-row">
               <input
                 type="text"
@@ -172,26 +272,25 @@ export default function AdminBadwordList() {
                 onChange={(e) => setNewStrictWord(e.target.value)}
                 placeholder="단어 입력"
               />
-              <button onClick={addStrict}>추가</button>
+              <button onClick={() => handleAddWord("strict", newStrictWord)}>추가</button>
             </div>
-          )}
 
-          <button className="add-bottom-btn" onClick={() => setShowAddStrict(!showAddStrict)}>
-            + 단어 추가
-          </button>
-        </div>
-
-        {/* LOOSE */}
-        <div className="badword-card badword-list-card">
-          <h3>🟡 Loose 리스트 ({loose.length})</h3>
-
-          <div className="badword-badge-container">
-            {loose.map((word, idx) => (
-              <span key={idx} className="badword-badge badword-loose">{word}</span>
-            ))}
+            <div className="badword-badge-container">
+              {strict.map((word, idx) => (
+                <span
+                  key={idx}
+                  className="badword-badge badword-strict"
+                  onClick={() => deleteWord("strict", word)}
+                >
+                  {word} ✕
+                </span>
+              ))}
+            </div>
           </div>
 
-          {showAddLoose && (
+          <div className="badword-card badword-list-card">
+            <h3>🟡 Loose 리스트 ({loose.length})</h3>
+
             <div className="add-row">
               <input
                 type="text"
@@ -199,26 +298,25 @@ export default function AdminBadwordList() {
                 onChange={(e) => setNewLooseWord(e.target.value)}
                 placeholder="단어 입력"
               />
-              <button onClick={addLoose}>추가</button>
+              <button onClick={() => handleAddWord("loose", newLooseWord)}>추가</button>
             </div>
-          )}
 
-          <button className="add-bottom-btn" onClick={() => setShowAddLoose(!showAddLoose)}>
-            + 단어 추가
-          </button>
-        </div>
-
-        {/* REGEX */}
-        <div className="badword-card badword-list-card">
-          <h3>🟣 Regex 리스트 ({regex.length})</h3>
-
-          <div className="badword-badge-container">
-            {regex.map((pattern, idx) => (
-              <span key={idx} className="badword-badge badword-regex">{pattern}</span>
-            ))}
+            <div className="badword-badge-container">
+              {loose.map((word, idx) => (
+                <span
+                  key={idx}
+                  className="badword-badge badword-loose"
+                  onClick={() => deleteWord("loose", word)}
+                >
+                  {word} ✕
+                </span>
+              ))}
+            </div>
           </div>
 
-          {showAddRegex && (
+          <div className="badword-card badword-list-card">
+            <h3>🟣 Regex 리스트 ({regex.length})</h3>
+
             <div className="add-row">
               <input
                 type="text"
@@ -226,17 +324,24 @@ export default function AdminBadwordList() {
                 onChange={(e) => setNewRegexWord(e.target.value)}
                 placeholder="정규식 입력"
               />
-              <button onClick={addRegex}>추가</button>
+              <button onClick={() => handleAddWord("regex", newRegexWord)}>추가</button>
             </div>
-          )}
 
-          <button className="add-bottom-btn" onClick={() => setShowAddRegex(!showAddRegex)}>
-            + 정규식 추가
-          </button>
+            <div className="badword-badge-container">
+              {regex.map((pattern, idx) => (
+                <span
+                  key={idx}
+                  className="badword-badge badword-regex"
+                  onClick={() => deleteWord("regex", pattern)}
+                >
+                  {pattern} ✕
+                </span>
+              ))}
+            </div>
+          </div>
+
         </div>
-
       </div>
-    </div>
     </div>
   );
 }

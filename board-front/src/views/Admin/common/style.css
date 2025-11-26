@@ -17,11 +17,13 @@
   min-height: calc(10 * 59px + 45px); 
   /* 👉 (행 높이 * 10) + 헤더 높이 여유 (48px은 평균 행 높이) */
   overflow-y: auto;
+  overflow-x: auto;
   margin-bottom: 20px; /* 테이블과 페이지네이션 간격 */
 }
 
 .admin-table {
   width: 100%;
+  min-width: 1300px;  
   border-collapse: collapse;
   background-color: white;
   border-radius: 10px;
