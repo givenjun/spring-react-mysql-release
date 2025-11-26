@@ -10,11 +10,19 @@ import com.capstone.board_back.repository.UserRepository;
 import com.capstone.board_back.service.AdminService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -173,7 +181,7 @@ public class AdminServiceImplement implements AdminService {
                 String endStr = end.format(formatter);
 
                 int newUsers = userRepository.countByJoinedAtBetween(start, end);
-                int newPosts = boardRepository.countByWriteDatetimeBetweenString(startStr, endStr); 
+                int newPosts = boardRepository.countByWriteDatetimeBetweenString(startStr, endStr);
 
                 trendList.add(new GetDashboardTrendResponseDto.TrendData(
                         date.toString(), newUsers, newPosts
@@ -209,6 +217,71 @@ public class AdminServiceImplement implements AdminService {
         } catch (Exception exception) {
             exception.printStackTrace();
             return ResponseDto.databaseError();
+        }
+    }
+
+    @Value("${badword.upload-dir}")
+    private String uploadDir;
+
+    @Override
+    public ResponseEntity<? super UploadBadWordResponseDto> uploadBadWordFiles(
+            MultipartFile strict,
+            MultipartFile loose,
+            MultipartFile regex
+    ) {
+        try {
+            // ❗ uploadDir 은 절대경로이므로 user.dir 을 절대 붙이면 안 된다
+            String base = uploadDir + File.separator;
+
+            // 디렉토리 생성
+            File dir = new File(base);
+            if (!dir.exists()) dir.mkdirs();
+
+            if (strict != null && !strict.isEmpty())
+                strict.transferTo(new File(base + "badwords_strict.txt"));
+
+            if (loose != null && !loose.isEmpty())
+                loose.transferTo(new File(base + "badwords_loose.txt"));
+
+            if (regex != null && !regex.isEmpty())
+                regex.transferTo(new File(base + "badwords_regex.txt"));
+
+            return ResponseEntity.ok(new UploadBadWordResponseDto());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(null);
+        }
+    }
+
+    @Override
+    public ResponseEntity<? super GetBadWordListResponseDto> getBadWordFiles() {
+        try {
+            String base = uploadDir + File.separator;
+
+            List<String> strict = readLines(base + "badwords_strict.txt");
+            List<String> loose = readLines(base + "badwords_loose.txt");
+            List<String> regex = readLines(base + "badwords_regex.txt");
+
+            return ResponseEntity.ok(new GetBadWordListResponseDto(strict, loose, regex));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(null);
+        }
+    }
+
+    private List<String> readLines(String filePath) {
+        try {
+            Path path = Paths.get(filePath);   // ✔ 절대경로 그대로 사용
+            return Files.readAllLines(path, StandardCharsets.UTF_8)
+                    .stream()
+                    .map(String::trim)
+                    .filter(s -> !s.isBlank())
+                    .toList();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return List.of();
         }
     }
 }
