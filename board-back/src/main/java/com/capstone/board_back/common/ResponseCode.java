@@ -26,5 +26,7 @@ public interface ResponseCode {
     // HTTP Status 500
     String DATABASE_ERROR = "DBE";
 
-
+    String BADWORD_INVALID_TYPE = "BW-001";
+    String BADWORD_DUPLICATED = "BW-002";
+    String BADWORD_NOT_FOUND = "BW-003";
 }

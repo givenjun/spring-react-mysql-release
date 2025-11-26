@@ -1,22 +1,24 @@
 package com.capstone.board_back.common.util;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-/**
- * 정적(static) 환경에서도 BadWordFilter Bean을 사용할 수 있도록 제공하는 Provider 클래스
- */
 @Component
+@RequiredArgsConstructor
 public class BadWordFilterProvider {
 
-    private static BadWordFilter badWordFilter;
+    private final BadWordFileLoader loader;
 
-    @Autowired
-    public BadWordFilterProvider(BadWordFilter filter) {
-        BadWordFilterProvider.badWordFilter = filter;
+    public BadWordFilter getFilter() {
+        return new BadWordFilter(
+                loader.getStrictWords(),
+                loader.getLooseWords(),
+                loader.getRegexPatterns()
+        );
     }
 
-    public static BadWordFilter getFilter() {
-        return badWordFilter;
+    // 🔥 새로 추가해야 하는 부분
+    public void reload() {
+        loader.reload();
     }
 }

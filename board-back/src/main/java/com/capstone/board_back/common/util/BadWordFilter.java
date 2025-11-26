@@ -1,82 +1,46 @@
 package com.capstone.board_back.common.util;
 
 import java.util.Set;
-import java.util.regex.Pattern;
 
 public class BadWordFilter {
 
     private final Set<String> strictWords;
     private final Set<String> looseWords;
-    private final Pattern regexPattern;
+    private final Set<String> regexPatterns;
 
-    public BadWordFilter(Set<String> strictWords,
-                         Set<String> looseWords,
-                         Pattern regexPattern) {
+    public BadWordFilter(
+            Set<String> strictWords,
+            Set<String> looseWords,
+            Set<String> regexPatterns
+    ) {
         this.strictWords = strictWords;
         this.looseWords = looseWords;
-        this.regexPattern = regexPattern;
+        this.regexPatterns = regexPatterns;
     }
 
-    // ----------------------------------------
-    // 1) 텍스트 정규화
-    // ----------------------------------------
-    public String normalize(String text) {
-        if (text == null) return "";
-        return text
-                .toLowerCase()
-                .replaceAll("[^ㄱ-ㅎ가-힣a-z0-9]", "");
-    }
-
-    // ----------------------------------------
-    // 2) 욕설 포함 여부 판정
-    // ----------------------------------------
-    public boolean containsBadWord(String text) {
-        if (text == null || text.isBlank()) return false;
-
-        String normalized = normalize(text);
-
-        // strict 검사
-        for (String w : strictWords) {
-            if (normalized.contains(w)) return true;
-        }
-
-        // loose 검사
-        for (String w : looseWords) {
-            if (normalized.contains(w)) return true;
-        }
-
-        // regex 검사 (원문 + 정규화 둘 다)
-        if (regexPattern.matcher(text).find()) return true;
-        if (regexPattern.matcher(normalized).find()) return true;
-
-        return false;
-    }
-
-    // ----------------------------------------
-    // 3) 마스킹 처리
-    // ----------------------------------------
+    // ================================
+    // ⭐ 필터링 함수
+    // ================================
     public String mask(String text) {
-        if (text == null || text.isBlank()) return text;
+        if (text == null) return null;
 
-        String masked = text;
+        String result = text;
 
-        // strict 단어 마스킹
+        // 1) strict 단순치환
         for (String w : strictWords) {
-            if (masked.contains(w)) {
-                masked = masked.replace(w, "*".repeat(w.length()));
-            }
+            result = result.replace(w, "***");
         }
 
-        // loose 단어 마스킹
+        // 2) loose 단순치환 (공백, 초성 포함 단어들)
         for (String w : looseWords) {
-            if (masked.contains(w)) {
-                masked = masked.replace(w, "***");
-            }
+            result = result.replace(w, "***");
         }
 
-        // regex 우회 욕설 마스킹
-        masked = regexPattern.matcher(masked).replaceAll("***");
+        // 3) regex 패턴 처리
+        for (String pattern : regexPatterns) {
+            result = result.replaceAll(pattern, "***");
+        }
 
-        return masked;
+        return result;
     }
 }

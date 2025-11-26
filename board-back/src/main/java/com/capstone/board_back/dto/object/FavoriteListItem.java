@@ -1,5 +1,7 @@
 package com.capstone.board_back.dto.object;
 
+import com.capstone.board_back.common.util.BadWordFilter;
+import com.capstone.board_back.common.util.BadWordFilterProvider;
 import com.capstone.board_back.repository.resultSet.GetFavoriteListResultSet;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -17,19 +19,22 @@ public class FavoriteListItem {
     private String nickname;
     private String profileImage;
 
-    public FavoriteListItem(GetFavoriteListResultSet resultSet) {
+    public FavoriteListItem(GetFavoriteListResultSet resultSet, BadWordFilter filter) {
         this.email = resultSet.getEmail();
-        this.nickname = resultSet.getNickname();
+        this.nickname = filter.mask(resultSet.getNickname());  // ★ 마스킹 적용
         this.profileImage = resultSet.getProfileImage();
     }
 
-    public static List<FavoriteListItem> copyList(List<GetFavoriteListResultSet> resultSets) {
+    public static List<FavoriteListItem> copyList(
+            List<GetFavoriteListResultSet> resultSets,
+            BadWordFilterProvider provider
+    ) {
+        BadWordFilter filter = provider.getFilter();
         List<FavoriteListItem> list = new ArrayList<>();
-        for (GetFavoriteListResultSet resultSet : resultSets) {
-            FavoriteListItem favoriteListItem = new FavoriteListItem(resultSet);
-            list.add(favoriteListItem);
+
+        for (GetFavoriteListResultSet rs : resultSets) {
+            list.add(new FavoriteListItem(rs, filter));
         }
         return list;
     }
-
 }

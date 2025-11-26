@@ -1,6 +1,7 @@
 package com.capstone.board_back.service.implement;
 
 import com.capstone.board_back.common.util.BadWordFilter;
+import com.capstone.board_back.common.util.BadWordFilterProvider;
 import com.capstone.board_back.dto.request.board.PatchBoardRequestDto;
 import com.capstone.board_back.dto.request.board.PostBoardRequestDto;
 import com.capstone.board_back.dto.request.board.PostCommentRequestDto;
@@ -33,7 +34,7 @@ public class BoardServiceImplement implements BoardService{
     private final FavoriteRepository favoriteRepository;
     private final BoardListViewRepository boardListViewRepository;
     private final SearchLogRepository searchLogRepository;
-    private final BadWordFilter badWordFilter;
+    private final BadWordFilterProvider badWordFilterProvider;
 
     @Override
     public ResponseEntity<? super GetBoardResponseDto> getBoard(Integer boardNumber) {
@@ -46,10 +47,13 @@ public class BoardServiceImplement implements BoardService{
 
             imageEntities = imageRepository.findByBoardNumber(boardNumber);
 
+            // ✔ 최신 필터 불러오기
+            BadWordFilter filter = badWordFilterProvider.getFilter();
+
             // ▼ ▼ ▼ 욕설 마스킹 핵심 부분 ▼ ▼ ▼
-            String maskedTitle = badWordFilter.mask(resultSet.getTitle());
-            String maskedContent = badWordFilter.mask(resultSet.getContent());
-            String maskedNickname = badWordFilter.mask(resultSet.getWriterNickname());
+            String maskedTitle = filter.mask(resultSet.getTitle());
+            String maskedContent = filter.mask(resultSet.getContent());
+            String maskedNickname = filter.mask(resultSet.getWriterNickname());
 
             GetBoardMaskedResult maskedResult =
                     new GetBoardMaskedResult(resultSet, maskedTitle, maskedContent, maskedNickname);
@@ -76,7 +80,7 @@ public class BoardServiceImplement implements BoardService{
             exception.printStackTrace();
             return ResponseDto.databaseError();
         }
-        return GetFavoriteListResponseDto.success(resultSets);
+        return GetFavoriteListResponseDto.success(resultSets, badWordFilterProvider);
     }
 
     @Override
@@ -91,12 +95,14 @@ public class BoardServiceImplement implements BoardService{
 
             resultSets = commentRepository.getCommentList(boardNumber);
 
+            BadWordFilter filter = badWordFilterProvider.getFilter();
+
             // ★ 댓글 마스킹 처리
             List<GetCommentListResultSet> maskedList = new ArrayList<>();
 
             for (GetCommentListResultSet item : resultSets) {
-                String maskedContent  = badWordFilter.mask(item.getContent());
-                String maskedNickname = badWordFilter.mask(item.getNickname());
+                String maskedContent  = filter.mask(item.getContent());
+                String maskedNickname = filter.mask(item.getNickname());
 
                 maskedList.add(new GetCommentMaskedResult(item, maskedContent, maskedNickname));
             }
@@ -122,30 +128,49 @@ public class BoardServiceImplement implements BoardService{
     //     }
     //     return GetLatestBoardListResponseDto.success(boardListViewEntities);
     // }
+
     @Override
     public ResponseEntity<? super GetLatestBoardListResponseDto> getLatestBoardList() {
 
-
-        List<BoardListItemResponseDto> boardListItemResponseDtos = new ArrayList<>(); // ✨ 변경: 반환할 DTO 리스트
+        List<BoardListItemResponseDto> boardListItemResponseDtos = new ArrayList<>();
 
         try {
-            List<BoardListViewEntity> boardListViewEntities = boardListViewRepository.findByOrderByWriteDatetimeDesc();
+            // 📌 전체 게시글 조회
+            List<BoardListViewEntity> boardListViewEntities =
+                    boardListViewRepository.findByOrderByWriteDatetimeDesc();
 
-            // ✨ 각 BoardListViewEntity에 대해 imageCount를 조회하고 BoardListItemResponseDto로 변환
+            // 📌 BadWordFilter 가져오기
+            BadWordFilter filter = badWordFilterProvider.getFilter();
+
+            // 📌 각 게시글 마스킹 + DTO 생성
             for (BoardListViewEntity boardListViewEntity : boardListViewEntities) {
-                int boardNumber = boardListViewEntity.getBoardNumber();
-                long imageCount = imageRepository.countByBoardNumber(boardNumber); // ImageRepository의 메소드 사용
 
-                BoardListItemResponseDto boardListItemResponseDto = new BoardListItemResponseDto(boardListViewEntity, (int) imageCount);
-                boardListItemResponseDtos.add(boardListItemResponseDto);
+                int boardNumber = boardListViewEntity.getBoardNumber();
+                long imageCount = imageRepository.countByBoardNumber(boardNumber);
+
+                // 🔥 마스킹
+                String maskedTitle = filter.mask(boardListViewEntity.getTitle());
+                String maskedContent = filter.mask(boardListViewEntity.getContent());
+                String maskedNickname = filter.mask(boardListViewEntity.getWriterNickname());
+
+                // 🔥 최종 DTO 생성 (마스킹된 값 사용)
+                BoardListItemResponseDto dto =
+                        new BoardListItemResponseDto(
+                                boardListViewEntity,
+                                (int) imageCount,
+                                maskedTitle,
+                                maskedContent,
+                                maskedNickname
+                        );
+
+                boardListItemResponseDtos.add(dto);
             }
 
         } catch (Exception exception) {
             exception.printStackTrace();
             return ResponseDto.databaseError();
         }
-        // ✨ GetLatestBoardListResponseDto.success() 메소드가 List<BoardListItemResponseDto>를 받을 수 있도록
-        // GetLatestBoardListResponseDto 클래스 내부도 수정 필요
+
         return GetLatestBoardListResponseDto.success(boardListItemResponseDtos);
     }
 
@@ -175,31 +200,51 @@ public class BoardServiceImplement implements BoardService{
     //     return GetSearchBoardListResponseDto.success(boardListViewEntities);
     // }
     @Override
-    public ResponseEntity<? super GetSearchBoardListResponseDto> getSearchBoardList(String searchWord,
-                                                                                    String preSearchWord) {
+    public ResponseEntity<? super GetSearchBoardListResponseDto> getSearchBoardList(
+            String searchWord,
+            String preSearchWord
+    ) {
 
-        // List<BoardListViewEntity> boardListViewEntities = new ArrayList<>(); // ✨ 기존 코드 주석 또는 삭제
-        List<BoardListItemResponseDto> boardListItemResponseDtos = new ArrayList<>(); // ✨ 변경: 반환할 DTO 리스트
+        List<BoardListItemResponseDto> boardListItemResponseDtos = new ArrayList<>();
 
         try {
+            // 게시글 검색
             List<BoardListViewEntity> boardListViewEntities =
-                    boardListViewRepository.findByTitleContainingIgnoreCaseOrContentContainingIgnoreCaseOrderByWriteDatetimeDesc(searchWord, searchWord);
+                    boardListViewRepository
+                            .findByTitleContainingIgnoreCaseOrContentContainingIgnoreCaseOrderByWriteDatetimeDesc(
+                                    searchWord, searchWord
+                            );
 
-            // ✨ 각 BoardListViewEntity에 대해 imageCount를 조회하고 BoardListItemResponseDto로 변환
+            // 🔥 필터 가져오기
+            BadWordFilter filter = badWordFilterProvider.getFilter();
+
+            // DTO 변환 + 마스킹
             for (BoardListViewEntity boardListViewEntity : boardListViewEntities) {
+
                 int boardNumber = boardListViewEntity.getBoardNumber();
                 long imageCount = imageRepository.countByBoardNumber(boardNumber);
 
-                BoardListItemResponseDto boardListItemResponseDto = new BoardListItemResponseDto(boardListViewEntity, (int) imageCount);
-                boardListItemResponseDtos.add(boardListItemResponseDto);
+                String maskedTitle = filter.mask(boardListViewEntity.getTitle());
+                String maskedContent = filter.mask(boardListViewEntity.getContent());
+                String maskedNickname = filter.mask(boardListViewEntity.getWriterNickname());
+
+                BoardListItemResponseDto dto =
+                        new BoardListItemResponseDto(
+                                boardListViewEntity,
+                                (int) imageCount,
+                                maskedTitle,
+                                maskedContent,
+                                maskedNickname
+                        );
+
+                boardListItemResponseDtos.add(dto);
             }
 
-            // 검색 로그 저장 로직은 그대로 유지
+            // 검색 로그
             SearchLogEntity searchLogEntity = new SearchLogEntity(searchWord, preSearchWord, false);
             searchLogRepository.save(searchLogEntity);
 
-            boolean relation = preSearchWord != null;
-            if(relation) {
+            if (preSearchWord != null) {
                 searchLogEntity = new SearchLogEntity(preSearchWord, searchWord, true);
                 searchLogRepository.save(searchLogEntity);
             }
@@ -208,10 +253,10 @@ public class BoardServiceImplement implements BoardService{
             exception.printStackTrace();
             return ResponseDto.databaseError();
         }
-        // ✨ GetSearchBoardListResponseDto.success() 메소드가 List<BoardListItemResponseDto>를 받을 수 있도록
-        // GetSearchBoardListResponseDto 클래스 내부도 수정 필요
+
         return GetSearchBoardListResponseDto.success(boardListItemResponseDtos);
     }
+
 
     // @Override
     // public ResponseEntity<? super GetUserBoardListResponseDto> getUserBoardList(String email) {
@@ -233,33 +278,48 @@ public class BoardServiceImplement implements BoardService{
     @Override
     public ResponseEntity<? super GetUserBoardListResponseDto> getUserBoardList(String email) {
 
-        // List<BoardListViewEntity> boardListViewEntities = new ArrayList<>(); // ✨ 기존 코드 주석 또는 삭제
-        List<BoardListItemResponseDto> boardListItemResponseDtos = new ArrayList<>(); // ✨ 변경: 반환할 DTO 리스트
+        List<BoardListItemResponseDto> boardListItemResponseDtos = new ArrayList<>();
 
         try {
+
             boolean existedUser = userRepository.existsByEmail(email);
-            if(!existedUser) return GetUserBoardListResponseDto.notExistUser();
+            if (!existedUser) return GetUserBoardListResponseDto.notExistUser();
 
             List<BoardListViewEntity> boardListViewEntities =
                     boardListViewRepository.findByWriterEmailOrderByWriteDatetimeDesc(email);
 
-            // ✨ 각 BoardListViewEntity에 대해 imageCount를 조회하고 BoardListItemResponseDto로 변환
+            // 🔥 필터 가져오기
+            BadWordFilter filter = badWordFilterProvider.getFilter();
+
             for (BoardListViewEntity boardListViewEntity : boardListViewEntities) {
+
                 int boardNumber = boardListViewEntity.getBoardNumber();
                 long imageCount = imageRepository.countByBoardNumber(boardNumber);
 
-                BoardListItemResponseDto boardListItemResponseDto = new BoardListItemResponseDto(boardListViewEntity, (int) imageCount);
-                boardListItemResponseDtos.add(boardListItemResponseDto);
+                String maskedTitle = filter.mask(boardListViewEntity.getTitle());
+                String maskedContent = filter.mask(boardListViewEntity.getContent());
+                String maskedNickname = filter.mask(boardListViewEntity.getWriterNickname());
+
+                BoardListItemResponseDto dto =
+                        new BoardListItemResponseDto(
+                                boardListViewEntity,
+                                (int) imageCount,
+                                maskedTitle,
+                                maskedContent,
+                                maskedNickname
+                        );
+
+                boardListItemResponseDtos.add(dto);
             }
 
         } catch (Exception exception) {
             exception.printStackTrace();
             return ResponseDto.databaseError();
         }
-        // ✨ GetUserBoardListResponseDto.success() 메소드가 List<BoardListItemResponseDto>를 받을 수 있도록
-        // GetUserBoardListResponseDto 클래스 내부도 수정 필요
+
         return GetUserBoardListResponseDto.success(boardListItemResponseDtos);
     }
+
 
     // @Override
     // public ResponseEntity<? super GetTop3BoardListResponseDto> getTop3BoardList() {
@@ -280,34 +340,51 @@ public class BoardServiceImplement implements BoardService{
     @Override
     public ResponseEntity<? super GetTop3BoardListResponseDto> getTop3BoardList() {
 
-        // List<BoardListViewEntity> boardListViewEntities = new ArrayList<>(); // ✨ 기존 코드 주석 또는 삭제
-        List<BoardListItemResponseDto> boardListItemResponseDtos = new ArrayList<>(); // ✨ 변경: 반환할 DTO 리스트
+        List<BoardListItemResponseDto> boardListItemResponseDtos = new ArrayList<>();
 
         try {
             Date beforeWeek = Date.from(Instant.now().minus(7, ChronoUnit.DAYS));
-            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            String sevenDaysAgo = simpleDateFormat.format(beforeWeek);
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            String sevenDaysAgo = sdf.format(beforeWeek);
 
             List<BoardListViewEntity> boardListViewEntities =
-                    boardListViewRepository.findTop10ByWriteDatetimeGreaterThanOrderByFavoriteCountDescCommentCountDescViewCountDescWriteDatetimeDesc(sevenDaysAgo);
+                    boardListViewRepository
+                            .findTop10ByWriteDatetimeGreaterThanOrderByFavoriteCountDescCommentCountDescViewCountDescWriteDatetimeDesc(
+                                    sevenDaysAgo
+                            );
 
-            // ✨ 각 BoardListViewEntity에 대해 imageCount를 조회하고 BoardListItemResponseDto로 변환
+            // 🔥 필터 가져오기
+            BadWordFilter filter = badWordFilterProvider.getFilter();
+
             for (BoardListViewEntity boardListViewEntity : boardListViewEntities) {
+
                 int boardNumber = boardListViewEntity.getBoardNumber();
                 long imageCount = imageRepository.countByBoardNumber(boardNumber);
 
-                BoardListItemResponseDto boardListItemResponseDto = new BoardListItemResponseDto(boardListViewEntity, (int) imageCount);
-                boardListItemResponseDtos.add(boardListItemResponseDto);
+                String maskedTitle = filter.mask(boardListViewEntity.getTitle());
+                String maskedContent = filter.mask(boardListViewEntity.getContent());
+                String maskedNickname = filter.mask(boardListViewEntity.getWriterNickname());
+
+                BoardListItemResponseDto dto =
+                        new BoardListItemResponseDto(
+                                boardListViewEntity,
+                                (int) imageCount,
+                                maskedTitle,
+                                maskedContent,
+                                maskedNickname
+                        );
+
+                boardListItemResponseDtos.add(dto);
             }
 
         } catch (Exception exception) {
             exception.printStackTrace();
             return ResponseDto.databaseError();
         }
-        // ✨ GetTop3BoardListResponseDto.success() 메소드가 List<BoardListItemResponseDto>를 받을 수 있도록
-        // GetTop3BoardListResponseDto 클래스 내부도 수정 필요
+
         return GetTop3BoardListResponseDto.success(boardListItemResponseDtos);
     }
+
 
     @Override
     public ResponseEntity<? super PostBoardResponseDto> postBoard(PostBoardRequestDto dto, String email) {

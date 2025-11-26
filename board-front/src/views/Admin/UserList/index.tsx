@@ -6,7 +6,8 @@ import useAdminAuth from "hooks/useadminauth.hook";
 import { jwtDecode } from "jwt-decode";
 import { customErrToast, usePagination } from "hooks";
 import DeleteConfirmModal from "../common/DeleteConfirmModal";
-import RestoreConfirmModal from "./RestoreConfirmModal";
+import RestoreConfirmModal from "../common/RestoreConfirmModal";
+import GenericModal from "../../../components/Modal/GenericModal";
 
 interface User {
   deleted: boolean;
@@ -14,7 +15,7 @@ interface User {
   nickname: string;
   telNumber: string;
   emailVerified: boolean;
-  role: "USER" | "ADMIN";
+  role: "USER" | "ADMIN" | "SUB_ADMIN";
 }
 
 interface JwtPayload {
@@ -213,44 +214,45 @@ export default function AdminUserList() {
                   <tr className={user.deleted ? "deleted-user" : ""} key={user.email}>
                     <td>{(currentPage - 1) * 10 + index + 1}</td>
                     <td>{user.email}</td>
+
+                    {/* 🔥 비밀번호 변경 버튼 */}
                     <td className="action-buttons">
-                      {user.deleted ? (
-                        <button
-                          className="admin-btn"
-                        >
-                          변경하기
-                        </button>
-                      ) : (
-                        <button
+                      <button
                         className="admin-btn update"
                         onClick={() => {
                           setSelectedEmail(user.email);
                           setShowModal(true);
                         }}
+                        disabled={user.deleted}
                       >
                         변경하기
                       </button>
-                      )}
                     </td>
+
                     <td>{user.nickname}</td>
                     <td>{user.emailVerified ? "✅ 인증됨" : "❌ 미인증"}</td>
                     <td>
                       <span
                         className={`role-badge ${
-                          user.role === "ADMIN" ? "admin" : "user"
+                          user.role === "ADMIN"
+                            ? "admin"
+                            : user.role === "SUB_ADMIN"
+                            ? "subadmin"
+                            : "user"
                         }`}
                       >
-                        {user.role === "ADMIN" ? "ROLE_ADMIN" : "ROLE_USER"}
+                        {user.role}
                       </span>
                     </td>
                     <td>{user.telNumber}</td>
+
+                    {/* 삭제/복구 버튼 */}
                     <td className="action-buttons">
                       {user.deleted ? (
                         <button
                           className="admin-btn restore"
                           onClick={() => {
                             setTargetEmail(user.email);
-                            // 복구용 모달 띄우기 or 즉시 요청
                             setShowRestoreModal(true);
                           }}
                         >
@@ -274,7 +276,7 @@ export default function AdminUserList() {
             </table>
           </div>
 
-          {/* ✅ 페이지네이션 UI */}
+          {/* 페이지네이션 */}
           <div className="pagination">
             <button
               onClick={() => setCurrentSection(currentSection - 1)}
@@ -286,8 +288,8 @@ export default function AdminUserList() {
             {viewPageList.map((page) => (
               <button
                 key={page}
-                onClick={() => setCurrentPage(page)}
                 className={page === currentPage ? "active" : ""}
+                onClick={() => setCurrentPage(page)}
               >
                 {page}
               </button>
@@ -302,6 +304,8 @@ export default function AdminUserList() {
           </div>
         </>
       )}
+
+      {/* 삭제 모달 */}
       {showDeleteModal && (
         <DeleteConfirmModal
           message={`${targetEmail} 사용자를 삭제하시겠습니까?`}
@@ -309,12 +313,67 @@ export default function AdminUserList() {
           onConfirm={confirmDeleteUser}
         />
       )}
+
+      {/* 복구 모달 */}
       {showRestoreModal && (
         <RestoreConfirmModal
           message={`${targetEmail} 사용자를 복구하시겠습니까?`}
           onCancel={() => setShowRestoreModal(false)}
           onConfirm={confirmRestoreUser}
         />
+      )}
+
+      {/* 🔥 비밀번호 변경 모달(GenericModal 기반) */}
+      {showModal && (
+        <GenericModal
+          title={`🔐 비밀번호 변경`}
+          confirmText="변경"
+          cancelText="취소"
+          showCancel={true}
+          onCancel={() => {
+            setShowModal(false);
+            setNewPassword("");
+          }}
+          onConfirm={updateUserPassword}
+        >
+          {/* 🔥 children 영역 (커스텀 모달 내용) */}
+          <div className="password-modal-body">
+            <label>이메일 : {selectedEmail}</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="8자 이상 입력"
+              className="password-input"
+            />
+            {/* 🔥 여기! 경고문 추가 */}
+            <div className="password-reset-warning">
+              ⚠️ 비밀번호 초기화 시 기존 비밀번호는 즉시 무효화됩니다.
+            </div>
+            {/* 🔥 초기화 버튼 */}
+            <button
+              className="password-reset-btn"
+              onClick={async () => {
+                const token = localStorage.getItem("accessToken");
+                try {
+                  const response = await axios.patch(
+                    `${DOMAIN}/api/v1/admin/user/${selectedEmail}/password`,
+                    { newPassword: "a1234567@" },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                  );
+                  if (response.data.code === "SU") {
+                    customErrToast("비밀번호 초기화 완료 (a1234567@)");
+                    setShowModal(false);
+                  }
+                } catch {
+                  customErrToast("초기화 실패");
+                }
+              }}
+            >
+              비밀번호 초기화 (a1234567@)
+            </button>
+          </div>
+        </GenericModal>
       )}
     </div>
   );

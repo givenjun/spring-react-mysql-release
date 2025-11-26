@@ -65,3 +65,35 @@
 .admin-btn.restore:hover {
   background-color: #4cae4c;
 }
+
+/* 🔥 비밀번호 초기화 버튼 */
+.password-reset-btn {
+  padding: 10px 0px 10px 0px;
+  width: 100%;
+  background: linear-gradient(90deg, #ff4d4f, #ff7875);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(255, 77, 79, 0.35);
+  transition: 0.2s ease;
+}
+
+.password-reset-btn:hover {
+  background: linear-gradient(90deg, #d9363e, #ff4d4f);
+  transform: translateY(-2px);
+}
+
+.password-reset-btn:active {
+  transform: translateY(0);
+}
+
+/* 위험 경고 (선택) */
+.password-reset-warning {
+  font-size: 13px;
+  color: #ff4d4f;
+  margin-top: -4px;
+  text-align: left;
+}
