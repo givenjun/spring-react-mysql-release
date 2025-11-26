@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
@@ -84,5 +85,27 @@ public class AdminController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUB_ADMIN')")
     public ResponseEntity<? super GetDashboardTrendResponseDto> getDashboardTrend() {
         return adminService.getDashboardTrend();
+    }
+
+    // ===============================
+    // 🔥 신규 추가: 욕설 필터 파일 관리
+    // ===============================
+
+    // 1️⃣ 욕설 파일 업로드 (strict / loose / regex)
+    @PostMapping("/badwords/upload")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<? super UploadBadWordResponseDto> uploadBadWordFiles(
+            @RequestPart(value = "strict", required = false) MultipartFile strict,
+            @RequestPart(value = "loose", required = false) MultipartFile loose,
+            @RequestPart(value = "regex", required = false) MultipartFile regex
+    ) {
+        return adminService.uploadBadWordFiles(strict, loose, regex);
+    }
+
+    // 2️⃣ 현재 파일 내용 조회 (strict + loose + regex)
+    @GetMapping("/badwords")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUB_ADMIN')")
+    public ResponseEntity<? super GetBadWordListResponseDto> getBadWordFiles() {
+        return adminService.getBadWordFiles();
     }
 }
