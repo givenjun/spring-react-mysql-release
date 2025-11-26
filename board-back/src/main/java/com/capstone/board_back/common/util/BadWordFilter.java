@@ -1,5 +1,6 @@
 package com.capstone.board_back.common.util;
 
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -11,10 +12,15 @@ public class BadWordFilter {
 
     public BadWordFilter(Set<String> strictWords,
                          Set<String> looseWords,
-                         Pattern regexPattern) {
+                         List<String> regexList) {
+
         this.strictWords = strictWords;
         this.looseWords = looseWords;
-        this.regexPattern = regexPattern;
+
+        // 여러 줄의 regex를 하나로 OR(|) 형태로 합침
+        String combinedRegex = String.join("|", regexList);
+
+        this.regexPattern = Pattern.compile(combinedRegex);
     }
 
     // ----------------------------------------
@@ -45,7 +51,7 @@ public class BadWordFilter {
             if (normalized.contains(w)) return true;
         }
 
-        // regex 검사 (원문 + 정규화 둘 다)
+        // regex 검사
         if (regexPattern.matcher(text).find()) return true;
         if (regexPattern.matcher(normalized).find()) return true;
 
@@ -53,28 +59,28 @@ public class BadWordFilter {
     }
 
     // ----------------------------------------
-    // 3) 마스킹 처리
+    // 3) 마스킹
     // ----------------------------------------
     public String mask(String text) {
         if (text == null || text.isBlank()) return text;
 
         String masked = text;
 
-        // strict 단어 마스킹
+        // strict
         for (String w : strictWords) {
             if (masked.contains(w)) {
                 masked = masked.replace(w, "*".repeat(w.length()));
             }
         }
 
-        // loose 단어 마스킹
+        // loose
         for (String w : looseWords) {
             if (masked.contains(w)) {
                 masked = masked.replace(w, "***");
             }
         }
 
-        // regex 우회 욕설 마스킹
+        // regex 우회욕설
         masked = regexPattern.matcher(masked).replaceAll("***");
 
         return masked;
