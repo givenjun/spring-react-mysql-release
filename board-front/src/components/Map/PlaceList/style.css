@@ -44,3 +44,26 @@
 .place-phone {
   white-space: nowrap;
 }
+
+/* ✅ 두 경로사이 맛집리스트 – 선택된 맛집 하이라이트 */
+.place-item.selected {
+  position: relative;
+  background: #f5ecff;            /* 연보라 배경 */
+}
+
+.place-item.selected .place-title {
+  color: #4c1d95;                 /* 진한 보라 텍스트 */
+  font-weight: 700;
+}
+
+/* 왼쪽에 얇은 보라 색 바(탐색탭 느낌) */
+.place-item.selected::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #9333ea, #ec4899);
+}

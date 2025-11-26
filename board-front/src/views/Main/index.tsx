@@ -2,7 +2,14 @@
 import React, {
   useEffect, useMemo, useState, useCallback, useRef, useDeferredValue,
 } from 'react';
-import { Map, MapMarker, MapTypeControl, Polyline, ZoomControl, CustomOverlayMap } from 'react-kakao-maps-sdk';
+import {
+  Map,
+  MapMarker,
+  MapTypeControl,
+  Polyline,
+  ZoomControl,
+  CustomOverlayMap,
+} from 'react-kakao-maps-sdk';
 import SearchSidebar from 'components/Map/SearchSidebar';
 import useKakaoSearch from 'hooks/Map/useKakaoSearch.hook';
 import PlaceDetailCard, { PlaceDetail } from 'components/Map/PlaceDetailCard';
@@ -225,7 +232,12 @@ export default function Main() {
   type DistanceBase = 'origin' | 'destination' | null;
   const [distanceBase, setDistanceBase] = useState<DistanceBase>(null);
 
-  // 더블클릭 추가 경로(출발지 → 선택 맛집) + 라벨용 정보
+  // 🔥 경로 위에서 사용자가 찍은 기준 지점 (출발/도착 대신 이걸 기준으로 정렬)
+  const [routePivot, setRoutePivot] = useState<LL | null>(null);
+  // 🔥 "경로에서 클릭 지점 기준 정렬" 모드 ON/OFF
+  const [isPivotSelectMode, setIsPivotSelectMode] = useState(false);
+
+  // 더블클릭 추가 경로(출발지 or pivot → 선택 맛집) + 라벨용 정보
   const [extraPlacePath, setExtraPlacePath] = useState<LL[]>([]);
   const [extraPlaceTarget, setExtraPlaceTarget] = useState<{ lat: number; lng: number; name: string; category?: string } | null>(null);
   const [extraPlaceETAsec, setExtraPlaceETAsec] = useState<number | null>(null);
@@ -250,7 +262,7 @@ export default function Main() {
     complexity: number;
   };
   const [routeOptions, setRouteOptions] = useState<RouteOption[]>([]);
-  const [selectedRouteIdx, setSelectedRouteIdx] = useState<number>(0);
+  const [selectedRouteIdx, setSelectedRouteIdx] = useState<number | null>(null);
 
   const {
     places: routePlaces,
@@ -285,6 +297,8 @@ export default function Main() {
     setRouteError(null);
     setRoutePath([]);
     setRouteInfo(null);
+    setRoutePivot(null);
+    setIsPivotSelectMode(false);
 
     const req = {
       start: { lat: sLL.getLat(), lng: sLL.getLng() },
@@ -307,6 +321,9 @@ export default function Main() {
 
   const handleRouteByCoords = useCallback(
     async (start: { lat: number; lng: number; name: string }, end: { lat: number; lng: number; name: string }) => {
+      // 🔥 마커 로딩 중에는 새로운 경로 보기를 막음
+      if (routePlacesLoading) return;
+
       setMapMode('route');
       setAutoRouteLoading(true);
       setAutoRouteError(null);
@@ -322,6 +339,8 @@ export default function Main() {
       setOnlySelectedMarker(false);
       setDistanceBase(null);
       setMiniViewerPlace(null);
+      setRoutePivot(null);
+      setIsPivotSelectMode(false);
 
       try {
         const baseReq = {
@@ -479,21 +498,28 @@ export default function Main() {
           finalRoutes.push({ ...fastRoute, name: '빠른길' });
         }
 
-        const trimmed = finalRoutes.slice(0, 3);
+         const trimmed = finalRoutes.slice(0, 3);
         const ord = { 빠른길: 0, 권장길: 1, 쉬운길: 2 } as const;
         trimmed.sort((a, b) => ord[a.name] - ord[b.name]);
 
         setRouteOptions(trimmed);
-        setSelectedRouteIdx(0);
+
+        // ✅ 기본 선택 없음: 사용자가 카드 클릭할 때까지는 "선택" 표시 X
+        setSelectedRouteIdx(null);
+
+        // 여전히 지도에는 기본으로 빠른길(0번)을 그려줌
         setAutoRoutePath(trimmed[0].path);
-        setAutoRouteInfo({ totalDistance: trimmed[0].distanceM, totalTime: trimmed[0].timeSec });
+        setAutoRouteInfo({
+          totalDistance: trimmed[0].distanceM,
+          totalTime: trimmed[0].timeSec,
+        });
       } catch {
         setAutoRouteError('경로를 불러오지 못했습니다.');
       } finally {
         setAutoRouteLoading(false);
       }
     },
-    [resetRoutePlaces],
+    [resetRoutePlaces, routePlacesLoading],
   );
 
   const DASH_LEN = 40;
@@ -680,7 +706,7 @@ export default function Main() {
       ? Math.min(9000, 3500 + Math.round(400 * km))
       : 2000;
 
-    const modeVal: 'fast' | 'full' = useFull ? 'full' : 'fast';
+    const modeVal: 'fast' | 'full' = useFull ? 'full' : 'full'; // 🔥 이제 항상 full로 사용
 
     const base = {
       stepMeters: adaptiveStep,
@@ -707,23 +733,18 @@ export default function Main() {
     return base;
   };
 
-  const runAlongPathTwoStage = useCallback((path: LL[]) => {
+  // 🔥 fast/full 2단계 대신, 항상 full 한 번만 호출해서 "한 번에" 보여주기
+  const runAlongPathOnce = useCallback((path: LL[]) => {
     if (!Array.isArray(path) || path.length < 2) return;
-
-    const fast = { ...optsForTab(foodTab, path), mode: 'fast' as const, timeBudgetMs: 1500 };
-    searchAlongPath(path, fast);
-
-    const myVer = ++routeQueryVerRef.current;
-
-    window.setTimeout(() => {
-      if (routeQueryVerRef.current !== myVer) return;
-      const full = { ...optsForTab(foodTab, path), mode: 'full' as const };
-      searchAlongPath(path, full);
-    }, 1000);
+    const fullOpts = { ...optsForTab(foodTab, path), mode: 'full' as const };
+    searchAlongPath(path, fullOpts);
   }, [foodTab, searchAlongPath]);
 
   const selectRoute = useCallback(async (i: number) => {
     if (!routeOptions[i]) return;
+    // 🔥 마커 로딩 중일 때는 빠른길/권장길/쉬운길 전환 막기
+    if (routePlacesLoading) return;
+
     const r = routeOptions[i];
     setMapMode('route');
     setSelectedRouteIdx(i);
@@ -733,14 +754,19 @@ export default function Main() {
     setOnlySelectedMarker(false);
     resetRoutePlaces?.();
     routeQueryVerRef.current++;
+    setRoutePivot(null);
+    setIsPivotSelectMode(false);
     setDistanceBase(null);
 
     setPlaceCardOpen(true);
-    runAlongPathTwoStage(r.path);
-  }, [routeOptions, resetRoutePlaces, runAlongPathTwoStage]);
+    runAlongPathOnce(r.path);
+  }, [routeOptions, resetRoutePlaces, runAlongPathOnce, routePlacesLoading]);
 
   const openRouteDetail = useCallback(async (i: number) => {
     if (!routeOptions[i]) return;
+    // 🔥 마커 로딩 중일 때는 상세 보기 전환도 막기
+    if (routePlacesLoading) return;
+
     const r = routeOptions[i];
     setMapMode('route');
     setSelectedRouteIdx(i);
@@ -748,12 +774,14 @@ export default function Main() {
     setAutoRouteInfo({ totalDistance: r.distanceM, totalTime: r.timeSec });
     setExtraPlacePath([]); setExtraPlaceTarget(null); setExtraPlaceETAsec(null);
     setOnlySelectedMarker(false);
+    setRoutePivot(null);
+    setIsPivotSelectMode(false);
     setDistanceBase(null);
 
     setPlaceCardOpen(true);
     routeQueryVerRef.current++;
-    runAlongPathTwoStage(r.path);
-  }, [routeOptions, runAlongPathTwoStage]);
+    runAlongPathOnce(r.path);
+  }, [routeOptions, runAlongPathOnce, routePlacesLoading]);
 
   const tabToIconCategory = (tab: FoodTab): string =>
     tab === '카페' ? '카페' : (tab === '족발/보쌈' ? '족발' : tab);
@@ -777,11 +805,18 @@ export default function Main() {
       const name = (p?.name || p?.place_name)?.toString();
       if (name) setSelectedPlaceName(name);
 
-      const start = autoRouteEndpoints?.start;
-      if (start) {
+      // 🔥 추가 경로 시작점:
+      // pivot 모드 + pivot 존재 → pivot 기준
+      // 아니면 기존처럼 출발지 기준
+      const startLL: LL | undefined =
+        (isPivotSelectMode && routePivot)
+          ? routePivot
+          : (autoRouteEndpoints?.start ?? undefined);
+
+      if (startLL) {
         try {
           const route = await getPedestrianRoute({
-            start,
+            start: { lat: startLL.lat, lng: startLL.lng },
             end: { lat, lng },
           } as any);
 
@@ -815,23 +850,31 @@ export default function Main() {
         placeUrl: (p as any).place_url || (p as any).placeUrl,
       });
     },
-    [autoRouteEndpoints?.start, panToPlace, setSelectedPlaceName],
+    [autoRouteEndpoints?.start, isPivotSelectMode, routePivot, panToPlace, setSelectedPlaceName],
   );
 
   const handleMapClick = (_: kakao.maps.Map, mouseEvent: kakao.maps.event.MouseEvent) => {
     const clickedLatLng = mouseEvent.latLng;
+    if (!clickedLatLng) return;
+
+    // 1) 거리 재기 모드
     if (isDistanceMode) {
       const next = [...distancePoints, clickedLatLng];
       if (next.length <= 2) {
         setDistancePoints(next);
         if (next.length === 2) {
           const [p1, p2] = next;
-          const km = haversine({ lat: p1.getLat(), lng: p1.getLng() }, { lat: p2.getLat(), lng: p2.getLng() }) / 1000;
+          const km = haversine(
+            { lat: p1.getLat(), lng: p1.getLng() },
+            { lat: p2.getLat(), lng: p2.getLng() },
+          ) / 1000;
           setDistanceKm(km);
         } else setDistanceKm(null);
       } else { setDistancePoints([clickedLatLng]); setDistanceKm(null); }
       return;
     }
+
+    // 2) 수동 경로 모드(두 점 찍어서 경로 보기)
     if (isRouteMode) {
       const next = [...routeSelectPoints, clickedLatLng];
       if (next.length === 1) {
@@ -841,18 +884,34 @@ export default function Main() {
       }
       if (next.length === 2) {
         const [s, e] = next;
-        runManualRoute(new kakao.maps.LatLng(s.getLat(), s.getLng()), new kakao.maps.LatLng(e.getLat(), e.getLng()));
+        runManualRoute(
+          new kakao.maps.LatLng(s.getLat(), s.getLng()),
+          new kakao.maps.LatLng(e.getLat(), e.getLng()),
+        );
         return;
       }
       setRouteSelectPoints([clickedLatLng]);
       setRoutePath([]); setRouteInfo(null); setRouteError(null);
+      return;
+    }
+
+    // 3) 길찾기 탭 + pivot 선택 모드일 때만 클릭 지점을 기준점으로 사용
+    if (mapMode === 'route' && isPivotSelectMode) {
+      setRoutePivot({
+        lat: clickedLatLng.getLat(),
+        lng: clickedLatLng.getLng(),
+      });
+      setDistanceBase(null);
     }
   };
 
   const isExploreMode = mapMode === 'explore';
   const isRouteModeView = mapMode === 'route';
 
+  // 🔥 정렬 기준 포인트: pivot 모드 ON + pivot 존재 시 가장 우선
   const basePoint = useMemo<LL | null>(() => {
+    if (isPivotSelectMode && routePivot) return routePivot;
+
     if (!distanceBase) return null;
     const originPoint = autoRouteEndpoints?.start ?? null;
     const destPoint = autoRouteEndpoints?.end ?? null;
@@ -861,7 +920,7 @@ export default function Main() {
     if (distanceBase === 'destination') return destPoint;
 
     return null;
-  }, [distanceBase, autoRouteEndpoints]);
+  }, [isPivotSelectMode, routePivot, distanceBase, autoRouteEndpoints]);
 
   const sortedRoutePlacesForList = useMemo(() => {
     if (!Array.isArray(deferredFiltered)) return deferredFiltered;
@@ -923,6 +982,17 @@ export default function Main() {
     map.panBy(-sidebarWidth / 2, 0);
   }, [map, routePath, isSidebarOpen]);
 
+  // 🔥 "두 경로사이 맛집리스트" 패널과 미니뷰어 위치 계산
+  const leftSidebarWidthValue = isSidebarOpen ? 340 : 16;
+  const placeDetailGap = 16;
+  const placeDetailWidth = 520;
+
+  // 패널의 left = 사이드바 폭 + gap
+  const placeDetailLeft = leftSidebarWidthValue + placeDetailGap;
+
+  // 미니뷰어는 패널 오른쪽에 딱 붙게: 패널 left + 패널 width + gap
+  const miniViewerLeft = placeDetailLeft + placeDetailWidth + 16;
+
   return (
     <div className="main-wrapper">
       <SearchSidebar
@@ -943,6 +1013,9 @@ export default function Main() {
           routeQueryVerRef.current++;
           resetRoutePlaces?.();
           setMiniViewerPlace(null);
+          setRoutePivot(null);
+          setIsPivotSelectMode(false);
+          setDistanceBase(null);
 
           const trimmed = kw.trim();
 
@@ -974,7 +1047,14 @@ export default function Main() {
         onSelectRoute={selectRoute}
         onOpenRouteDetail={openRouteDetail}
         showRoutePlacesInSidebar={false}
-        onChangeMapMode={(mode: 'explore' | 'route') => setMapMode(mode)}
+        onChangeMapMode={(mode: 'explore' | 'route') => {
+          setMapMode(mode);
+          if (mode === 'explore') {
+            setRoutePivot(null);
+            setIsPivotSelectMode(false);
+            setDistanceBase(null);
+          }
+        }}
       />
 
       {routeTargetPlace && placeCardOpen && (
@@ -982,48 +1062,120 @@ export default function Main() {
           open
           place={routeTargetPlace}
           onClose={() => { setPlaceCardOpen(false); }}
-          leftSidebarWidth={isSidebarOpen ? 340 : 16}
-          gap={16}
+          leftSidebarWidth={leftSidebarWidthValue}
+          gap={placeDetailGap}
           topOffset={64}
-          width={520}
+          width={placeDetailWidth}
         >
-          <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-            <div style={{ fontSize: 13, color: '#555' }}>
+          <div style={{
+            marginBottom: 8,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 8,
+          }}
+          >
+            <div style={{ fontSize: 13, color: '#555', whiteSpace: 'nowrap' }}>
               정렬 기준:
             </div>
-            <div style={{ display: 'flex', gap: 6, fontSize: 12 }}>
+            <div style={{ display: 'flex', gap: 6, fontSize: 12, alignItems: 'center', flexWrap: 'wrap' }}>
               <button
                 type="button"
-                onClick={() => setDistanceBase((prev) => (prev === 'origin' ? null : 'origin'))}
-                disabled={!autoRouteEndpoints?.start}
+                onClick={() => {
+                  setIsPivotSelectMode(false);
+                  setRoutePivot(null);
+                  setDistanceBase((prev) => (prev === 'origin' ? null : 'origin'));
+                }}
+                disabled={!autoRouteEndpoints?.start || routePlacesLoading}
                 style={{
                   padding: '4px 8px',
                   borderRadius: 999,
                   border: '1px solid',
-                  borderColor: distanceBase === 'origin' ? '#8a2ea1' : '#e5e7eb',
-                  background: distanceBase === 'origin' ? '#f5ecff' : '#fff',
-                  cursor: autoRouteEndpoints?.start ? 'pointer' : 'not-allowed',
-                  opacity: autoRouteEndpoints?.start ? 1 : 0.4,
+                  borderColor: distanceBase === 'origin' && !isPivotSelectMode ? '#8a2ea1' : '#e5e7eb',
+                  background: distanceBase === 'origin' && !isPivotSelectMode ? '#f5ecff' : '#fff',
+                  cursor: (!autoRouteEndpoints?.start || routePlacesLoading) ? 'not-allowed' : 'pointer',
+                  opacity: (!autoRouteEndpoints?.start || routePlacesLoading) ? 0.4 : 1,
+                  whiteSpace: 'nowrap',
                 }}
               >
                 출발지 기준 정렬
               </button>
               <button
                 type="button"
-                onClick={() => setDistanceBase((prev) => (prev === 'destination' ? null : 'destination'))}
-                disabled={!autoRouteEndpoints?.end}
+                onClick={() => {
+                  setIsPivotSelectMode(false);
+                  setRoutePivot(null);
+                  setDistanceBase((prev) => (prev === 'destination' ? null : 'destination'));
+                }}
+                disabled={!autoRouteEndpoints?.end || routePlacesLoading}
                 style={{
                   padding: '4px 8px',
                   borderRadius: 999,
                   border: '1px solid',
-                  borderColor: distanceBase === 'destination' ? '#8a2ea1' : '#e5e7eb',
-                  background: distanceBase === 'destination' ? '#f5ecff' : '#fff',
-                  cursor: autoRouteEndpoints?.end ? 'pointer' : 'not-allowed',
-                  opacity: autoRouteEndpoints?.end ? 1 : 0.4,
+                  borderColor: distanceBase === 'destination' && !isPivotSelectMode ? '#8a2ea1' : '#e5e7eb',
+                  background: distanceBase === 'destination' && !isPivotSelectMode ? '#f5ecff' : '#fff',
+                  cursor: (!autoRouteEndpoints?.end || routePlacesLoading) ? 'not-allowed' : 'pointer',
+                  opacity: (!autoRouteEndpoints?.end || routePlacesLoading) ? 0.4 : 1,
+                  whiteSpace: 'nowrap',
                 }}
               >
                 도착지 기준 정렬
               </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (routePlacesLoading) return;
+                  const next = !isPivotSelectMode;
+                  setIsPivotSelectMode(next);
+                  if (!next) {
+                    setRoutePivot(null);
+                  }
+                  setDistanceBase(null);
+                }}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: 999,
+                  border: '1px solid',
+                  borderColor: isPivotSelectMode ? '#8a2ea1' : '#e5e7eb',
+                  background: isPivotSelectMode ? '#f5ecff' : '#fff',
+                  cursor: routePlacesLoading ? 'not-allowed' : 'pointer',
+                  opacity: routePlacesLoading ? 0.4 : 1,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                경로에서 클릭 지점 기준 정렬
+              </button>
+
+              {routePlacesLoading && (
+                <div
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: 999,
+                    border: '1px dashed #8a2ea1',
+                    background: '#faf5ff',
+                    color: '#6b21a8',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  경로 주변 맛집 로딩 중...
+                </div>
+              )}
+
+              {isPivotSelectMode && routePivot && !routePlacesLoading && (
+                <div
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: 999,
+                    border: '1px dashed #8a2ea1',
+                    background: '#faf5ff',
+                    color: '#6b21a8',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  경로 클릭 지점 기준 정렬 중
+                </div>
+              )}
             </div>
           </div>
 
@@ -1032,7 +1184,8 @@ export default function Main() {
               <button
                 key={t}
                 className={`pd-tab ${foodTab === t ? 'active' : ''}`}
-                onClick={() => { setFoodTab(t as any); setOnlySelectedMarker(false); }}
+                onClick={() => { if (!routePlacesLoading) { setFoodTab(t as any); setOnlySelectedMarker(false); } }}
+                disabled={routePlacesLoading}
               >
                 {t}
               </button>
@@ -1170,19 +1323,26 @@ export default function Main() {
             <Polyline
               path={routePath}
               strokeWeight={8}
-              strokeColor={'#8a2ea1ff'}
+              strokeColor="#8a2ea1ff"
               strokeOpacity={0.98}
-              strokeStyle={'solid'}
+              strokeStyle="solid"
               zIndex={70}
+              onClick={(_, mouseEvent) => {
+                if (!isPivotSelectMode || !mouseEvent || routePlacesLoading) return;
+                const latLng = mouseEvent.latLng;
+                if (!latLng) return;
+                setRoutePivot({ lat: latLng.getLat(), lng: latLng.getLng() });
+                setDistanceBase(null);
+              }}
             />
             {!isMoving && routeBorderSegs.map((seg, i) => (
               <Polyline
                 key={`rborder-${i}`}
                 path={seg}
                 strokeWeight={6}
-                strokeColor={'#FFFFFF'}
+                strokeColor="#FFFFFF"
                 strokeOpacity={0.98}
-                strokeStyle={'solid'}
+                strokeStyle="solid"
                 zIndex={80}
               />
             ))}
@@ -1197,9 +1357,9 @@ export default function Main() {
               key={`opt-${r.id}`}
               path={r.path}
               strokeWeight={4}
-              strokeColor={'#8a8a8a'}
+              strokeColor="#8a8a8a"
               strokeOpacity={0.5}
-              strokeStyle={'dash'}
+              strokeStyle="dash"
               zIndex={30}
             />
           );
@@ -1210,23 +1370,45 @@ export default function Main() {
             <Polyline
               path={autoRoutePath}
               strokeWeight={8}
-              strokeColor={'#8a2ea1ff'}
+              strokeColor="#8a2ea1ff"
               strokeOpacity={0.98}
-              strokeStyle={'solid'}
+              strokeStyle="solid"
               zIndex={75}
+              onClick={(_, mouseEvent: kakao.maps.event.MouseEvent) => {
+                if (!isPivotSelectMode || !mouseEvent || routePlacesLoading) return;
+                const latLng = mouseEvent.latLng;
+                if (!latLng) return;
+                setRoutePivot({ lat: latLng.getLat(), lng: latLng.getLng() });
+                setDistanceBase(null);
+              }}
             />
             {!isMoving && autoBorderSegs.map((seg, i) => (
               <Polyline
                 key={`aborder-${i}`}
                 path={seg}
                 strokeWeight={6}
-                strokeColor={'#FFFFFF'}
+                strokeColor="#FFFFFF"
                 strokeOpacity={0.98}
-                strokeStyle={'solid'}
+                strokeStyle="solid"
                 zIndex={85}
               />
             ))}
           </>
+        )}
+
+        {/* 🔥 pivot 모드 + pivot 있을 때만 깃발 마커 표시 */}
+        {isPivotSelectMode && routePivot && (
+          <MapMarker
+            position={{ lat: routePivot.lat, lng: routePivot.lng }}
+            image={{
+              src: '/assets/markers/기본마커.png',
+              size: { width: 32, height: 40 },
+              options: {
+                offset: { x: 16, y: 40 },
+              },
+            }}
+            zIndex={200}
+          />
         )}
 
         {isRouteModeView && !onlySelectedMarker && Array.isArray(markerItems) && markerItems.map((p: any, idx: number) => {
@@ -1256,9 +1438,9 @@ export default function Main() {
           <Polyline
             path={extraPlacePath}
             strokeWeight={6}
-            strokeColor={'#2E86DE'}
+            strokeColor="#2E86DE"
             strokeOpacity={0.95}
-            strokeStyle={'solid'}
+            strokeStyle="solid"
             zIndex={78}
           />
         )}
@@ -1283,11 +1465,12 @@ export default function Main() {
         )}
       </Map>
 
-      {/* 🔥 오른쪽 카카오맵 미니뷰어 */}
+      {/* 🔥 두 경로사이 맛집리스트 패널 오른쪽에 딱 붙어서 같이 이동하는 카카오맵 미니뷰어 */}
       {miniViewerPlace && (
         <PlaceMiniViewer
           place={miniViewerPlace}
           onClose={() => setMiniViewerPlace(null)}
+          anchorLeft={miniViewerLeft}
         />
       )}
 
