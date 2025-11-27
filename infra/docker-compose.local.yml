@@ -1,18 +1,25 @@
-version: "3.8"
-
 services:
   db:
     container_name: routepick-mysql-local
     image: mysql:8.0
     restart: always
     ports:
-      - "3307:3306"   # 로컬 MySQL과 충돌 방지
+      - "3307:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: board
     volumes:
       - mysql-data-local:/var/lib/mysql
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+      - ../initdb:/docker-entrypoint-initdb.d
+      - ./mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p1234"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+      start_period: 10s
+
 
   backend:
     container_name: routepick-backend-local
@@ -24,11 +31,16 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: local
       TZ: Asia/Seoul
+    depends_on:
+      db:
+        condition: service_healthy
+
     volumes:
       - ../board-back/build/libs:/app/build/libs
       - ./upload:/fileUpload/
-    depends_on:
-      - db
+
+    # 포트 오픈을 정확히 기다리도록 entrypoint 스크립트 사용
+    entrypoint: ["/wait-for-db.sh"]
 
 volumes:
   mysql-data-local:
