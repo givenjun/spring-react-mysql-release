@@ -12,7 +12,7 @@ VALUES
 
 -- 2. 일반 사용자 1
 ('jun@routepick.net',
- '$2a$10$UHDHpdMLuBz/HXmkL8Ge5OYf8kz6rM4hquBYL4fRjOkaGXnSlOoeO', -- 'jun1234'
+ '$2a$10$ll19kEv09fAQobZXrHhgPeQpJslQjq157NT4B2ELQQjQRTLLA0j9q', -- 'jun1234'
  'jun',
  '01022223333',
  '대전광역시 유성구 대학로 291',
