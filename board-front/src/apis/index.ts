@@ -10,7 +10,7 @@ import { PatchNicknameRequestDto, PatchProfileImageRequestDto } from './request/
 import { GeminiRequestDto } from './request/gemini';
 
 // const DOMAIN = 'http://13.209.72.52:4000';  도메인 배포
-const DOMAIN = 'http://localhost:4000';
+const DOMAIN = process.env.REACT_APP_API_URL;
 const API_DOMAIN = `${DOMAIN}/api/v1`;
 
 const authorization = (accessToken: string) => {
