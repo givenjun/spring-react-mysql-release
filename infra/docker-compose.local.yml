@@ -12,25 +12,25 @@ services:
       - mysql-data-local:/var/lib/mysql
       - ../initdb:/docker-entrypoint-initdb.d
       - ./mysql/my.cnf:/etc/mysql/conf.d/my.cnf
-
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p1234"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p1234"]
       interval: 5s
-      timeout: 3s
-      retries: 15
-      start_period: 10s
-
+      timeout: 5s
+      retries: 30
+      start_period: 15s
 
   backend:
     container_name: routepick-backend-local
     build:
       context: ../board-back
-      dockerfile: Dockerfile.local
+      dockerfile: Dockerfile.docker
     ports:
       - "4000:4000"
     environment:
-      SPRING_PROFILES_ACTIVE: local
+      SPRING_PROFILES_ACTIVE: docker
       TZ: Asia/Seoul
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/board?serverTimezone=Asia/Seoul&characterEncoding=utf8
+    restart: on-failure
     depends_on:
       db:
         condition: service_healthy
@@ -38,9 +38,6 @@ services:
     volumes:
       - ../board-back/build/libs:/app/build/libs
       - ./upload:/fileUpload/
-
-    # 포트 오픈을 정확히 기다리도록 entrypoint 스크립트 사용
-    entrypoint: ["/wait-for-db.sh"]
 
 volumes:
   mysql-data-local:
