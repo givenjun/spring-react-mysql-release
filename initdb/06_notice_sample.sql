@@ -1,3 +1,7 @@
+SET NAMES utf8mb4;
+SET character_set_client = utf8mb4;
+SET character_set_connection = utf8mb4;
+
 INSERT INTO notice (id, title, content, writer_email, created_at, updated_at, pinned)
 VALUES
     (1, '[공지] RoutePick 서비스 점검 안내',

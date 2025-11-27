@@ -1,3 +1,7 @@
+SET NAMES utf8mb4;
+SET character_set_client = utf8mb4;
+SET character_set_connection = utf8mb4;
+
 INSERT INTO search_log (search_word, relation_word, relation) VALUES
                                                                   ('부대통령뚝배기', NULL, 0),
                                                                   ('원조한밭뒷고기', NULL, 0),
