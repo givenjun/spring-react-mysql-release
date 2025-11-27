@@ -173,3 +173,4 @@ board-back/src/main/resources/application-apis.properties
 board-back/src/main/resources/
 infra/env/prod.env
 infra/upload/*
+infra/.env

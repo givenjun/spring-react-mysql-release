@@ -7,23 +7,20 @@ services:
     container_name: routepick-mysql
     image: mysql:8.0
     restart: always
+    ports:
+      - "3306:3306"   # EC2 내부만 사용하면 생략 가능
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: board
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-
-    ports:
-      - "3306:3306"   # EC2 내부만 사용하면 생략 가능
-
     volumes:
       - mysql-data:/var/lib/mysql
       - ../initdb:/docker-entrypoint-initdb.d    # ⭕ 로컬 방식 그대로 (initdb 자동 적용)
       - ./mysql/my.cnf:/etc/mysql/conf.d/my.cnf  # ⭕ 로컬과 동일 (utf8mb4세팅)
 
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
-             "-u", "${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 5s
       timeout: 5s
       retries: 30
@@ -47,10 +44,7 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       TZ: Asia/Seoul
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/board?serverTimezone=Asia/Seoul&characterEncoding=utf8
-
-    env_file:
-      - ./env/prod.env
-
+    
     depends_on:
       db:
         condition: service_healthy   # ⭕ 로컬 동일
