@@ -1,0 +1,34 @@
+version: "3.8"
+
+services:
+  db:
+    container_name: routepick-mysql-local
+    image: mysql:8.0
+    restart: always
+    ports:
+      - "3307:3306"   # 로컬 MySQL과 충돌 방지
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER}
+    volumes:
+      - mysql-data-local:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  backend:
+    container_name: routepick-backend-local
+    build:
+      context: ../board-back
+      dockerfile: Dockerfile.local
+    ports:
+      - "4000:4000"
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      TZ: Asia/Seoul
+    volumes:
+      - ../board-back/build/libs:/app/build/libs
+      - ./upload:/fileUpload/
+    depends_on:
+      - db
+
+volumes:
+  mysql-data-local:

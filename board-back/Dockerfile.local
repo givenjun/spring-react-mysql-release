@@ -1,0 +1,14 @@
+# ==========================
+# Local Development Runtime
+# ==========================
+FROM openjdk:17
+WORKDIR /app
+
+# 로컬에서 빌드한 JAR 복사
+COPY build/libs/*.jar app.jar
+
+ENV TZ=Asia/Seoul
+EXPOSE 4000
+
+# 기본 실행 (local 프로필)
+ENTRYPOINT ["java", "-jar", "app.jar", "--spring.profiles.active=local"]

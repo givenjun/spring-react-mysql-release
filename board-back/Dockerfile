@@ -1,6 +1,23 @@
-FROM openjdk:17
+# ==========================
+# 1) Build Stage
+# ==========================
+FROM gradle:8.5-jdk17-alpine AS BUILD
 WORKDIR /app
-COPY build/libs/*.jar app.jar
+
+COPY . .
+RUN gradle clean build -x test
+
+# ==========================
+# 2) Runtime Stage
+# ==========================
+FROM eclipse-temurin:17-jdk
+WORKDIR /app
+
+# 빌드된 JAR 복사
+COPY --from=BUILD /app/build/libs/*.jar app.jar
+
+# Timezone 설정
+ENV TZ=Asia/Seoul
+
 EXPOSE 4000
-# ENTRYPOINT ["java", "-jar", "app.jar", "--spring.profiles.active=local"]
 ENTRYPOINT ["java", "-jar", "app.jar"]
