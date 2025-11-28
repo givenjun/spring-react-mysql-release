@@ -38,7 +38,7 @@ public class WebSecurityConfig {
 
     @Value("${cors.front-origin}")
     private String frontOrigin;
-    @Value("http://routepick.kro.kr")
+    @Value("https://routepick.net")
     private String domainOrigin;
 
     @Bean
