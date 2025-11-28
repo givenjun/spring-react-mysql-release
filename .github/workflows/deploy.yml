@@ -10,23 +10,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # =============================
-      # 1) Git Checkout
-      # =============================
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # =============================
-      # 2) Deploy to EC2
-      # =============================
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
+          command_timeout: 60m
+          ssh_options: "-o ServerAliveInterval=60 -o ServerAliveCountMax=60"
           script: |
-            set -e  # 오류 시 즉시 중단
+            set -e
 
             echo "📦 EC2 배포 시작"
 
@@ -37,13 +33,13 @@ jobs:
 
             echo "📌 1) Git Pull"
             git fetch --all
-            git reset --hard origin/main   # ← 충돌 없이 강제 최신화
+            git reset --hard origin/main
 
             echo "📌 2) 기존 컨테이너 종료"
             docker compose -f docker-compose.prod.yml down
 
-            echo "📌 3) Docker 이미지 재빌드"
-            docker compose -f docker-compose.prod.yml build --no-cache
+            echo "📌 3) Docker 이미지 빌드 (캐시 사용)"
+            docker compose -f docker-compose.prod.yml build
 
             echo "📌 4) 컨테이너 재시작"
             MYSQL_ROOT_PASSWORD='${{ secrets.MYSQL_ROOT_PASSWORD }}' \
