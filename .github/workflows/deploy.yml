@@ -62,7 +62,7 @@ jobs:
         key: ${{ secrets.EC2_KEY }}
         script: rm -rf /home/ubuntu/routepick/frontend/*
 
-    # ===============================
+# ===============================
     # Upload Backend JAR
     # ===============================
     - name: Upload Backend Jar
@@ -71,8 +71,12 @@ jobs:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_KEY }}
+        # 소스 파일 위치
         source: "board-back/build/libs/app.jar"
-        target: "/home/ubuntu/routepick/backend/app.jar" 
+        # [수정 1] target은 '폴더'까지만 지정 (뒤에 파일명 빼기)
+        target: "/home/ubuntu/routepick/backend/"
+        # [수정 2] 앞쪽 경로 3단계(board-back/build/libs/) 제거하고 파일만 복사
+        strip_components: 3
 
     # ===============================
     # Upload Frontend Build
