@@ -33,7 +33,7 @@ export default function KakaoPlaceViewer({
       <div className="kakao-place-viewer-body">
         {/* 카카오 place_url 페이지를 그대로 임베드 */}
         <iframe
-          src={placeUrl}
+          src={placeUrl.replace(/^http:\/\//, "https://")}
           title={title || "카카오맵 상세"}
           frameBorder={0}
           style={{ width: "100%", height: "100%" }}
