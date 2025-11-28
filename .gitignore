@@ -169,8 +169,7 @@ Thumbs.db
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
-board-back/src/main/resources/application-apis.properties
-board-back/src/main/resources/
+board-back/src/main/resources/application-secret.properties
 infra/env/prod.env
 infra/upload/*
 infra/.env
