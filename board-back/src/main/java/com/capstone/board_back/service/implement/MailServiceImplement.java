@@ -18,7 +18,7 @@ public class MailServiceImplement implements MailService {
 
   private String loadHtmlTemplate(String verifyUrl) throws Exception {
     ClassPathResource resource =
-            new ClassPathResource("templates/email/verify-email.html");
+            new ClassPathResource("email/verify-email.html");
 
     String html = new String(resource.getInputStream().readAllBytes(),
             StandardCharsets.UTF_8);
