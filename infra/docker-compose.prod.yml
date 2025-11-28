@@ -1,14 +1,9 @@
 services:
 
-  # ================================
-  # 1) MySQL (Prod)
-  # ================================
   db:
     container_name: routepick-mysql
     image: mysql:8.0
     restart: always
-    ports:
-      - "3306:3306"   # EC2 내부만 사용하면 생략 가능
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: board
@@ -16,72 +11,53 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - mysql-data:/var/lib/mysql
-      - ../initdb:/docker-entrypoint-initdb.d    # ⭕ 로컬 방식 그대로 (initdb 자동 적용)
-      - ./mysql/my.cnf:/etc/mysql/conf.d/my.cnf  # ⭕ 로컬과 동일 (utf8mb4세팅)
-
+      - ./mysql/my.cnf:/etc/mysql/conf.d/my.cnf
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 5s
       timeout: 5s
       retries: 30
       start_period: 15s
-
     networks:
       - routepick-net
 
-
-  # ================================
-  # 2) Spring Boot Backend (Prod)
-  # ================================
   backend:
     container_name: routepick-backend
     build:
       context: ../board-back
       dockerfile: Dockerfile.prod
     restart: on-failure
-
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      TZ: Asia/Seoul
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/board?serverTimezone=Asia/Seoul&characterEncoding=utf8
-    
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+      TZ: Asia/Seoul
     depends_on:
       db:
-        condition: service_healthy   # ⭕ 로컬 동일
-
+        condition: service_healthy
     volumes:
-      # JAR 빌드 결과는 dockerfile에서 넣으므로 필요 없음
-      - /home/ubuntu/app/fileUpload:/fileUpload/   # ⭕ prod host 경로 고정
-
+      - /home/ubuntu/app/fileUpload:/fileUpload/
     networks:
       - routepick-net
 
-
-  # ================================
-  # 3) Nginx + React 프론트엔드
-  # ================================
   nginx:
     container_name: routepick-frontend
-    image: nginx:stable
+    build:
+      context: ../board-front
+      dockerfile: Dockerfile.prod   # ← 프론트를 여기서 빌드하도록
     restart: always
-
     ports:
       - "80:80"
-
     depends_on:
       - backend
-
     volumes:
-      - /home/ubuntu/app/board-front/build:/usr/share/nginx/html
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
-
     networks:
       - routepick-net
-
 
 networks:
   routepick-net:
-
 
 volumes:
   mysql-data:

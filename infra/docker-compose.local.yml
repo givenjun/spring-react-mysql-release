@@ -1,4 +1,8 @@
 services:
+
+  # ================================
+  # 1) MySQL (Local)
+  # ================================
   db:
     container_name: routepick-mysql-local
     image: mysql:8.0
@@ -8,36 +12,64 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: 1234
       MYSQL_DATABASE: board
+      MYSQL_USER: routepick
+      MYSQL_PASSWORD: 1234
     volumes:
       - mysql-data-local:/var/lib/mysql
       - ../initdb:/docker-entrypoint-initdb.d
       - ./mysql/my.cnf:/etc/mysql/conf.d/my.cnf
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p1234"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p1234"]
       interval: 5s
       timeout: 5s
       retries: 30
       start_period: 15s
+    networks:
+      - routepick-net-local
 
+
+  # ================================
+  # 2) Spring Boot Backend (Local)
+  # ================================
   backend:
     container_name: routepick-backend-local
     build:
       context: ../board-back
-      dockerfile: Dockerfile.docker
+      dockerfile: Dockerfile.local  # ← 로컬 용 Dockerfile
+    restart: on-failure
     ports:
       - "4000:4000"
     environment:
       SPRING_PROFILES_ACTIVE: docker
       TZ: Asia/Seoul
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/board?serverTimezone=Asia/Seoul&characterEncoding=utf8
-    restart: on-failure
     depends_on:
       db:
         condition: service_healthy
-
     volumes:
       - ../board-back/build/libs:/app/build/libs
       - ./upload:/fileUpload/
+    networks:
+      - routepick-net-local
+
+
+  # ================================
+  # 3) React (Local Docker Build)
+  # ================================
+  frontend:
+    container_name: routepick-frontend-local
+    build:
+      context: ../board-front
+      dockerfile: Dockerfile.local   # ← 새로 만들 프론트용 Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - routepick-net-local
+
+networks:
+  routepick-net-local:
 
 volumes:
   mysql-data-local:
