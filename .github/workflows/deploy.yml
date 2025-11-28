@@ -1,0 +1,48 @@
+name: 🚀 Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main   # main 브랜치 push 때 자동 배포
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # =============================
+      # 1) Git Checkout
+      # =============================
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # =============================
+      # 2) EC2 서버에 SSH 접속해서 배포
+      # =============================
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "📦 EC2 배포 시작"
+
+            cd /home/ubuntu/routepick/spring-react-mysql-release/infra
+
+            echo "📌 1) Git Pull"
+            git pull origin main
+
+            echo "📌 2) 기존 컨테이너 종료"
+            docker compose -f docker-compose.prod.yml down
+
+            echo "📌 3) Docker 이미지 재빌드"
+            docker compose -f docker-compose.prod.yml build --no-cache
+
+            echo "📌 4) 컨테이너 재시작"
+            MYSQL_ROOT_PASSWORD='${{ secrets.MYSQL_ROOT_PASSWORD }}' \
+            MYSQL_USER='${{ secrets.MYSQL_USER }}' \
+            MYSQL_PASSWORD='${{ secrets.MYSQL_PASSWORD }}' \
+            docker compose -f docker-compose.prod.yml up -d
+
+            echo "🎉 배포 완료!"
