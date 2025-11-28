@@ -37,16 +37,17 @@ services:
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
       
-      # [필수: JWT 시크릿 키] (이게 없어서 에러나는 중)
-      secret-key: ${secret-key}
+      # 1. JWT 시크릿 키
+      secret-key: ${JWT_SECRET_KEY}
 
-      # [추가: 메일, Tmap, Gemini, 카카오 등 백엔드 필수 설정]
-      # .env에 있는 변수명 그대로 매핑해줍니다.
-      spring.mail.username: ${spring.mail.username}
-      spring.mail.password: ${spring.mail.password}
-      tmap.app-key: ${tmap.app-key}
-      gemini.api.key: ${gemini.api.key}
-      kakao.api.key: ${kakao.api.key}
+      # 2. 메일 설정
+      spring.mail.username: ${SPRING_MAIL_USERNAME}
+      spring.mail.password: ${SPRING_MAIL_PASSWORD}
+      
+      # 3. API 키들
+      tmap.app-key: ${TMAP_APP_KEY}
+      gemini.api.key: ${GEMINI_API_KEY}
+      kakao.api.key: ${KAKAO_API_KEY}
       
       TZ: Asia/Seoul
     depends_on:
