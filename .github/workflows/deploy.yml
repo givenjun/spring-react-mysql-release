@@ -26,7 +26,7 @@ jobs:
 
             echo "📦 EC2 배포 시작"
 
-            cd /home/ubuntu/routepick/spring-react-mysql-release/infra
+            cd /home/ubuntu/routepick/infra
 
             echo "🔑 GitHub SSH Key 설정 적용"
             git config --global core.sshCommand "ssh -i ~/.ssh/github-deploy -F /dev/null"
