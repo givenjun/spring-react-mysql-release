@@ -31,9 +31,23 @@ services:
     command: ["java", "-Dfile.encoding=UTF-8", "-jar", "/app/app.jar"]
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      
+      # [데이터베이스 설정]
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/board?serverTimezone=Asia/Seoul&characterEncoding=utf8
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+      
+      # [필수: JWT 시크릿 키] (이게 없어서 에러나는 중)
+      secret-key: ${secret-key}
+
+      # [추가: 메일, Tmap, Gemini, 카카오 등 백엔드 필수 설정]
+      # .env에 있는 변수명 그대로 매핑해줍니다.
+      spring.mail.username: ${spring.mail.username}
+      spring.mail.password: ${spring.mail.password}
+      tmap.app-key: ${tmap.app-key}
+      gemini.api.key: ${gemini.api.key}
+      kakao.api.key: ${kakao.api.key}
+      
       TZ: Asia/Seoul
     depends_on:
       db:
