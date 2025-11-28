@@ -59,4 +59,4 @@ networks:
   routepick-net:
 
 volumes:
-  mysql-data:
+  mysql-data: 
