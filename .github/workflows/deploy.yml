@@ -1,4 +1,4 @@
-name: 🚀 Auto Deploy to EC2 (Backend + Frontend)
+name: 🚀 Auto Deploy to EC2 (Backend + Frontend Build in Actions)
 
 on:
   push:
@@ -10,35 +10,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # 1) Checkout
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # ---------------------------
-    # Backend Build
-    # ---------------------------
+    # ===============================
+    # 2) Backend Build
+    # ===============================
     - name: Build Backend
       run: |
         cd board-back
         chmod +x ./gradlew
         ./gradlew clean build -x test
 
-    # JAR 이름을 항상 app.jar로 통일
+    # ===============================
+    # 3) Rename Backend JAR
+    # ===============================
     - name: Rename Backend Jar
       run: |
-        mv board-back/build/libs/*.jar board-back/build/libs/app.jar
+        cd board-back/build/libs
+        mv *SNAPSHOT.jar app.jar
 
-    # ---------------------------
-    # Frontend Build
-    # ---------------------------
+    # ===============================
+    # 4) Frontend Build
+    # ===============================
     - name: Build Frontend
       run: |
         cd board-front
         npm ci
         npm run build
 
-    # ---------------------------
-    # Upload Backend
-    # ---------------------------
+    # ===============================
+    # 5) Upload Backend JAR
+    # ===============================
     - name: Upload Backend Jar
       uses: appleboy/scp-action@v0.1.4
       with:
@@ -46,11 +50,11 @@ jobs:
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_KEY }}
         source: "board-back/build/libs/app.jar"
-        target: "/home/ubuntu/routepick/backend/"
+        target: "/home/ubuntu/routepick/backend/app.jar"
 
-    # ---------------------------
-    # Upload Frontend
-    # ---------------------------
+    # ===============================
+    # 6) Upload Frontend Build
+    # ===============================
     - name: Upload Frontend Build
       uses: appleboy/scp-action@v0.1.4
       with:
@@ -58,11 +62,11 @@ jobs:
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_KEY }}
         source: "board-front/build/*"
-        target: "/home/ubuntu/routepick/frontend/build/"
+        target: "/home/ubuntu/routepick/frontend/"
 
-    # ---------------------------
-    # Restart Docker Services
-    # ---------------------------
+    # ===============================
+    # 7) Restart Docker
+    # ===============================
     - name: Restart EC2 Docker Services
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -78,6 +82,6 @@ jobs:
           docker compose -f docker-compose.prod.yml down
 
           echo "📌 컨테이너 재시작"
-          docker compose -f docker-compose.prod.yml up -d --build
+          docker compose -f docker-compose.prod.yml up -d
 
           echo "🎉 배포 완료!"
