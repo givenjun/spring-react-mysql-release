@@ -68,7 +68,7 @@ jobs:
         script: |
           echo "📦 RoutePick 배포 시작"
 
-          cd /home/ubuntu/routepick
+          cd /home/ubuntu/routepick/infra
 
           echo "📌 기존 컨테이너 종료"
           docker compose -f docker-compose.prod.yml down
