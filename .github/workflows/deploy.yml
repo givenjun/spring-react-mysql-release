@@ -1,4 +1,4 @@
-name: 🚀 Auto Deploy to EC2 (Backend + Frontend Build in Actions)
+name: 🚀 Auto Deploy to EC2 (Backend + Frontend)
 
 on:
   push:
@@ -13,51 +13,56 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # =========================================
+    # ---------------------------
     # Backend Build
-    # =========================================
+    # ---------------------------
     - name: Build Backend
       run: |
         cd board-back
         chmod +x ./gradlew
         ./gradlew clean build -x test
 
-    # =========================================
+    # JAR 이름을 항상 app.jar로 통일
+    - name: Rename Backend Jar
+      run: |
+        mv board-back/build/libs/*.jar board-back/build/libs/app.jar
+
+    # ---------------------------
     # Frontend Build
-    # =========================================
+    # ---------------------------
     - name: Build Frontend
       run: |
         cd board-front
         npm ci
         npm run build
 
-    # =========================================
-    # Upload Backend Jar
-    # =========================================
+    # ---------------------------
+    # Upload Backend
+    # ---------------------------
     - name: Upload Backend Jar
       uses: appleboy/scp-action@v0.1.4
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_KEY }}
-        source: "board-back/build/libs/*.jar"
-        target: "/home/ubuntu/routepick/backend/app.jar"
+        source: "board-back/build/libs/app.jar"
+        target: "/home/ubuntu/routepick/backend/"
 
-    # =========================================
-    # Upload Frontend Build (정확히 파일 내용만)
-    # =========================================
+    # ---------------------------
+    # Upload Frontend
+    # ---------------------------
     - name: Upload Frontend Build
       uses: appleboy/scp-action@v0.1.4
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_KEY }}
-        source: "board-front/build/."
-        target: "/home/ubuntu/routepick/frontend/"
+        source: "board-front/build/*"
+        target: "/home/ubuntu/routepick/frontend/build/"
 
-    # =========================================
+    # ---------------------------
     # Restart Docker Services
-    # =========================================
+    # ---------------------------
     - name: Restart EC2 Docker Services
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -65,6 +70,14 @@ jobs:
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_KEY }}
         script: |
+          echo "📦 RoutePick 배포 시작"
+
           cd /home/ubuntu/routepick/infra
+
+          echo "📌 기존 컨테이너 종료"
           docker compose -f docker-compose.prod.yml down
-          docker compose -f docker-compose.prod.yml up -d
+
+          echo "📌 컨테이너 재시작"
+          docker compose -f docker-compose.prod.yml up -d --build
+
+          echo "🎉 배포 완료!"
