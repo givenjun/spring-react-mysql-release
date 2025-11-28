@@ -15,7 +15,7 @@ jobs:
       uses: actions/checkout@v4
 
     # =========================================
-    # 2) Backend Build (Actions에서 빌드)
+    # 2) Backend Build
     # =========================================
     - name: Build Backend
       run: |
@@ -33,7 +33,7 @@ jobs:
         npm run build
 
     # =========================================
-    # 4) EC2로 Backend Upload (app.jar)
+    # 4) Upload Backend Jar
     # =========================================
     - name: Upload Backend Jar
       uses: appleboy/scp-action@v0.1.4
@@ -45,7 +45,7 @@ jobs:
         target: "/home/ubuntu/routepick/backend/app.jar"
 
     # =========================================
-    # 5) EC2로 Frontend Upload (build/)
+    # 5) Upload Frontend Build
     # =========================================
     - name: Upload Frontend Build
       uses: appleboy/scp-action@v0.1.4
@@ -57,7 +57,7 @@ jobs:
         target: "/home/ubuntu/routepick/frontend/"
 
     # =========================================
-    # 6) EC2 Docker Restart
+    # 6) Restart Docker Services (No Build)
     # =========================================
     - name: Restart EC2 Docker Services
       uses: appleboy/ssh-action@v1.0.3
@@ -72,9 +72,6 @@ jobs:
 
           echo "📌 기존 컨테이너 종료"
           docker compose -f docker-compose.prod.yml down
-
-          echo "📌 Docker 이미지 빌드"
-          docker compose -f docker-compose.prod.yml build
 
           echo "📌 컨테이너 재시작"
           docker compose -f docker-compose.prod.yml up -d
