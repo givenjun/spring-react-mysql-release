@@ -24,7 +24,7 @@ services:
   backend:
     container_name: routepick-backend
     build:
-      context: ./backend        # ★ GitHub Actions가 업로드한 폴더
+      context: ../backend
       dockerfile: Dockerfile.prod
     restart: on-failure
     environment:
@@ -44,7 +44,7 @@ services:
   frontend:
     container_name: routepick-frontend
     build:
-      context: ./frontend       # ★ GitHub Actions가 업로드한 build/ 폴더
+      context: ../frontend
       dockerfile: Dockerfile.prod
     restart: always
     ports:
