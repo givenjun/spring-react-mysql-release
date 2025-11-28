@@ -24,19 +24,18 @@ services:
   backend:
     container_name: routepick-backend
     image: eclipse-temurin:17-jdk
-    restart: always
+    restart: on-failure
     environment:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/board?serverTimezone=Asia/Seoul&characterEncoding=utf8
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
-      TZ: Asia/Seoul
-    volumes:
-      - /home/ubuntu/routepick/backend/app.jar:/app/app.jar
-      - /home/ubuntu/app/fileUpload:/fileUpload
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - /home/ubuntu/routepick/backend/app.jar:/app/app.jar
+      - /home/ubuntu/app/fileUpload:/fileUpload/
     command: ["java", "-Dfile.encoding=UTF-8", "-jar", "/app/app.jar"]
     networks:
       - routepick-net
