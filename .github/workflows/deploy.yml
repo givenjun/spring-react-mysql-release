@@ -2,39 +2,37 @@ name: 🚀 Auto Deploy to EC2 (Backend + Frontend Build in Actions)
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-    # 1) Checkout repository
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # =========================================
-    # 2) Backend Build
-    # =========================================
+    # -----------------------------------------
+    # Backend Build
+    # -----------------------------------------
     - name: Build Backend
       run: |
         cd board-back
         chmod +x ./gradlew
         ./gradlew clean build -x test
 
-    # =========================================
-    # 3) Frontend Build
-    # =========================================
+    # -----------------------------------------
+    # Frontend Build
+    # -----------------------------------------
     - name: Build Frontend
       run: |
         cd board-front
         npm ci
         npm run build
 
-    # =========================================
-    # 4) Upload Backend Jar
-    # =========================================
+    # -----------------------------------------
+    # Upload Backend JAR
+    # -----------------------------------------
     - name: Upload Backend Jar
       uses: appleboy/scp-action@v0.1.4
       with:
@@ -42,23 +40,23 @@ jobs:
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_KEY }}
         source: "board-back/build/libs/*.jar"
-        target: "/home/ubuntu/routepick/backend/"
+        target: "/home/ubuntu/routepick/backend/app.jar"
 
-    # =========================================
-    # 5) Upload Frontend Build
-    # =========================================
+    # -----------------------------------------
+    # Upload Frontend Build Folder
+    # -----------------------------------------
     - name: Upload Frontend Build
       uses: appleboy/scp-action@v0.1.4
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_KEY }}
-        source: "board-front/build/"
+        source: "board-front/build/*"
         target: "/home/ubuntu/routepick/frontend/"
 
-    # =========================================
-    # 6) Restart Docker Services
-    # =========================================
+    # -----------------------------------------
+    # Restart EC2 Docker Services
+    # -----------------------------------------
     - name: Restart EC2 Docker Services
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -70,10 +68,7 @@ jobs:
 
           cd /home/ubuntu/routepick/infra
 
-          echo "📌 기존 컨테이너 종료"
           docker compose -f docker-compose.prod.yml down
-
-          echo "📌 컨테이너 재시작"
           docker compose -f docker-compose.prod.yml up -d
 
           echo "🎉 배포 완료!"

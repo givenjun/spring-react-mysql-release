@@ -31,12 +31,12 @@ services:
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
       TZ: Asia/Seoul
+    volumes:
+      - /home/ubuntu/routepick/backend/app.jar:/app/app.jar
+      - /home/ubuntu/app/fileUpload:/fileUpload
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - /home/ubuntu/routepick/backend/app.jar:/app/app.jar
-      - /home/ubuntu/app/fileUpload:/fileUpload/
     command: ["java", "-Dfile.encoding=UTF-8", "-jar", "/app/app.jar"]
     networks:
       - routepick-net
@@ -59,4 +59,4 @@ networks:
   routepick-net:
 
 volumes:
-  mysql-data: 
+  mysql-data:
