@@ -1,4 +1,4 @@
-name: 🚀 Deploy to EC2
+name: 🚀 Auto Deploy to EC2 (Backend + Frontend Build in Actions)
 
 on:
   push:
@@ -10,40 +10,73 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    # 1) Checkout repository
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Deploy to EC2 via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_KEY }}
-          command_timeout: 60m
-          script: |
-            set -e
+    # =========================================
+    # 2) Backend Build (Actions에서 빌드)
+    # =========================================
+    - name: Build Backend
+      run: |
+        cd board-back
+        chmod +x ./gradlew
+        ./gradlew clean build -x test
 
-            echo "📦 EC2 배포 시작"
+    # =========================================
+    # 3) Frontend Build
+    # =========================================
+    - name: Build Frontend
+      run: |
+        cd board-front
+        npm ci
+        npm run build
 
-            cd /home/ubuntu/routepick/infra
+    # =========================================
+    # 4) EC2로 Backend Upload (app.jar)
+    # =========================================
+    - name: Upload Backend Jar
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        source: "board-back/build/libs/*.jar"
+        target: "/home/ubuntu/routepick/backend/app.jar"
 
-            echo "🔑 GitHub SSH Key 설정 적용"
-            git config --global core.sshCommand "ssh -i ~/.ssh/github-deploy -F /dev/null"
+    # =========================================
+    # 5) EC2로 Frontend Upload (build/)
+    # =========================================
+    - name: Upload Frontend Build
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        source: "board-front/build/*"
+        target: "/home/ubuntu/routepick/frontend/"
 
-            echo "📌 1) Git Pull"
-            git fetch --all
-            git reset --hard origin/main
+    # =========================================
+    # 6) EC2 Docker Restart
+    # =========================================
+    - name: Restart EC2 Docker Services
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        script: |
+          echo "📦 RoutePick 배포 시작"
 
-            echo "📌 2) 기존 컨테이너 종료"
-            docker compose -f docker-compose.prod.yml down
+          cd /home/ubuntu/routepick
 
-            echo "📌 3) Docker 이미지 빌드 (캐시 사용)"
-            docker compose -f docker-compose.prod.yml build
+          echo "📌 기존 컨테이너 종료"
+          docker compose -f docker-compose.prod.yml down
 
-            echo "📌 4) 컨테이너 재시작"
-            MYSQL_ROOT_PASSWORD='${{ secrets.MYSQL_ROOT_PASSWORD }}' \
-            MYSQL_USER='${{ secrets.MYSQL_USER }}' \
-            MYSQL_PASSWORD='${{ secrets.MYSQL_PASSWORD }}' \
-            docker compose -f docker-compose.prod.yml up -d
+          echo "📌 Docker 이미지 빌드"
+          docker compose -f docker-compose.prod.yml build
 
-            echo "🎉 배포 완료!"
+          echo "📌 컨테이너 재시작"
+          docker compose -f docker-compose.prod.yml up -d
+
+          echo "🎉 배포 완료!"
