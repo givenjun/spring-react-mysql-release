@@ -10,29 +10,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1) Checkout
+    # 1. 체크아웃
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    # 2. 환경 설정 (버전 고정 필수)
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
     # ===============================
-    # 2) Backend Build
+    # Backend Build
     # ===============================
     - name: Build Backend
       run: |
         cd board-back
         chmod +x ./gradlew
-        ./gradlew clean build -x test
+        ./gradlew clean bootJar -x test
 
-    # ===============================
-    # 3) Rename Backend JAR
-    # ===============================
+    # [중요] JAR 파일 이름 변경 단계 추가
     - name: Rename Backend Jar
       run: |
         cd board-back/build/libs
-        mv *SNAPSHOT.jar app.jar
+        mv *.jar app.jar
 
     # ===============================
-    # 4) Frontend Build
+    # Frontend Build
     # ===============================
     - name: Build Frontend
       run: |
@@ -41,7 +51,19 @@ jobs:
         npm run build
 
     # ===============================
-    # 5) Upload Backend JAR
+    # Clean Remote Directory (청소)
+    # ===============================
+    # 기존 프론트엔드 파일을 지우지 않으면 파일이 계속 쌓이고 캐싱 문제가 생길 수 있음
+    - name: Clean Remote Frontend Directory
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        script: rm -rf /home/ubuntu/routepick/frontend/*
+
+    # ===============================
+    # Upload Backend JAR
     # ===============================
     - name: Upload Backend Jar
       uses: appleboy/scp-action@v0.1.4
@@ -50,10 +72,10 @@ jobs:
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_KEY }}
         source: "board-back/build/libs/app.jar"
-        target: "/home/ubuntu/routepick/backend/app.jar"
+        target: "/home/ubuntu/routepick/backend/app.jar" 
 
     # ===============================
-    # 6) Upload Frontend Build
+    # Upload Frontend Build
     # ===============================
     - name: Upload Frontend Build
       uses: appleboy/scp-action@v0.1.4
@@ -61,11 +83,12 @@ jobs:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_KEY }}
-        source: "board-front/build/*"
+        source: "board-front/build/*" # build 폴더 안의 내용물만
         target: "/home/ubuntu/routepick/frontend/"
+        strip_components: 2 # [핵심] board-front/build/ 경로 2단계를 제거
 
     # ===============================
-    # 7) Restart Docker
+    # Restart Docker
     # ===============================
     - name: Restart EC2 Docker Services
       uses: appleboy/ssh-action@v1.0.3
@@ -75,7 +98,6 @@ jobs:
         key: ${{ secrets.EC2_KEY }}
         script: |
           echo "📦 RoutePick 배포 시작"
-
           cd /home/ubuntu/routepick/infra
 
           echo "📌 기존 컨테이너 종료"
@@ -83,5 +105,8 @@ jobs:
 
           echo "📌 컨테이너 재시작"
           docker compose -f docker-compose.prod.yml up -d
+          
+          echo "🧹 미사용 이미지 정리"
+          docker image prune -f
 
           echo "🎉 배포 완료!"
