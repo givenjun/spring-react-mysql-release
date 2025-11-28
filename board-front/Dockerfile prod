@@ -9,7 +9,8 @@ RUN npm install
 COPY . .
 COPY .env.production ./.env.production
 
-RUN npm run build
+# 🔥 Node 빌드 메모리 4GB로 확장 (OOM 방지)
+RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
 # Run 단계
 FROM nginx:stable
