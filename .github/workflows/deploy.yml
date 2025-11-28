@@ -20,7 +20,7 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
           command_timeout: 60m
-          ssh_options: "-o ServerAliveInterval=60 -o ServerAliveCountMax=60"
+          request_pty: true
           script: |
             set -e
 
