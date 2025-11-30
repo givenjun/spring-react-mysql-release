@@ -31,6 +31,7 @@ import { sortPlacesByDistance } from 'utils';
 
 // ✅ 카카오맵 미니 뷰어
 import PlaceMiniViewer from 'components/Map/PlaceMiniViewer';
+import MobileSearchSidebar from 'components/Map/MobileSearchSidebar';
 
 // ⚠️ requestIdleCallback는 재선언하지 않습니다
 declare global { interface Window { kakao: any } }
@@ -209,6 +210,44 @@ export default function Main() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [mapMode, setMapMode] = useState<'explore' | 'route'>('explore');
+
+  const [mapType, setMapTypeState] = useState<'roadmap' | 'skyview'>('roadmap');
+
+  const IconLayers = () => (
+    <svg className="map-icon-svg" viewBox="0 0 24 24">
+      <path d="M11.99 2.049l-10.3 5.305 10.3 5.304 10.3-5.304-10.3-5.305zm0 10.61l-10.3-5.306v4.61l10.3 5.305 10.3-5.305v-4.61l-10.3 5.306zm0 5.305l-10.3-5.305v4.61l10.3 5.305 10.3-5.305v-4.61l-10.3 5.305z"/>
+    </svg>
+  );
+  const IconPlus = () => (
+    <svg className="map-icon-svg" viewBox="0 0 24 24">
+      <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+    </svg>
+  );
+  const IconMinus = () => (
+    <svg className="map-icon-svg" viewBox="0 0 24 24">
+      <path d="M19 13H5v-2h14v2z"/>
+    </svg>
+  );
+  const zoomIn = () => {
+    if (!map) return;
+    map.setLevel(map.getLevel() - 1, { animate: true });
+  };
+  const zoomOut = () => {
+    if (!map) return;
+    map.setLevel(map.getLevel() + 1, { animate: true });
+  };
+  const setMapType = (type: 'roadmap' | 'skyview') => {
+    if (!map) return;
+    const roadmapId = kakao.maps.MapTypeId.ROADMAP;
+    const skyviewId = kakao.maps.MapTypeId.HYBRID; // 스카이뷰(하이브리드)
+
+    if (type === 'roadmap') {
+      map.setMapTypeId(roadmapId);
+    } else {
+      map.setMapTypeId(skyviewId);
+    }
+    setMapTypeState(type);
+  };
 
   const [isDistanceMode, setIsDistanceMode] = useState(false);
   const [distancePoints, setDistancePoints] = useState<kakao.maps.LatLng[]>([]);
@@ -1056,7 +1095,47 @@ export default function Main() {
           }
         }}
       />
+      <MobileSearchSidebar
+        searchResults={searchResults as any}
+        onClickItem={(place: any) => {
+           const lat = Number(place?.y); const lng = Number(place?.x);
+           if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+             panToPlace(lat, lng, 3);
+           }
+           if (place?.place_name) setSelectedPlaceName(place.place_name);
+        }}
+        onSearch={(kw: string) => {
+          setMapMode('explore');
+          
+          // PC 버전과 동일한 초기화 로직
+          routeQueryVerRef.current++;
+          resetRoutePlaces?.();
+          setMiniViewerPlace(null);
+          setRoutePivot(null);
+          setIsPivotSelectMode(false);
+          setDistanceBase(null);
 
+          const trimmed = kw.trim();
+
+          // 1. 검색어가 없을 때 (초기화)
+          if (!trimmed) {
+            setHasUserSearched(false);           
+            (searchPlaces as any)('한밭대학교'); 
+            return;
+          }
+
+          // 2. 🔥 핵심: 이 값이 true여야 마커가 렌더링됩니다!
+          setHasUserSearched(true);
+          
+          // 3. 검색 실행
+          (searchPlaces as any)(trimmed);
+        }}
+        // 길찾기 관련 Props 전달
+        onRouteByCoords={handleRouteByCoords}
+        routeOptions={routeOptions}
+        onSelectRoute={selectRoute}
+        onChangeMapMode={(mode) => setMapMode(mode)}
+      />
       {routeTargetPlace && placeCardOpen && (
         <PlaceDetailCard
           open
@@ -1260,8 +1339,28 @@ export default function Main() {
         }}
         className="map"
       >
-        <MapTypeControl position="TOPRIGHT" />
-        <ZoomControl position="RIGHT" />
+        {/* <MapTypeControl position="TOPRIGHT" /> */}
+        {/* <ZoomControl position="RIGHT" /> */}
+        <div className="map-control-group">
+            {/* 1. 지도/스카이뷰 토글 버튼 */}
+            <button 
+                className={`map-btn-box map-type-toggle-btn ${mapType === 'skyview' ? 'active-sky' : ''}`}
+                onClick={() => setMapType(mapType === 'roadmap' ? 'skyview' : 'roadmap')}
+                title={mapType === 'roadmap' ? "스카이뷰로 전환" : "지도로 전환"}
+            >
+                <IconLayers />
+            </button>
+
+            {/* 2. 줌 컨트롤 (+/-) */}
+            <div className="zoom-control-group">
+                <button className="zoom-btn plus" onClick={zoomIn} title="확대">
+                    <IconPlus />
+                </button>
+                <button className="zoom-btn minus" onClick={zoomOut} title="축소">
+                    <IconMinus />
+                </button>
+            </div>
+        </div>
 
         {isExploreMode && hasUserSearched && Array.isArray(searchResults) && searchResults.map((place: any, index: number) => {
           const lat = Number(place?.y);
@@ -1474,7 +1573,7 @@ export default function Main() {
         />
       )}
 
-      <div><MenuButton /></div>
+      <div className='pc-only-menu'><MenuButton /></div>
     </div>
   );
 }

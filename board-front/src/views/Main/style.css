@@ -7,6 +7,9 @@
     background-color: rgba(0,0,0,0.05);
 
 }
+.mobile-top-header {
+    display: none !important;
+}
 
 .main-top-container {
     width: 1200px;
@@ -149,6 +152,93 @@
     margin-top: 20px;
     margin-bottom: 30px;
     border: 1px solid #ccc;
+}
+
+/* =========================================================
+   ✨ 신규 지도 컨트롤 (아이콘 형태)
+   ========================================================= */
+
+/* 우측 상단 컨트롤 전체 컨테이너 */
+.map-control-group {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 12px; /* 버튼 그룹 간의 간격 */
+}
+
+/* 개별 버튼 공통 스타일 */
+.map-btn-box {
+    width: 40px;
+    height: 40px;
+    background: #fff;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15); /* 그림자 */
+    border: none;
+    padding: 0;
+    transition: background-color 0.2s;
+}
+
+.map-btn-box:hover {
+    background-color: #f7f7f7;
+}
+
+.map-btn-box:active {
+    background-color: #e0e0e0;
+}
+
+/* 1. 지도/스카이뷰 토글 버튼 (단독) */
+.map-type-toggle-btn {
+    border-radius: 8px; /* 네 모서리 둥글게 */
+    color: #4f46e5;
+}
+.map-type-toggle-btn.active-sky {
+    background-color: #4f46e5; /* 스카이뷰일 때 어둡게 */
+    color: #fff;
+}
+
+/* 2. 줌 컨트롤 그룹 (위: +, 아래: -) */
+.zoom-control-group {
+    display: flex;
+    flex-direction: column;
+    border-radius: 8px;
+    overflow: hidden; /* 자식 버튼이 둥근 모서리 넘지 않게 */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+.zoom-btn {
+    width: 40px;
+    height: 40px;
+    background: #fff;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    color: #555;
+    transition: background-color 0.2s;
+}
+
+.zoom-btn:hover {
+    background-color: #f7f7f7;
+}
+
+/* + 버튼과 - 버튼 사이 구분선 */
+.zoom-btn.plus {
+    border-bottom: 1px solid #eee;
+}
+
+/* 아이콘 SVG 크기 조정 */
+.map-icon-svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
 }
 
 .distance-overlay {
@@ -313,3 +403,241 @@
 .main-wrapper { position: relative; overflow: hidden; }
 
 
+/* board-front/src/style.css */
+
+/* =========================================================
+   PC DEFAULT STYLE (기존 사이드바 유지)
+   ========================================================= */
+/* PC에서는 모바일 전용 UI를 숨김 */
+.mobile-ui-container {
+  display: none !important;
+}
+
+/* =========================================================
+   MOBILE RESPONSIVE (Bottom Sheet 스타일 적용)
+   ========================================================= */
+@media (max-width: 768px) {
+
+  /* 1. PC UI 숨김 */
+  .slideContainer, .slideBtnContainer, .pc-only-menu {
+    display: none !important;
+  }
+
+  /* 2. 모바일 UI 컨테이너 (전체 래퍼) */
+  .mobile-ui-container {
+    display: flex !important;
+    flex-direction: column;
+    position: fixed;
+    bottom: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; /* 배경 클릭 시 지도 터치 가능 */
+    z-index: 1000;
+  }
+
+  /* 3. 하단 네비게이션 바 (가장 위에 고정) */
+  .mobile-bottom-nav {
+    pointer-events: auto;
+    position: absolute;
+    bottom: 0; left: 0; width: 100%;
+    background: #fff;
+    height: 56px; /* 높이 약간 키움 */
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    border-top: 1px solid #eee;
+    z-index: 1010; /* 시트보다 위에 있어야 함 */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .nav-btn {
+    background: transparent; border: none;
+    font-size: 12px; color: #999;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 4px; width: 100%; height: 100%;
+  }
+  .nav-btn.active-filled { color: #4f46e5 !important; font-weight: 700; }
+
+  /* =========================================================
+     ✨ 바텀 시트 (Bottom Sheet) 핵심 스타일
+     ========================================================= */
+  .mobile-bottom-sheet {
+    pointer-events: auto;
+    position: absolute;
+    bottom: 56px; /* 네비게이션 바 높이만큼 띄움 */
+    left: 0; width: 100%;
+    background: #ffffff;
+    
+    /* 둥근 모서리와 그림자 (사용자 요청) */
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.15); /* 그림자로 구분 */
+
+    /* 애니메이션 설정 */
+    transition: height 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 1005;
+  }
+/* board-front/src/style.css 맨 아래 수정 */
+
+/* =========================================================
+   ✨ 모바일: 바텀 시트 '내부'에 꽉 차게 표시 (Overlay)
+   ========================================================= */
+  .pd-card {
+    /* 1. 화면 고정(fixed) 해제 -> 부모 기준 절대 위치(absolute) */
+    position: absolute !important; 
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    
+    /* 2. 기존 바텀 시트 내용(경로 리스트)을 덮도록 z-index 설정 */
+    z-index: 100 !important; 
+
+    /* 3. 디자인 초기화 (부모인 바텀시트 스타일을 따라감) */
+    border-radius: 0 !important; 
+    border: none !important;
+    box-shadow: none !important;
+    background: #fff; 
+
+    /* 4. 애니메이션 없이 즉시 표시 (바텀시트와 함께 움직여야 하므로) */
+    transform: none !important; 
+    transition: none !important;
+    
+    /* 5. 닫혀있을 때는 숨김 */
+    display: none;
+  }
+
+  /* 열렸을 때만 보임 (flex로 해야 내부 레이아웃 유지됨) */
+  .pd-card.open {
+    display: flex !important;
+  }
+
+  /* 헤더 높이 */
+  .pd-head {
+    height: 60px;
+    background: #fff;
+    border-bottom: 1px solid #eee;
+    flex-shrink: 0; /* 헤더 크기 고정 */
+  }
+
+  /* 내부 스크롤은 바텀 시트 스크롤과 충돌하지 않게 주의 */
+  .pd-body {
+    flex: 1;
+    overflow-y: auto; 
+    padding-bottom: 20px;
+  }
+
+  /* 닫힌 상태: 검색창만 보일 정도의 높이 */
+  .mobile-bottom-sheet.closed {
+    height: 110px; /* 핸들 + 검색창 높이 */
+  }
+
+  /* 열린 상태: 화면의 70% 정도 차지 */
+  .mobile-bottom-sheet.open {
+    height: 70vh; 
+  }
+
+  /* 4. 핸들 영역 (드래그 손잡이) */
+  .sheet-handle-area {
+    width: 100%;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0; /* 크기 고정 */
+  }
+  
+  /* 회색 막대 (핸들) */
+  .sheet-handle-bar {
+    width: 40px;
+    height: 4px;
+    background-color: #e0e0e0;
+    border-radius: 2px;
+  }
+
+  /* 5. 검색창 영역 (시트 내부) */
+  .sheet-search-box {
+    padding: 0 16px 16px 16px;
+    flex-shrink: 0; /* 스크롤 안되게 고정 */
+  }
+
+  /* 공통 인풋 스타일 */
+  .mobile-input-style {
+    width: 85%; height: 46px;
+    background: #f5f5f5; /* 약간 회색 배경 */
+    border: none; border-radius: 12px;
+    padding: 0 16px 0 42px; /* 아이콘 공간 확보 */
+    font-size: 15px; color: #333;
+    outline: none;
+  }
+  /* 돋보기 아이콘 위치 */
+  .input-icon-wrap {
+    position: relative;
+    width: 100%;
+  }
+  .input-icon {
+    position: absolute; left: 12px; top: 50%;
+    transform: translateY(-50%);
+    color: #888;
+  }
+
+  /* 길찾기 입력 폼 */
+  .mobile-route-inputs {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .route-row { 
+    display: flex; align-items: center; gap: 8px; 
+    background: #f5f5f5; border-radius: 12px; padding: 0 8px;
+  }
+  .route-row input {
+    border: none; background: transparent; height: 44px; width: 100%;
+    outline: none; font-size: 14px;
+  }
+
+  /* 6. 검색 결과 리스트 (스크롤 영역) */
+  .sheet-content-scroll {
+    flex: 1; /* 남은 공간 다 차지 */
+    overflow-y: auto; /* 내부 스크롤 */
+    background: #fff;
+    padding: 0 0 20px 0;
+  }
+  /* 스크롤바 숨김 */
+  .sheet-content-scroll::-webkit-scrollbar { display: none; }
+  
+  /* 리스트 아이템 스타일 */
+  .search-result-item {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f5f5f5;
+  }
+  .search-result-item:active { background-color: #f9f9f9; }
+
+  /* 헤더, 로고 등 기존 스타일 유지 */
+  .mobile-top-header { 
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 56px;
+    background: transparent !important;
+    
+    box-shadow: none !important;
+    z-index: 1002;
+    padding: 0 20px;
+    box-sizing: border-box;
+    pointer-events: none;
+    animation: slideDownFade 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+   }
+  .mobile-logo-img { 
+    height: 40px; /* 로고 크기 */
+    width: auto;
+    object-fit: contain;
+    cursor: pointer;
+    margin: 0 !important;
+    padding: 0 !important;
+
+    pointer-events: auto;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));
+   }
+}

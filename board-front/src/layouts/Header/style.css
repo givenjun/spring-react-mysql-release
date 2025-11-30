@@ -153,13 +153,59 @@
   min-width: fit-content;
 }
 
-/* 반응형: 화면이 좁으면 간격/글자 크기 축소(선택) */
-@media (max-width: 1280px) {
-  .header-route-box { gap: 40px; }
-}
-@media (max-width: 1024px) {
-  .header-route-box { gap: 24px; }
-  .header-route { font-size: 15px; }
-}
+/* ========================================= */
+/* 헤더 모바일 반응형 (화면 너비 768px 이하) */
+/* ========================================= */
+@media screen and (max-width: 768px) {
 
-.header-route { white-space: nowrap !important; }
+    /* 1. 헤더 컨테이너 */
+    .header-container {
+        width: 100%;
+        padding: 0 15px; 
+        box-sizing: border-box;
+        justify-content: space-between; 
+    }
+
+    /* 2. ★중간 메뉴 삭제★ (공간 확보 핵심) */
+    .header-route-box {
+        display: none !important;
+    }
+
+    /* 3. 로고: 모바일용 아이콘 */
+    .header-left-box {
+        background-image: url(../assets/logo-light2.png);
+        width: 60px;      
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: left center;
+        flex-shrink: 0;   
+    }
+
+    /* 4. 오른쪽 영역 (검색창 + 버튼) */
+    .header-right-box {
+        gap: 8px; 
+        flex: 1; /* 남은 공간 차지 */
+        justify-content: flex-end; 
+    }
+
+    /* 5. 검색창 조정 */
+    .header-search-input-box {
+        flex: 1;           /* 남은 공간만큼 늘어나되 */
+        max-width: 160px;  /* '마이페이지' 글자 공간을 위해 최대 너비 제한 */
+        min-width: 100px;  /* 최소한의 크기 확보 */
+        height: 32px;      
+    }
+    
+    .header-search-input {
+        font-size: 13px;
+        min-width: 0; /* flex 환경에서 input 크기 오류 방지 */
+    }
+    
+    /* placeholder 숨김 */
+    .header-search-input::placeholder {
+        color: transparent;
+    }
+
+    /* 6. 버튼 스타일 (글자 크기만 살짝 줄임) */
+
+}

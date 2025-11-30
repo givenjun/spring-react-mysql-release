@@ -125,3 +125,68 @@
     display: flex;
     justify-content: center;
 }
+/* ========================================= */
+/* 검색 페이지 모바일 반응형 (768px 이하) */
+/* ========================================= */
+@media screen and (max-width: 768px) {
+    
+    /* 1. 전체 래퍼 및 컨테이너: 너비 고정 해제 */
+    #search-wrapper {
+        padding: 120px 0 40px; /* 헤더 높이 고려, 상단 여백 조정 */
+    }
+
+    .search-container {
+        width: 100%;        /* 1200px -> 100% */
+        min-width: 0;       /* 최소 너비 제한 해제 */
+        padding: 0 20px;    /* 좌우 여백 확보 */
+        box-sizing: border-box;
+    }
+
+    /* 2. 검색 타이틀 글자 크기 조절 */
+    .search-title, 
+    .search-title-emphasis, 
+    .search-count {
+        font-size: 18px;    /* 모바일에서는 조금 작게 */
+    }
+
+    /* 3. ★핵심★ 레이아웃 변경 (Grid -> Flex Column) */
+    .search-contents-box {
+        display: flex;
+        flex-direction: column; /* 세로로 쌓기 */
+        gap: 30px;              /* 게시물과 연관검색어 사이 간격 */
+    }
+
+    /* 4. 게시물 목록 영역 */
+    .search-contents {
+        width: 100%;
+        /* order: 2; */ /* (선택사항) 만약 연관검색어를 먼저 보여주고 싶으면 주석 해제 */
+    }
+
+    /* 5. 연관 검색어 영역 */
+    .search-relation-box {
+        width: 100%;
+        /* order: 1; */ /* (선택사항) 만약 연관검색어를 먼저 보여주고 싶으면 주석 해제 */
+    }
+
+    /* 6. 연관 검색어 카드 디자인 다듬기 */
+    .search-relation-card {
+        padding: 20px;
+    }
+    
+    .search-relation-card-title {
+        font-size: 20px;
+    }
+
+    /* 7. "결과 없음" 표시 영역 높이 줄이기 (너무 휑하지 않게) */
+    .search-contents-nothing,
+    .search-relation-card-contents-nothing {
+        height: 150px; 
+        font-size: 16px;
+        margin-top: 20px; /* 상단 여백 축소 */
+    }
+
+    /* 8. 페이지네이션 여백 축소 */
+    .search-pagination-box {
+        margin-top: 40px;
+    }
+}

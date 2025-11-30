@@ -224,3 +224,107 @@
     display: flex;
     justify-content: center;
 }
+/* ========================================= */
+/* 마이페이지 모바일 반응형 (768px 이하) */
+/* ========================================= */
+@media screen and (max-width: 768px) {
+
+    /* --- [상단] 프로필 영역 --- */
+    
+    /* 1. 상단 래퍼: 패딩 줄임 */
+    #user-top-wrapper {
+        padding: 120px 0 30px; /* 헤더 공간 고려하여 상단 여백 조정 */
+    }
+
+    /* 2. 컨테이너: 고정 너비 해제, 세로 정렬 */
+    .user-top-container {
+        width: 90%;          /* 화면의 90% 사용 */
+        min-width: auto;     /* 1200px 해제 */
+        flex-direction: column; /* 사진 위, 이름 아래 */
+        gap: 15px;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+
+    /* 3. 프로필 이미지 크기 약간 축소 */
+    .user-top-my-profile-image-box,
+    .user-top-profile-image-box {
+        width: 100px;
+        height: 100px;
+    }
+
+    /* 4. 텍스트 정보 중앙 정렬 */
+    .user-top-info-box {
+        align-items: center; /* 닉네임, 이메일 가운데 정렬 */
+        gap: 5px;
+    }
+
+    .user-top-info-nickname,
+    .user-top-info-nickname-input {
+        font-size: 20px;     /* 폰트 크기 최적화 */
+        text-align: center;
+    }
+
+    .user-top-info-email {
+        font-size: 14px;
+    }
+
+
+    /* --- [하단] 게시물 목록 영역 --- */
+
+    /* 5. 하단 래퍼 */
+    #user-bottom-wrapper {
+        padding: 20px 0;
+        min-height: auto;    /* 고정 높이 해제 */
+    }
+
+    /* 6. 하단 컨테이너 */
+    .user-bottom-container {
+        width: 95%;          /* 모바일에서는 꽉 차게 */
+        min-width: auto;     
+        padding: 20px 15px;
+        box-sizing: border-box;
+    }
+
+    /* 7. 그리드(2단) -> Flex(1단) 변경 */
+    .user-bottom-contents-box {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .user-bottom-title {
+        font-size: 20px;
+    }
+    /* 8. ★중요★ 사이드박스(글쓰기 버튼)를 게시물보다 위로 올리기 */
+    .user-bottom-side-box {
+        order: -1;           /* 순서를 맨 앞으로 */
+        width: 100%;
+    }
+
+    /* 9. 글쓰기 버튼 높이 줄이기 (공간 절약) */
+    .user-bottom-side-card {
+        height: 50px;
+    }
+    
+    .user-bottom-side-text {
+        font-size: 16px;
+    }
+
+    /* 10. 게시물 목록 너비 100% */
+    .user-bottom-contents {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    /* 11. 게시물 없음 안내 문구 */
+    .user-bottom-contents-nothing {
+        font-size: 16px;
+        height: 100px;
+    }
+    
+    /* 12. 페이지네이션 여백 조정 */
+    .user-bottom-pagination-box {
+        margin-top: 30px;
+    }
+}

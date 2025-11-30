@@ -184,3 +184,102 @@
     font-weight: 600;
     line-height: 140%;
 }
+
+/* ========================================= */
+/* 인증 페이지 모바일 반응형 (768px 이하) */
+/* ========================================= */
+@media screen and (max-width: 768px) {
+
+body.auth-page #header {
+        display: none !important;
+    }
+    /* 1. 전체 배경: 보라색 이미지 제거 -> 흰색 변경 */
+    #auth-wrapper {
+        min-width: 100%;
+        background-image: none !important; /* 배경 이미지 제거 */
+        background-color: #ffffff;         /* 흰색 배경 */
+        
+        padding: 40px 0;    /* 상하 여백 */
+        box-sizing: border-box; 
+        height: auto;          
+        min-height: 100vh;
+    }
+
+    /* 2. 컨테이너 정렬 */
+    .auth-container {
+        width: 100%;           
+        display: flex;         
+        flex-direction: column;
+        justify-content: flex-start; /* 위에서부터 배치 */
+        align-items: center;
+    }
+
+    /* 3. 왼쪽 소개글(Jumbotron) 숨기기 */
+    .auth-jumbotron-box {
+        display: none;
+    }
+
+    /* 4. 로그인 카드: 그림자 제거하여 배경과 합체 */
+    .auth-card {
+        width: 100%;
+        max-width: 100%;      /* 화면 꽉 차게 */
+        
+        box-shadow: none !important;    /* ★ 핵심: 그림자 제거 */
+        background-color: transparent;  /* 배경 투명 (뒤가 흰색이므로) */
+        border-radius: 0;               /* 둥근 모서리 제거 */
+        
+        padding: 0 25px;      /* 좌우 여백은 줘서 내용이 벽에 안 붙게 함 */
+        box-sizing: border-box;
+    }
+
+    /* 5. 폰트 크기 최적화 */
+    .auth-card-title {
+        font-size: 24px;      /* 제목 크기 */
+        margin-bottom: 20px;  /* 제목 아래 여백 */
+    }
+
+    .auth-description {
+        font-size: 13px;
+    }
+    /* 1. 입력창들(이메일, 비밀번호)이 들어있는 상단 박스 */
+    .auth-card-top {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        
+        /* 이메일 입력창과 비밀번호 입력창 사이 간격 */
+        gap: 20px; 
+        
+        /* ★중요★ 비밀번호 입력창과 로그인 버튼 사이를 띄워줌 */
+        margin-bottom: 40px; 
+    }
+
+    /* 2. 로그인 버튼과 하단 링크들이 들어있는 하단 박스 */
+    .auth-card-bottom {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        
+        /* 로그인 버튼과 텍스트 링크들 사이 간격 */
+        gap: 15px; 
+    }
+    
+    /* 3. 로그인 버튼 높이 약간 키우기 (터치하기 좋게) */
+    .black-large-full-button {
+        height: 50px !important;
+        line-height: 48px !important; /* 글자 수직 정렬 */
+        font-size: 16px !important;
+    }
+    /* 2. 닫기 버튼 위치 및 크기 */
+    .auth-close-button {
+        display: block;        /* 모바일에서만 보임 */
+        position: absolute;    /* 둥둥 띄움 */
+        top: 40px;             /* 위에서 20px */
+        right: 40px;           /* 오른쪽에서 20px */
+        width: 30px;           /* 클릭 영역 너비 */
+        height: 30px;          /* 클릭 영역 높이 */
+        cursor: pointer;
+        z-index: 999;          /* 제일 위에 오도록 */
+        opacity: 0.5;
+    }
+}

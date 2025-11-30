@@ -17,6 +17,9 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import { useLoginUserStore } from 'stores';
 
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
+
 //          component: 게시판 화면 컴포넌트               //
 export default function Board() {
 
@@ -32,7 +35,23 @@ export default function Board() {
       slidesToScroll: 1,
       arrows: false,
       autoplay: true,
-      autoplaySpeed: 4000
+      autoplaySpeed: 4000,
+      responsive: [
+        {
+          breakpoint: 1024, // 화면 너비 1024px 이하일 때
+          settings: {
+            slidesToShow: 2, // 2개 보여주기
+            slidesToScroll: 1,
+          }
+        },
+        {
+          breakpoint: 768, // 화면 너비 768px 이하일 때 (모바일)
+          settings: {
+            slidesToShow: 1, // 1개만 보여주기
+            slidesToScroll: 1,
+          }
+        }
+      ]
     };
     //          state: 주간 top3 게시물 리스트 상태           //
     const [top3BoardList, setTop3BoardList] = useState<BoardListItem[]>([]);
