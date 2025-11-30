@@ -28,7 +28,7 @@ services:
     restart: always
     volumes:
       - /home/ubuntu/routepick/backend/app.jar:/app/app.jar
-      - /home/ubuntu/app/fileUpload:/fileUpload/
+      - /home/ubuntu/app/fileUpload:/app/fileUpload/
     command: ["java", "-Dfile.encoding=UTF-8", "-jar", "/app/app.jar"]
     environment:
       SPRING_PROFILES_ACTIVE: prod
