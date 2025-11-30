@@ -54,3 +54,64 @@
     font-size: 12px;
     font-weight: 400;
 }
+
+/* ========================================= */
+/* 모바일 반응형 (화면 너비 768px 이하) */
+/* ========================================= */
+@media screen and (max-width: 768px) {
+    
+    /* 1. 전체 푸터 배경 및 크기 조정 */
+    #footer {
+        min-width: auto;       /* 고정 최소 너비(1200px) 해제 */
+        padding: 30px 20px;    /* 모바일에서는 상하좌우 여백 조정 */
+        background-size: cover; /* 배경 이미지가 잘리지 않고 영역을 꽉 채우도록 설정 */
+    }
+
+    /* 2. 내부 컨테이너 너비 100%로 변경 */
+    .footer-container {
+        width: 100%;           /* 고정 너비(1200px) 해제 */
+        gap: 30px;             /* 요소 간 간격 조정 */
+    }
+
+    /* 3. 상단 영역(로고, 링크) 세로 배치로 변경 */
+    .footer-top {
+        flex-direction: column; /* 가로 배치 -> 세로 배치 */
+        gap: 20px;
+        justify-content: center;
+    }
+
+    /* 4. 링크 박스 (이메일, 아이콘) 중앙 정렬 */
+    .footer-link-box {
+        flex-direction: column; /* 이메일과 아이콘들을 세로로 쌓음 (공간 부족 방지) */
+        gap: 15px;
+    }
+
+    /* (선택사항) 아이콘들을 가로로 나란히 두고 싶다면 아래 코드 사용 */
+    /*
+    .footer-link-box {
+        flex-wrap: wrap;       
+        justify-content: center;
+    }
+    */
+
+    /* 5. 텍스트 및 로고 중앙 정렬 */
+    .footer-email-link {
+        text-align: center;
+        font-size: 13px;       /* 가독성을 위해 폰트 사이즈 약간 키움 */
+    }
+
+    .footer-logo-box {
+        /* 로고가 너무 크면 모바일에서 줄일 수 있음 */
+        /* transform: scale(0.9); */ 
+    }
+
+    .footer-bottom {
+        text-align: center;    /* 저작권 문구 중앙 정렬 */
+    }
+    
+    .footer-copyright {
+        font-size: 11px;       /* 모바일에서 글씨가 너무 크지 않게 조정 */
+        word-break: keep-all;  /* 단어 단위로 줄바꿈 */
+        line-height: 1.5;
+    }
+}

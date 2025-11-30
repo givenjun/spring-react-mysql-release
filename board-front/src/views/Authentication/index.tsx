@@ -12,6 +12,7 @@ import { Address, useDaumPostcodePopup } from 'react-daum-postcode';
 import SignUpRequestDto from 'apis/request/auth/sign-up.request.dto';
 import { customErrToast } from 'hooks';
 import { jwtDecode } from 'jwt-decode';
+import CloseButton from 'assets/image/close-button-icon.png'
 
 //          component: 인증 화면 컴포넌트          //
 export default function Authentication() {
@@ -25,6 +26,16 @@ export default function Authentication() {
   //           function: 네비게이트 함수          //
   const navigate = useNavigate();
 
+  useEffect(() => {
+      document.body.classList.add('auth-page');
+      return () => {
+        document.body.classList.remove('auth-page');
+      };
+    }, []);
+  //          function : 닫기 버튼 클릭 처리 함수         //
+  const onCloseClickHandler = () => {
+          navigate(BOARD_PATH()); // 메인 화면('/')으로 이동
+  }
   //          component: sign in card 컴포넌트          //
   const SignInCard = () => {
 
@@ -119,7 +130,6 @@ export default function Authentication() {
       if (event.key !== 'Enter') return;
       onSignInButtonClickHandler();
     }
-
     //          render: sign in card 컴포넌트 렌더링          //  
     return (
       <div className='auth-card'>
@@ -655,6 +665,7 @@ export default function Authentication() {
   //          render: 인증 화면 컴포넌트 렌더링          //  
   return (
     <div id='auth-wrapper'>
+      <img className='auth-close-button' src={CloseButton} onClick={onCloseClickHandler}></img>
       <div className='auth-container'>
         <div className='auth-jumbotron-box'>
           <div className='auth-jumbotron-contents'>
