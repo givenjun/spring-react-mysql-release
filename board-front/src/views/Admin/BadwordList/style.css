@@ -89,10 +89,12 @@
 .badword-list-card {
   height: 335px;
   padding-bottom: 10px;
+  min-width: 0px;
 }
 .badword-upload {
   height: 335px;
   padding-bottom: 10px;
+  min-width: 0px;
 }
 
 /* ------------------------- */
