@@ -209,7 +209,7 @@ export default function Main() {
   const [map, setMap] = useState<kakao.maps.Map | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [mapMode, setMapMode] = useState<'explore' | 'route'>('explore');
+  const [mapMode, setMapMode] = useState<'explore' | 'route' | 'chat'>('explore');
 
   const [mapType, setMapTypeState] = useState<'roadmap' | 'skyview'>('roadmap');
 

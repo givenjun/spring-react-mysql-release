@@ -68,7 +68,6 @@
   padding: 5px 10px;
   /* border-top: 1px solid #e0e0e0; */
 }
-
 .chat-input {
   flex-grow: 1;
   background-color: rgba(0, 0, 0, 0.05);
@@ -136,4 +135,14 @@
 
 .route-pick-button:hover {
   background-color: #1558b3;
+}
+@media (max-width: 768px) {
+  .mobile-chat-override .chat-window-container {
+      height: 100% !important;      /* 무조건 부모 높이만큼 꽉 채움 */
+      width: 100% !important;       /* 가로도 꽉 채움 */
+      margin: 0 !important;         /* 혹시 모를 마진 제거 */
+      border-radius: 0 !important;  /* 둥근 모서리 때문에 빈틈 생김 방지 */
+      position: static !important;  /* PC용 absolute 속성 무력화 */
+      background-color: #fff !important; /* 배경색 흰색 강제 (회색 틈 방지) */
+  }
 }

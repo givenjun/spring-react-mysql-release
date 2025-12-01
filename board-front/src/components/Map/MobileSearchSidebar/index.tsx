@@ -1,10 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AUTH_PATH, BOARD_PATH, USER_PATH } from 'constant';
+import { AUTH_PATH, BOARD_PATH } from 'constant';
 import useKakaoSearch from 'hooks/Map/useKakaoSearch.hook';
-import { getCookie } from 'utils';
-import { useLoginUserStore } from 'stores';
-import LogoIcon from 'assets/image/routepick-logo-icon.png'
+import LogoIcon from 'assets/image/routepick-logo-icon.png';
+
+import { v4 as uuidv4 } from 'uuid';
+
+import ChatList from 'components/ChatBot/ChatList/index'; 
+import ChatWindow from 'components/ChatBot/ChatWindow/index';
 
 interface Place {
   id: string; place_name: string; x: string; y: string;
@@ -24,14 +27,12 @@ interface MobileSearchSidebarProps {
   onRouteByCoords?: (start: CoordsPick, end: CoordsPick) => void;
   routeOptions?: RouteOptionItem[];
   onSelectRoute?: (index: number) => void;
-  onChangeMapMode?: (mode: 'explore' | 'route') => void;
+  onChangeMapMode?: (mode: 'explore' | 'route' | 'chat') => void;
   
-  // ✨ [추가] 외부에서 맛집 리스트 내용을 받아오기 위한 Props
   detailContent?: React.ReactNode | null;
   onCloseDetail?: () => void;
 }
 
-// 아이콘들
 const SearchIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
 );
@@ -42,28 +43,25 @@ const SwapIcon = () => (
 export default function MobileSearchSidebar({
   searchResults, onClickItem, onSearch, onRouteByCoords,
   routeOptions = [], onSelectRoute, onChangeMapMode,
-  detailContent, onCloseDetail // ✨ [추가] 구조 분해 할당
+  detailContent, onCloseDetail
 }: MobileSearchSidebarProps) {
   const navigate = useNavigate();
-  const { loginUser } = useLoginUserStore();
   
-  const [activeTab, setActiveTab] = useState<'search' | 'route'>('search');
+  const [activeTab, setActiveTab] = useState<'search' | 'route' | 'chat'>('search');
+  // ✨ [추가] 선택된 채팅 세션 ID를 저장하는 상태
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+
   const [keyword, setKeyword] = useState('');
-  
-  // ✨ 4단계 시트 모드 ('hidden' | 'min' | 'mid' | 'max')
   const [sheetMode, setSheetMode] = useState<'hidden' | 'min' | 'mid' | 'max'>('min');
 
-  // ✨ 높이 상수 설정
   const HIDDEN_HEIGHT = 40;  
   const MIN_HEIGHT = 160;    
   const MID_HEIGHT = window.innerHeight * 0.5; 
   const MAX_HEIGHT = window.innerHeight * 0.88;
 
-  // 드래그 관련 Refs
   const sheetRef = useRef<HTMLDivElement>(null);
   const metrics = useRef({ startY: 0, startHeight: 0, isDragging: false });
 
-  // 길찾기 상태
   const [routeQuery, setRouteQuery] = useState({ start: '', end: '' });
   const [picked, setPicked] = useState<{ start: CoordsPick | null; end: CoordsPick | null }>({ start: null, end: null });
   const [suggestions, setSuggestions] = useState<{ start: Place[]; end: Place[] }>({ start: [], end: [] });
@@ -77,17 +75,12 @@ export default function MobileSearchSidebar({
   
   useEffect(() => {
     const hasContent = !!detailContent;
-    
-    // 이전에 내용이 없었는데(false), 지금 생겼다면(true) -> 시트 올리기
     if (!prevDetailContentRef.current && hasContent) {
       setSheetMode('mid');
     }
-    
-    // 현재 상태 저장
     prevDetailContentRef.current = hasContent;
   }, [detailContent]);
 
-  // 1. sheetMode 상태가 변하면 해당 높이로 애니메이션 적용
   useEffect(() => {
     if (!sheetRef.current) return;
     
@@ -100,7 +93,6 @@ export default function MobileSearchSidebar({
     sheetRef.current.style.height = `${targetHeight}px`;
   }, [sheetMode]);
 
-  // 2. 터치 시작
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!sheetRef.current) return;
     metrics.current.isDragging = true;
@@ -109,7 +101,6 @@ export default function MobileSearchSidebar({
     sheetRef.current.style.transition = 'none';
   };
 
-  // 3. 터치 이동
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!metrics.current.isDragging || !sheetRef.current) return;
     const deltaY = e.touches[0].clientY - metrics.current.startY;
@@ -119,7 +110,6 @@ export default function MobileSearchSidebar({
     }
   };
 
-  // 4. 터치 종료
   const handleTouchEnd = () => {
     if (!metrics.current.isDragging || !sheetRef.current) return;
     metrics.current.isDragging = false;
@@ -136,21 +126,35 @@ export default function MobileSearchSidebar({
     else setSheetMode('max');
   };
 
-  const handleTabChange = (tab: 'search' | 'route') => {
+  const handleTabChange = (tab: 'search' | 'route' | 'chat') => {
     setActiveTab(tab);
-    onChangeMapMode?.(tab === 'search' ? 'explore' : 'route');
-    setSheetMode('mid');
-    // 탭을 바꾸면 상세 내용은 닫아주는 게 자연스러움 (선택 사항)
+    
+    if (tab === 'chat') {
+        setSheetMode('max');
+        onChangeMapMode?.('chat'); 
+        setSelectedSessionId(null); 
+    } else {
+        onChangeMapMode?.(tab === 'search' ? 'explore' : 'route');
+        setSheetMode('mid');
+    }
+    
     if (detailContent && onCloseDetail) onCloseDetail(); 
   };
 
   const onInputFocus = () => {};
-  
+
   const toggleSheet = () => {
     if (sheetMode === 'hidden') setSheetMode('min');
     else if (sheetMode === 'min') setSheetMode('mid');
     else setSheetMode('min');
   };
+
+  const BackArrowIcon = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="19" y1="12" x2="5" y2="12"></line>
+      <polyline points="12 19 5 12 12 5"></polyline>
+    </svg>
+  );
 
   const handleSearch = () => {
     onSearch(keyword.trim());
@@ -171,6 +175,7 @@ export default function MobileSearchSidebar({
       setSheetMode('mid'); 
     }
   };
+  
   const selectSuggestion = (field: 'start' | 'end', place: Place) => {
     const pick: CoordsPick = { name: place.place_name, lat: parseFloat(place.y), lng: parseFloat(place.x) };
     setPicked(prev => ({ ...prev, [field]: pick }));
@@ -193,10 +198,20 @@ export default function MobileSearchSidebar({
   const fmtTime = (sec: number) => Math.round(sec / 60) + '분';
   const fmtDist = (m: number) => m < 1000 ? `${m}m` : `${(m/1000).toFixed(1)}km`;
 
-  const onUserClick = () => {
-    const token = getCookie('accessToken') || localStorage.getItem('accessToken');
-    if (!token) { navigate(AUTH_PATH()); return; }
-    if (loginUser?.email) navigate(USER_PATH(loginUser.email));
+  // ✨ [수정] 세션 선택 핸들러 구현
+  const handleSelectSession = (sessionId: string) => {
+    console.log("세션 선택됨:", sessionId);
+    setSelectedSessionId(sessionId); // 상태 업데이트 -> 리렌더링 발생 -> ChatWindow 표시됨
+  };
+
+  // ✨ [추가] 채팅방에서 뒤로가기 핸들러
+  const handleBackToChatList = () => {
+    setSelectedSessionId(null);
+  };
+
+  const handleNewChat = () => {
+    const newSessionId = uuidv4(); // 1. 고유 ID 생성
+    setSelectedSessionId(newSessionId); // 2. 상태 업데이트 -> ChatWindow로 화면 전환됨
   };
 
   return (
@@ -234,9 +249,8 @@ export default function MobileSearchSidebar({
             <div className="sheet-handle-bar" style={{ width: 40, height: 5, background: '#ddd', borderRadius: 5 }} />
           </div>
 
-          {/* ✨ [수정] 상세 내용(detailContent)이 있으면 검색창을 숨기거나 덮어씌움
-              여기서는 상세 내용이 있으면 검색창을 숨기는 방식 사용 */}
-          {!detailContent && (
+          {/* 검색창 영역 (채팅 탭이 아닐 때, 상세 내용이 없을 때만 표시) */}
+          {!detailContent && activeTab !== 'chat' && (
             <div className="sheet-search-box" style={{ padding: '0 20px 20px', flexShrink: 0 }}>
               {activeTab === 'search' ? (
                 <div className="input-icon-wrap">
@@ -263,12 +277,71 @@ export default function MobileSearchSidebar({
           )}
 
           {/* 컨텐츠 리스트 (스크롤) */}
-          <div className="sheet-content-scroll" style={{ flex: 1, overflowY: 'auto', padding: '0 20px' }}>
+          <div 
+            className="sheet-content-scroll" 
+            style={{ 
+                flex: 1, 
+                overflowY: activeTab === 'chat' ? 'hidden' : 'auto', 
+                padding: activeTab === 'chat' ? 0 : '0 20px' 
+            }}
+          >
             
-            {/* ✨ [핵심] detailContent가 있으면 그것만 보여줍니다. */}
-            {detailContent ? (
+            {/* ✨ [수정] 채팅 탭 렌더링 로직 강화 */}
+            {activeTab === 'chat' ? (
+                <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                    
+                    {selectedSessionId ? (
+                      <>
+                            {/* 1. 모바일 전용 채팅 헤더 (뒤로가기 버튼) */}
+                            <div style={{
+                                height: '50px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                padding: '0 15px',
+                                borderBottom: '1px solid #eee',
+                                backgroundColor: '#fff',
+                                flexShrink: 0 // 높이 줄어듦 방지
+                            }}>
+                                <button 
+                                    onClick={handleBackToChatList}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '5px', marginRight: '10px' }}
+                                >
+                                    <BackArrowIcon />
+                                </button>
+                                <span style={{ fontWeight: 'bold', fontSize: '16px' }}>채팅</span>
+                            </div>
+
+                            {/* 2. 채팅창 컨테이너 */}
+                            <div style={{ 
+                                flex: 1, 
+                                position: 'relative', 
+                                overflow: 'hidden',
+                                // 중요: 하단 네비게이션 바 높이만큼(약 60px) 패딩을 줘서 입력창이 가려지지 않게 함
+                                paddingBottom: '60px' 
+                            }}>
+                                {/* ChatWindow 내부의 스타일(height: 80% 등)을 무시하고 
+                                   꽉 채우기 위해 CSS Override용 style 추가 
+                                */}
+                                <div style={{ height: '100%', width: '100%' }} className="mobile-chat-override">
+                                    <ChatWindow 
+                                        key={selectedSessionId}
+                                        sessionId={selectedSessionId} 
+                                        onBack={handleBackToChatList}
+                                    />
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div style={{ height: '100%', paddingBottom: '60px', overflowY: 'auto' }}>
+                            <ChatList 
+                                onSelectSession={handleSelectSession} 
+                                onNewChat={handleNewChat} 
+                            />
+                        </div>
+                    )}
+                </div>
+            ) : detailContent ? (
                <div className="mobile-detail-wrapper" style={{ paddingBottom: 20 }}>
-                  {/* 상세 내용 헤더 (제목 + 닫기) */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, borderBottom: '1px solid #eee', paddingBottom: 10 }}>
                      <span style={{ fontSize: 16, fontWeight: 'bold' }}>경로 내 음식점 리스트</span>
                      <button 
@@ -276,35 +349,35 @@ export default function MobileSearchSidebar({
                         style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', padding: 5 }}
                      >✕</button>
                   </div>
-                  
-                  {/* 부모에서 넘겨준 맛집 리스트 JSX가 여기에 렌더링됨 */}
                   {detailContent}
                </div>
             ) : (
-               // ✨ 기존 내용 (상세 내용이 없을 때만 렌더링)
                <>
+                {/* ... (기존 탐색/길찾기 결과 렌더링 코드 유지) ... */}
                 {activeTab === 'search' && searchResults.map((place, i) => (
                   <div key={i} className="search-result-item" onClick={() => { onClickItem(place); setSheetMode('min'); }}>
                     <div className="place-name" style={{fontSize:16, fontWeight:600, marginBottom:4}}>{place.place_name}</div>
                     <div className="place-address" style={{fontSize:13, color:'#888'}}>{place.road_address_name || place.address_name}</div>
                   </div>
                 ))}
+                
+                {/* ... (생략된 부분들 유지) ... */}
 
                 {activeTab === 'route' && focusedField && suggestions[focusedField].map((place, i) => (
-                  <div key={i} className="search-result-item" onClick={() => selectSuggestion(focusedField, place)}>
-                    <div className="place-name">{place.place_name}</div>
-                    <div className="place-address" style={{fontSize:12}}>{place.road_address_name || place.address_name}</div>
-                  </div>
+                    <div key={i} className="search-result-item" onClick={() => selectSuggestion(focusedField, place)}>
+                        <div className="place-name">{place.place_name}</div>
+                        <div className="place-address" style={{fontSize:12}}>{place.road_address_name || place.address_name}</div>
+                    </div>
                 ))}
 
                 {activeTab === 'route' && !focusedField && routeOptions.map((r, i) => (
-                  <div key={r.id} className="search-result-item" onClick={() => { onSelectRoute?.(i); setSheetMode('min'); }} style={{display:'flex',justifyContent:'space-between'}}>
-                    <div>
-                      <span style={{fontWeight:800, marginRight:8, color: i===0?'#ffaf00':'#8a2ea1'}}>{r.name}</span>
-                      <b>{fmtTime(r.timeSec)}</b>
+                    <div key={r.id} className="search-result-item" onClick={() => { onSelectRoute?.(i); setSheetMode('min'); }} style={{display:'flex',justifyContent:'space-between'}}>
+                        <div>
+                        <span style={{fontWeight:800, marginRight:8, color: i===0?'#ffaf00':'#8a2ea1'}}>{r.name}</span>
+                        <b>{fmtTime(r.timeSec)}</b>
+                        </div>
+                        <div style={{color:'#666'}}>{fmtDist(r.distanceM)}</div>
                     </div>
-                    <div style={{color:'#666'}}>{fmtDist(r.distanceM)}</div>
-                  </div>
                 ))}
 
                 {activeTab === 'search' && keyword && searchResults.length === 0 && (
@@ -321,7 +394,13 @@ export default function MobileSearchSidebar({
           <button className={`nav-btn ${activeTab === 'search' ? 'active-filled' : ''}`} onClick={() => handleTabChange('search')}>탐색</button>
           <button className={`nav-btn ${activeTab === 'route' ? 'active-filled' : ''}`} onClick={() => handleTabChange('route')}>길찾기</button>
           <button className="nav-btn" onClick={() => navigate(BOARD_PATH())}>커뮤니티</button>
-          <button className="nav-btn" onClick={onUserClick}>MY</button>
+          
+          <button 
+            className={`nav-btn ${activeTab === 'chat' ? 'active-filled' : ''}`} 
+            onClick={() => handleTabChange('chat')}
+          >
+            채팅
+          </button>
         </div>
 
       </div>

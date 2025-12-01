@@ -4,6 +4,7 @@
   flex-grow: 1;
   flex-direction: column;
   overflow: hidden; /* 자식 요소가 둥근 모서리를 넘지 않도록 */
+  height: 100%; /* ✨ 부모 영역 꽉 채우기 */
   font-family: 'Noto Sans KR';
 }
 
@@ -14,6 +15,7 @@
     display: flex;
     flex-direction: column;
     gap: 15px;
+    padding-bottom: 90px;
 }
 
 .chat-session-container::-webkit-scrollbar {
@@ -160,4 +162,10 @@
     gap: 8px;
 
     cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    .chat-session-more-button {
+        opacity: 1 !important;
+    }
 }
