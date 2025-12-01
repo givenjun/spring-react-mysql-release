@@ -173,3 +173,4 @@ board-back/src/main/resources/application-secret.properties
 infra/env/prod.env
 infra/upload/*
 infra/.env
+.idea/dataSources.xml
