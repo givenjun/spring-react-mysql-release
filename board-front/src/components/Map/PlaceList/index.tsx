@@ -28,6 +28,8 @@ interface Props {
   // 더블클릭: 지도 이동 + 추가경로 생성
   onItemDoubleClick?: (p: PlaceItem) => void;
 
+  onDetailClick?: (place: any) => void;
+
   // ✅ 두 경로사이 맛집리스트에서 선택된 아이템 표시용
   selectedKey?: string | number | null;
 }
@@ -38,6 +40,7 @@ export default function PlaceList({
   hiddenWhileLoading = false,
   onItemClick,
   onItemDoubleClick,
+  onDetailClick,
   selectedKey = null,
 }: Props) {
   if (isLoading && hiddenWhileLoading) {
@@ -127,6 +130,19 @@ export default function PlaceList({
                 예상소요시간 {eta}분
               </div>
             )}
+            <button
+            className="place-action-btn"
+            onClick={(e) => {
+              e.stopPropagation(); // 👈 중요: 부모의 클릭(지도이동)을 막음
+              onDetailClick?.(p); // 팝업 띄우기 함수 실행
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+          </button>
           </li>
         );
       })}

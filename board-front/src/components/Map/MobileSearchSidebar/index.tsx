@@ -73,11 +73,18 @@ export default function MobileSearchSidebar({
   const routeQueryRef = useRef(routeQuery);
   useEffect(() => { routeQueryRef.current = routeQuery; }, [routeQuery]);
 
-  // ✨ [추가] 상세 내용(맛집리스트)이 들어오면 시트를 자동으로 'mid'나 'max'로 올려줌
+  const prevDetailContentRef = useRef<boolean>(!!detailContent);
+  
   useEffect(() => {
-    if (detailContent) {
+    const hasContent = !!detailContent;
+    
+    // 이전에 내용이 없었는데(false), 지금 생겼다면(true) -> 시트 올리기
+    if (!prevDetailContentRef.current && hasContent) {
       setSheetMode('mid');
     }
+    
+    // 현재 상태 저장
+    prevDetailContentRef.current = hasContent;
   }, [detailContent]);
 
   // 1. sheetMode 상태가 변하면 해당 높이로 애니메이션 적용
@@ -263,7 +270,7 @@ export default function MobileSearchSidebar({
                <div className="mobile-detail-wrapper" style={{ paddingBottom: 20 }}>
                   {/* 상세 내용 헤더 (제목 + 닫기) */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, borderBottom: '1px solid #eee', paddingBottom: 10 }}>
-                     <span style={{ fontSize: 16, fontWeight: 'bold' }}>상세 정보</span>
+                     <span style={{ fontSize: 16, fontWeight: 'bold' }}>경로 내 음식점 리스트</span>
                      <button 
                         onClick={onCloseDetail} 
                         style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', padding: 5 }}

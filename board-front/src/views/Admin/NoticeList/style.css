@@ -7,6 +7,19 @@
   min-width: 80vw;
   border-radius: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow-y: auto;
+}
+
+@media (min-height: 0px) {
+  .admin-notice-list {
+    margin-top: 40px;
+  }
+}
+
+@media (min-height: 800px) {
+  .admin-notice-list {
+    margin-top: 0px;
+  }
 }
 
 /* ✅ 제목 */
