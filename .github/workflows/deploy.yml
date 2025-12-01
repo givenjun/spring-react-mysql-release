@@ -27,6 +27,16 @@ jobs:
       with:
         node-version: '18'
 
+
+    # ===============================
+    # Create .env.production (프론트 환경변수 생성)
+    # ===============================
+    - name: Create .env.production
+      run: |
+        cd board-front
+        echo "REACT_APP_KAKAO_MAPS_APP_KEY=${{ secrets.REACT_APP_KAKAO_MAPS_APP_KEY }}" >> .env.production
+        echo "REACT_APP_API_URL=${{ secrets.REACT_APP_API_URL }}" >> .env.production
+
     # ===============================
     # Backend Build
     # ===============================
