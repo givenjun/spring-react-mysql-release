@@ -58,6 +58,13 @@
   gap: 24px;
 }
 
+@media (max-width: 500px) {
+  .notice-card-list {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
 .notice-card {
   height: 140px;
   position: relative;

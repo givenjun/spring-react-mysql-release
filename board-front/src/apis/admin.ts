@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:4000/api/v1/admin";
+const DOMAIN = process.env.REACT_APP_API_URL;
+const API_BASE_URL = `${DOMAIN}/api/v1/admin`;
 
 // JWT 토큰 자동 헤더 추가
 const api = axios.create({

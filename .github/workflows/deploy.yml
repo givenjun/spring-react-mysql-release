@@ -1,0 +1,127 @@
+name: 🚀 Auto Deploy to EC2 (Backend + Frontend + Infra)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    if: "contains(github.event.head_commit.message, '[ci/cd]')"
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. 체크아웃
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # 2. 환경 설정
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    # ===============================
+    # Backend Build
+    # ===============================
+    - name: Build Backend
+      run: |
+        cd board-back
+        chmod +x ./gradlew
+        ./gradlew clean bootJar -x test
+
+    - name: Rename Backend Jar
+      run: |
+        cd board-back/build/libs
+        mv *.jar app.jar
+
+    # ===============================
+    # Frontend Build
+    # ===============================
+    - name: Build Frontend
+      run: |
+        cd board-front
+        npm ci
+        npm run build
+
+    # ===============================
+    # Clean Remote Directory (청소)
+    # ===============================
+    - name: Clean Remote Frontend Directory
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        script: rm -rf /home/ubuntu/routepick/frontend/*
+
+    # ===============================
+    # Upload Backend JAR
+    # ===============================
+    - name: Upload Backend Jar
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        source: "board-back/build/libs/app.jar"
+        target: "/home/ubuntu/routepick/backend/"
+        strip_components: 3 # 중요: 경로 떼고 파일만
+
+    # ===============================
+    # Upload Frontend Build
+    # ===============================
+    - name: Upload Frontend Build
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        source: "board-front/build/*"
+        target: "/home/ubuntu/routepick/frontend/"
+        strip_components: 2 # 중요: 경로 떼고 파일만
+
+    # ===============================
+    # [NEW] Upload Infra Files (Docker Compose, Nginx)
+    # ===============================
+    - name: Upload Infra Files
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        # 로컬의 infra 폴더 안에 있는 모든 파일(*.yml, *.conf 등)을 업로드
+        source: "infra/*"
+        target: "/home/ubuntu/routepick/infra/"
+        strip_components: 1
+
+    # ===============================
+    # Restart Docker
+    # ===============================
+    - name: Restart EC2 Docker Services
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        script: |
+          echo "📦 RoutePick 배포 시작"
+          cd /home/ubuntu/routepick/infra
+
+          echo "📌 기존 컨테이너 종료"
+          docker compose -f docker-compose.prod.yml down
+
+          echo "📌 컨테이너 재시작 (이미지 캐시 무시)"
+          # docker compose 파일이 바뀌었을 수도 있으니 --build 옵션은 상황에 따라 고려
+          docker compose -f docker-compose.prod.yml up -d
+          
+          echo "🧹 미사용 이미지 정리"
+          docker image prune -f
+
+          echo "🎉 배포 완료!"

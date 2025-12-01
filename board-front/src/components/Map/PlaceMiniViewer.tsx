@@ -25,8 +25,8 @@ const PlaceMiniViewer: React.FC<PlaceMiniViewerProps> = ({ place, onClose, ancho
   }, []);
 
   const kakaoUrl =
-    placeUrl && typeof placeUrl === 'string'
-      ? placeUrl
+    placeUrl && typeof placeUrl === "string"
+      ? placeUrl.replace(/^http:\/\//, "https://")   // ← 핵심 한 줄
       : `https://map.kakao.com/link/map/${encodeURIComponent(name)},${lat},${lng}`;
 
   // ✨ 스타일 분기 처리
