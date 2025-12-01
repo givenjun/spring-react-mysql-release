@@ -328,6 +328,7 @@ export default function Main() {
     }
     (map as any).panTo(pos);
   }, [map]);
+  
 
   const runManualRoute = (sLL: kakao.maps.LatLng, eLL: kakao.maps.LatLng) => {
     setIsRouteMode(true);
@@ -824,7 +825,71 @@ export default function Main() {
 
   const tabToIconCategory = (tab: FoodTab): string =>
     tab === '카페' ? '카페' : (tab === '족발/보쌈' ? '족발' : tab);
+  const onFocus = useCallback(
+    async (p: {
+      lat: number | string;
+      lng: number | string;
+      name?: string;
+      place_name?: string;
+      category_name?: string;
+      place_url?: string;
+      placeUrl?: string;
+    }) => {
+      const lat = typeof p.lat === 'string' ? parseFloat(p.lat) : p.lat;
+      const lng = typeof p.lng === 'string' ? parseFloat(p.lng) : p.lng;
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
+      panToPlace(lat, lng, 3);
+
+      const name = (p?.name || p?.place_name)?.toString();
+      if (name) setSelectedPlaceName(name);
+
+      // 🔥 추가 경로 시작점:
+      // pivot 모드 + pivot 존재 → pivot 기준
+      // 아니면 기존처럼 출발지 기준
+      const startLL: LL | undefined =
+        (isPivotSelectMode && routePivot)
+          ? routePivot
+          : (autoRouteEndpoints?.start ?? undefined);
+
+      if (startLL) {
+        try {
+          const route = await getPedestrianRoute({
+            start: { lat: startLL.lat, lng: startLL.lng },
+            end: { lat, lng },
+          } as any);
+
+          const coords = route.path || [];
+          const etaSec =
+            typeof route.totalTime === 'number' ? route.totalTime : null;
+
+          const tab = classifyPlace(p);
+          const categoryForIcon = tabToIconCategory(tab);
+
+          setExtraPlacePath(coords);
+          setExtraPlaceTarget({
+            lat,
+            lng,
+            name: (p?.name || p?.place_name || '목적지') as string,
+            category: categoryForIcon,
+          });
+          setExtraPlaceETAsec(etaSec);
+
+          setOnlySelectedMarker(false);
+        } catch {
+          // ignore
+        }
+      }
+
+      // // 🔥 미니뷰어 열기
+      // setMiniViewerPlace({
+      //   name: (p?.name || p?.place_name || '선택한 장소') as string,
+      //   lat,
+      //   lng,
+      //   placeUrl: (p as any).place_url || (p as any).placeUrl,
+      // });
+    }, [autoRouteEndpoints?.start, isPivotSelectMode, routePivot, panToPlace, setSelectedPlaceName],
+  );
   const onFocusOrDoubleToRoute = useCallback(
     async (p: {
       lat: number | string;
@@ -1031,7 +1096,171 @@ export default function Main() {
 
   // 미니뷰어는 패널 오른쪽에 딱 붙게: 패널 left + 패널 width + gap
   const miniViewerLeft = placeDetailLeft + placeDetailWidth + 16;
+  const placeDetailContent = (
+      <>
+        {/* 1. 상단 정렬 버튼들 */}
+        <div style={{
+          marginBottom: 8,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 8,
+        }}>
+          <div style={{ fontSize: 13, color: '#555', whiteSpace: 'nowrap' }}>
+            정렬 기준:
+          </div>
+          <div style={{ display: 'flex', gap: 6, fontSize: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsPivotSelectMode(false);
+                setRoutePivot(null);
+                setDistanceBase((prev) => (prev === 'origin' ? null : 'origin'));
+              }}
+              disabled={!autoRouteEndpoints?.start || routePlacesLoading}
+              style={{
+                padding: '4px 8px',
+                borderRadius: 999,
+                border: '1px solid',
+                borderColor: distanceBase === 'origin' && !isPivotSelectMode ? '#8a2ea1' : '#e5e7eb',
+                background: distanceBase === 'origin' && !isPivotSelectMode ? '#f5ecff' : '#fff',
+                cursor: (!autoRouteEndpoints?.start || routePlacesLoading) ? 'not-allowed' : 'pointer',
+                opacity: (!autoRouteEndpoints?.start || routePlacesLoading) ? 0.4 : 1,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              출발지 기준 정렬
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsPivotSelectMode(false);
+                setRoutePivot(null);
+                setDistanceBase((prev) => (prev === 'destination' ? null : 'destination'));
+              }}
+              disabled={!autoRouteEndpoints?.end || routePlacesLoading}
+              style={{
+                padding: '4px 8px',
+                borderRadius: 999,
+                border: '1px solid',
+                borderColor: distanceBase === 'destination' && !isPivotSelectMode ? '#8a2ea1' : '#e5e7eb',
+                background: distanceBase === 'destination' && !isPivotSelectMode ? '#f5ecff' : '#fff',
+                cursor: (!autoRouteEndpoints?.end || routePlacesLoading) ? 'not-allowed' : 'pointer',
+                opacity: (!autoRouteEndpoints?.end || routePlacesLoading) ? 0.4 : 1,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              도착지 기준 정렬
+            </button>
 
+            <button
+              type="button"
+              onClick={() => {
+                if (routePlacesLoading) return;
+                const next = !isPivotSelectMode;
+                setIsPivotSelectMode(next);
+                if (!next) {
+                  setRoutePivot(null);
+                }
+                setDistanceBase(null);
+              }}
+              style={{
+                padding: '4px 8px',
+                borderRadius: 999,
+                border: '1px solid',
+                borderColor: isPivotSelectMode ? '#8a2ea1' : '#e5e7eb',
+                background: isPivotSelectMode ? '#f5ecff' : '#fff',
+                cursor: routePlacesLoading ? 'not-allowed' : 'pointer',
+                opacity: routePlacesLoading ? 0.4 : 1,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              경로에서 클릭 지점 기준 정렬
+            </button>
+
+            {routePlacesLoading && (
+              <div
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: 999,
+                  border: '1px dashed #8a2ea1',
+                  background: '#faf5ff',
+                  color: '#6b21a8',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                경로 주변 맛집 로딩 중...
+              </div>
+            )}
+
+            {isPivotSelectMode && routePivot && !routePlacesLoading && (
+              <div
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: 999,
+                  border: '1px dashed #8a2ea1',
+                  background: '#faf5ff',
+                  color: '#6b21a8',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                경로 클릭 지점 기준 정렬 중
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 2. 음식 카테고리 탭 */}
+        <div className="pd-tabs">
+          {FOOD_TABS.map((t) => (
+            <button
+              key={t}
+              className={`pd-tab ${foodTab === t ? 'active' : ''}`}
+              onClick={() => { if (!routePlacesLoading) { setFoodTab(t as any); setOnlySelectedMarker(false); } }}
+              disabled={routePlacesLoading}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {/* 3. 리스트 영역 */}
+        {routePlacesLoading ? (
+          <div style={{ padding: 12, fontWeight: 700 }}>로딩 중입니다…</div>
+        ) : (
+          <>
+            <div className="pd-list-summary">
+              경로 주변 맛집 <b>총 {Array.isArray(placesWithEta) ? placesWithEta.length : 0}곳</b>
+            </div>
+            <PlaceList
+              places={placesWithEta as any}
+              isLoading={routePlacesLoading}
+              hiddenWhileLoading
+              onItemClick={(p) => onFocus(p)}
+              onItemDoubleClick={(p) => onFocusOrDoubleToRoute(p)}
+              onDetailClick={(p) => {
+             const lat = Number(p.lat || p.y);
+             const lng = Number(p.lng || p.x);
+             
+             // 미니 뷰어 데이터 설정 -> 팝업 뜸
+             setMiniViewerPlace({
+               name: (p?.name || p?.place_name || '선택한 장소') as string,
+               lat,
+               lng,
+               placeUrl: (p as any).place_url || (p as any).placeUrl,
+             });
+            }}
+            />
+            {extraPlaceTarget && extraPlacePath.length > 1 && (
+              <div style={{ marginTop: 8, fontSize: 13 }}>
+                추가 경로 표시 중: <b>{extraPlaceTarget.name}</b>
+                {typeof extraPlaceETAsec === 'number' && <> · 예상 {Math.round(extraPlaceETAsec / 60)} min</>}
+              </div>
+            )}
+          </>
+        )}
+      </>
+    );
   return (
     <div className="main-wrapper">
       <SearchSidebar
@@ -1135,7 +1364,11 @@ export default function Main() {
         routeOptions={routeOptions}
         onSelectRoute={selectRoute}
         onChangeMapMode={(mode) => setMapMode(mode)}
+      // placeCardOpen이 true일 때만 내용을 보내고, 아니면 null을 보냅니다.
+        detailContent={placeCardOpen ? placeDetailContent : null}
+        onCloseDetail={() => setPlaceCardOpen(false)}
       />
+      <div className="pc-only-menu">
       {routeTargetPlace && placeCardOpen && (
         <PlaceDetailCard
           open
@@ -1294,6 +1527,7 @@ export default function Main() {
           )}
         </PlaceDetailCard>
       )}
+      </div>
 
       {isDistanceMode && distanceKm !== null && (
         <div className="distance-overlay">

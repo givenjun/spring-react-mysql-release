@@ -67,3 +67,43 @@
   border-radius: 999px;
   background: linear-gradient(180deg, #9333ea, #ec4899);
 }
+/* ✅ 상세 보기 버튼 스타일 */
+.place-action-btn {
+  margin-left: auto; /* 오른쪽 끝으로 밀기 */
+  background: none;
+  border: none;
+  color: #4b5563;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  flex-shrink: 0; /* 찌그러짐 방지 */
+  @media (min-width: 769px) {
+    display: none !important;
+  }
+}
+
+.place-action-btn:hover {
+  background: #8a2ea1;
+  border-color: #8a2ea1;
+  color: white;
+}
+
+/* 리스트 아이템 레이아웃 보정 (버튼을 오른쪽에 두기 위함) */
+.place-item {
+  /* 기존 스타일 유지하되 아래 속성 확인/추가 */
+  display: flex;
+  align-items: center; /* 수직 중앙 정렬 */
+  justify-content: space-between; /* 내용과 버튼 사이 벌리기 */
+  gap: 10px;
+}
+
+/* 기존 텍스트들이 버튼에 밀리지 않게 감싸는 div가 필요할 수 있음 */
+.place-info-wrap {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* 말줄임표 작동 위해 */
+}
