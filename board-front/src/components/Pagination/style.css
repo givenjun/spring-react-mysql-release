@@ -1,14 +1,25 @@
 #pagination-wrapper {
     display: flex;
     gap: 20px;
+    /* ✨ [추가] 내용물 중앙 정렬 */
+    align-items: center;
+    justify-content: center;
+}
+
+/* ✨ [핵심 추가] 이 부분이 없어서 세로로 나왔던 겁니다! */
+.pagination-list {
+    display: flex;       /* 가로 배치 */
+    align-items: center; /* 수직 중앙 */
+    gap: 20px;           /* 숫자 사이 간격 */
 }
 
 .pagination-change-link-box {
     display: flex;
     align-items: center;
     gap: 4px;
-
     cursor: pointer;
+    /* 줄바꿈 방지 */
+    white-space: nowrap; 
 }
 
 .pagination-change-link-text {
@@ -18,29 +29,48 @@
     line-height: 140%;
 }
 
-.pagination-divider{
+.pagination-divider {
     color: rgba(0, 0, 0, 0.1);
     font-size: 14px;
     font-weight: 600;
     line-height: 140%;
-
     cursor: default;
 }
 
-.pagination-text-active{
+.pagination-text-active {
     color: rgba(0, 0, 0, 1);
     font-size: 14px;
     font-weight: 600;
     line-height: 140%;
-
     cursor: default;
 }
 
-.pagination-text{
+.pagination-text {
     color: rgba(0, 0, 0, 0.4);
     font-size: 14px;
     font-weight: 500;
     line-height: 140%;
-
     cursor: pointer;
+}
+
+/* ================================================= */
+/* ✨ [추가] 모바일 반응형 (화면 좁을 때 가로 정렬 유지) */
+/* ================================================= */
+@media screen and (max-width: 768px) {
+    
+    #pagination-wrapper {
+        gap: 8px; /* 전체 간격 좁힘 */
+        width: 100%;
+    }
+
+    .pagination-list {
+        gap: 12px;  /* 숫자 사이 간격 좁힘 (20px -> 8px)*/
+    } 
+
+    /* 폰트 사이즈 살짝 조절 (선택 사항) */
+    .pagination-change-link-text,
+    .pagination-text,
+    .pagination-text-active {
+        font-size: 13px;
+    }
 }
