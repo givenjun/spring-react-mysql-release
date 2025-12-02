@@ -2,6 +2,7 @@ package com.capstone.board_back.service.implement;
 
 import com.capstone.board_back.service.MailService;
 import jakarta.mail.internet.MimeMessage;
+import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
@@ -10,22 +11,18 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-
 @Service
 @RequiredArgsConstructor
 public class MailServiceImplement implements MailService {
 
   private String loadHtmlTemplate(String verifyUrl) throws Exception {
     ClassPathResource resource =
-            new ClassPathResource("templates/email/verify-email.html");
+        new ClassPathResource("templates/email/templates/verify-email.html");
 
-    String html = new String(resource.getInputStream().readAllBytes(),
-            StandardCharsets.UTF_8);
+    String html = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
 
     return html.replace("{{VERIFY_URL}}", verifyUrl);
   }
-
 
   private final JavaMailSender mailSender;
 
@@ -53,7 +50,7 @@ public class MailServiceImplement implements MailService {
       helper.setTo(email);
       helper.setSubject(subject);
       helper.setFrom(from);
-      helper.setText(htmlContent, true);  // HTML 모드
+      helper.setText(htmlContent, true); // HTML 모드
 
       mailSender.send(message);
 
