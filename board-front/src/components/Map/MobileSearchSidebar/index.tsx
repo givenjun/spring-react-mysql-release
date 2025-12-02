@@ -167,6 +167,8 @@ export default function MobileSearchSidebar({
     setPicked(prev => ({ ...prev, [field]: null }));
   };
   const handleRouteKeyDown = async (e: React.KeyboardEvent, field: 'start' | 'end') => {
+    if ((e.nativeEvent as any).isComposing) return;
+    
     if (e.key === 'Enter') {
       const q = routeQueryRef.current[field].trim();
       if (q.length < 2) return;
@@ -210,22 +212,16 @@ export default function MobileSearchSidebar({
     setSelectedSessionId(null);
   };
   useEffect(() => {
-      // 1. 현재 '채팅' 탭을 보고 있고
-      // 2. AI 검색 결과가 들어왔다면 (길이가 0보다 크다면)
       if (activeTab === 'chat' && aiSearchResults.length > 0) {
           
-          console.log("챗봇 마커 감지! 지도로 이동합니다.");
-          
-          // 탭을 'search'(탐색)로 변경하여 지도가 보이게 함
           setActiveTab('search'); 
           
-          // 지도 모드도 'explore'(탐색)로 변경 요청
           onChangeMapMode?.('explore');
           
-          // 시트 높이를 'mid'(중간)로 줄여서 지도가 시원하게 보이도록 설정
           setSheetMode('mid'); 
       }
     }, [aiSearchResults]);
+    
   const handleNewChat = () => {
     const newSessionId = uuidv4(); // 1. 고유 ID 생성
     setSelectedSessionId(newSessionId); // 2. 상태 업데이트 -> ChatWindow로 화면 전환됨
