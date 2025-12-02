@@ -1,6 +1,6 @@
 # RoutePick
 
-<div aligns="center">
+<div align="center">
 <img width="329" alt="image" src="board-front\src\assets\image\routepick-logo-icon.png">
 
 </div>
