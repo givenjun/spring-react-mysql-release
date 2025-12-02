@@ -1,3 +1,5 @@
+/* style.css 상단 부분 수정 */
+
 #user-top-wrapper {
     padding: 130px 0 40px;
 
@@ -6,7 +8,10 @@
 
     box-shadow: 0 0 5px rgba(0,0,0,0.5);
     background-image: url(../../layouts/assets/purple-image.png);
-    background-size: 100%
+    
+    background-repeat: no-repeat;
+    background-size: cover; 
+    background-position: center;
 }
 
 .user-top-container {
@@ -233,7 +238,7 @@
     
     /* 1. 상단 래퍼: 패딩 줄임 */
     #user-top-wrapper {
-        padding: 120px 0 30px; /* 헤더 공간 고려하여 상단 여백 조정 */
+        padding: 150px 0 30px; /* 헤더 공간 고려하여 상단 여백 조정 */
     }
 
     /* 2. 컨테이너: 고정 너비 해제, 세로 정렬 */
