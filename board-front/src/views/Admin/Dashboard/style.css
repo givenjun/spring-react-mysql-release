@@ -16,6 +16,7 @@
   border-radius: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   box-sizing: border-box;    /* ✅ 추가: 크기 계산 오류 방지 */
+  overflow-y: auto;
 }
 
 /* 제목 */
@@ -135,25 +136,37 @@
   }
 }
 
-@media (max-height: 700px) {
-  .summary-section {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
-  .chart-section {
-    min-height: 180px;
-  }
-  .notice-preview {
-    padding: 16px;
-  }
-}
-
 @media (max-height: 400px) {
   .admin-dashboard {
     padding: 15px 20px;
   }
   .summary-section {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 2fr);
+    gap: 12px;
+  }
+}
+
+@media (min-height: 400px) {
+  .summary-section {
+    grid-template-columns: repeat(2, 2fr);
+    gap: 12px;
+  }
+  .chart-section {
+    max-height: 700px;
+  }
+}
+
+@media (max-width: 800px) {
+  .summary-section {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (max-width: 400px) {
+  .summary-section {
+    grid-template-columns: repeat(1, 2fr);
+    gap: 12px;
   }
   .chart-section {
     display: none;

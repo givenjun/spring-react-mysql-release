@@ -1,0 +1,69 @@
+/* board-front/src/style.css */
+
+/* ... (기존 코드들) ... */
+
+/* =========================================================
+   ✨ 모바일 전용 상세 패널 스타일 (전체 화면 덮기)
+   ========================================================= */
+@media (max-width: 768px) {
+  .route-detail-panel {
+    /* 1. 위치 및 크기: 화면 전체를 덮도록 설정 */
+    position: fixed !important; /* absolute 대신 fixed로 뷰포트 기준 고정 */
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    
+    /* 2. 레이어 순서: 바텀 시트(z-index: 1005)나 네비게이션(1010)보다 높게 */
+    z-index: 2000 !important;
+    
+    /* 3. 스타일 초기화: PC용 테두리나 그림자 제거 */
+    border-left: none;
+    box-shadow: none;
+    background-color: #fff;
+
+    /* 4. 애니메이션: 오른쪽 슬라이드(X축) 대신 아래에서 위로(Y축) 등장 */
+    transform: translateY(100%); 
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+
+  /* 패널이 열렸을 때 */
+  .route-detail-panel.open {
+    transform: translateY(0) !important; /* 화면에 꽉 차게 등장 */
+  }
+
+  /* 헤더 부분 스타일 조정 */
+  .route-detail-header {
+    height: 60px; /* 터치하기 편하게 높이 확보 */
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #fff;
+    border-bottom: 1px solid #eee;
+    
+    /* 상단 안전 영역(노치) 대응 (필요시) */
+    padding-top: env(safe-area-inset-top); 
+    box-sizing: content-box;
+  }
+
+  /* 뒤로가기/닫기 버튼 스타일 강조 */
+  .route-detail-close {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: transparent;
+    font-size: 24px; /* 아이콘 크기 키움 */
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; /* 왼쪽 정렬 */
+  }
+
+  /* 내용 영역 스크롤 확보 */
+  .route-detail-body {
+    height: calc(100% - 60px); /* 헤더 제외한 높이 */
+    overflow-y: auto;
+    padding: 20px;
+    padding-bottom: 80px; /* 하단 여백 넉넉히 */
+  }
+}

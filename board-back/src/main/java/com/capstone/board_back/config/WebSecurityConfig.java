@@ -38,8 +38,10 @@ public class WebSecurityConfig {
 
     @Value("${cors.front-origin}")
     private String frontOrigin;
-    @Value("http://routepick.kro.kr")
+    @Value("https://routepick.net")
     private String domainOrigin;
+    @Value("https://www.routepick.net")
+    private String domainOrigin_www;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -83,6 +85,7 @@ public class WebSecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.addAllowedOrigin(frontOrigin);
         configuration.addAllowedOrigin(domainOrigin);
+        configuration.addAllowedOrigin(domainOrigin_www);
         configuration.setAllowCredentials(true);
         configuration.addAllowedMethod("*");
         configuration.addExposedHeader("*");
