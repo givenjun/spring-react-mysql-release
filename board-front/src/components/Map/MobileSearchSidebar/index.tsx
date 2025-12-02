@@ -167,9 +167,10 @@ export default function MobileSearchSidebar({
     setPicked(prev => ({ ...prev, [field]: null }));
   };
   const handleRouteKeyDown = async (e: React.KeyboardEvent, field: 'start' | 'end') => {
-    if ((e.nativeEvent as any).isComposing) return;
-    
+ 
     if (e.key === 'Enter') {
+      e.preventDefault();
+  
       const q = routeQueryRef.current[field].trim();
       if (q.length < 2) return;
       const list = await searchManyOnce(q, 10);
