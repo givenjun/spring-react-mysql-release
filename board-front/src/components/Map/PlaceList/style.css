@@ -1,4 +1,4 @@
-/* src/components/Map/PlaceList/style.css */
+src/components/Map/PlaceList/style.css
 .place-list {
   display: flex;
   flex-direction: column;
@@ -106,4 +106,24 @@
   display: flex;
   flex-direction: column;
   overflow: hidden; /* 말줄임표 작동 위해 */
+}
+
+/* ========================================= */
+/* ✅ 두 경로사이 맛집리스트: 선택된 항목 반투명 명암 처리 */
+/* ========================================= */
+
+/* 기본 리스트 아이템에 부드러운 전환 추가 */
+.place-list-item {
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+/* 선택된 아이템: 살짝 어두운 반투명 배경 */
+.place-list-item.selected {
+  background-color: rgba(15, 23, 42, 0.06); /* 아주 은은한 명암 */
+}
+
+/* 선택된 아이템의 제목만 살짝 강조 */
+.place-list-item.selected .place-title {
+  font-weight: 700;
+  color: #111827;
 }

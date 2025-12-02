@@ -1258,6 +1258,12 @@ export default function Main() {
                 placeUrl: extractPlaceUrl(p),
               });
             }}
+            // ✅ 현재 길찾기 미니뷰어에서 보고 있는 장소를 리스트에 표시
+            selectedKey={
+              routeMiniViewerPlace
+                ? `${routeMiniViewerPlace.lat},${routeMiniViewerPlace.lng}`
+                : null
+            }
           />
           {extraPlaceTarget && extraPlacePath.length > 1 && (
             <div style={{ marginTop: 8, fontSize: 13 }}>
