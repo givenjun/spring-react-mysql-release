@@ -153,25 +153,49 @@
   min-width: fit-content;
 }
 
+/* style.css 파일의 맨 아래 @media 부분을 수정하세요 */
+
 /* ========================================= */
 /* 헤더 모바일 반응형 (화면 너비 768px 이하) */
 /* ========================================= */
 @media screen and (max-width: 768px) {
 
-    /* 1. 헤더 컨테이너 */
+    /* 1. 헤더 컨테이너: 줄바꿈 허용 */
     .header-container {
         width: 100%;
         padding: 0 15px; 
         box-sizing: border-box;
-        justify-content: space-between; 
+        justify-content: space-between;
+        
+        /* 추가: 내부 요소가 줄바꿈 되도록 설정 */
+        flex-wrap: wrap; 
     }
 
-    /* 2. ★중간 메뉴 삭제★ (공간 확보 핵심) */
+    /* 2. 네비게이션 박스: 보이게 설정하고 아래로 내리기 */
     .header-route-box {
+        display: flex !important; /* 다시 보이게 설정 */
+        width: 100%;             /* 가로 꽉 채워서 줄바꿈 유도 */
+        order: 3;                /* 로고(기본순서), 우측박스 다음으로 배치 */
+        justify-content: center; /* 중앙 정렬 */
+        margin-top: 15px;        /* 위쪽 요소와 간격 */
+        gap: 40px;               /* 커뮤니티와 공지사항 사이 간격 */
+        
+        /* 기존 !important 강제 속성 재정의가 필요할 수 있어 추가 */
+        flex-wrap: nowrap !important; 
+        min-width: auto;
+    }
+
+    /* 3. '홈' 버튼 숨기기 (첫 번째 요소) */
+    .header-route-box .header-route:first-child {
         display: none !important;
     }
 
-    /* 3. 로고: 모바일용 아이콘 */
+    /* 폰트 크기 조정 (선택 사항) */
+    .header-route {
+        font-size: 15px; /* 모바일에 맞게 약간 조정 */
+    }
+
+    /* 4. 로고 */
     .header-left-box {
         background-image: url(../assets/logo-light2.png);
         width: 60px;      
@@ -181,31 +205,27 @@
         flex-shrink: 0;   
     }
 
-    /* 4. 오른쪽 영역 (검색창 + 버튼) */
+    /* 5. 오른쪽 영역 (검색창 + 버튼) */
     .header-right-box {
         gap: 8px; 
-        flex: 1; /* 남은 공간 차지 */
+        flex: 1; 
         justify-content: flex-end; 
     }
 
-    /* 5. 검색창 조정 */
+    /* 6. 검색창 조정 */
     .header-search-input-box {
-        flex: 1;           /* 남은 공간만큼 늘어나되 */
-        max-width: 160px;  /* '마이페이지' 글자 공간을 위해 최대 너비 제한 */
-        min-width: 100px;  /* 최소한의 크기 확보 */
+        flex: 1;           
+        max-width: 160px;  
+        min-width: 100px;  
         height: 32px;      
     }
     
     .header-search-input {
         font-size: 13px;
-        min-width: 0; /* flex 환경에서 input 크기 오류 방지 */
+        min-width: 0; 
     }
     
-    /* placeholder 숨김 */
     .header-search-input::placeholder {
         color: transparent;
     }
-
-    /* 6. 버튼 스타일 (글자 크기만 살짝 줄임) */
-
 }
