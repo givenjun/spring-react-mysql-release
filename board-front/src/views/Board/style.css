@@ -192,6 +192,12 @@
     border-radius: 10px;
 
 }
+.board-bottom-popylar-card-onoff-button {
+    position: relative;
+    width: 10px;
+    height: 10px;
+
+}
 
 .board-bottom-popular-card-box {
     display: flex;
@@ -243,20 +249,26 @@
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
   transition: all 0.25s ease;
 }
+.board-bottom-popular-card-toggle-button {
+    display: none;
+}
 
 /* ========================= */
 /* 모바일 반응형        */
 /* ========================= */
 
 /* 1024px 이하 (태블릿 및 모바일) */
+/* ========================= */
+/* 모바일 반응형 (1024px 이하) */
+/* ========================= */
 @media screen and (max-width: 1024px) {
     
     /* 전체 컨테이너 너비 유동적으로 변경 */
     .board-top-container,
     .board-bottom-container {
-        width: 95%;         /* 화면의 95%만 사용 */
-        min-width: auto;    /* 최소 너비 제한 해제 (중요!) */
-        padding: 20px 16px; /* 모바일에서는 패딩을 줄여서 공간 확보 */
+        width: 95%;         
+        min-width: auto;    
+        padding: 20px 16px; 
     }
 
     /* 상단 배너 제목 크기 축소 */
@@ -264,107 +276,163 @@
         font-size: 28px;
     }
 
-    /* 하단 컨텐츠 박스: 2단(8:4) -> 1단 변경 */
+    /* 하단 컨텐츠 박스: 1단 변경 */
     .board-bottom-contents-box {
-        grid-template-columns: 1fr; /* 한 줄에 하나씩 배치 */
-        display: flex;              /* Flex로 변경하여 순서 제어 가능 */
-        flex-direction: column-reverse; /* (선택사항) 사이드바를 위로 올리고 싶으면 column, 아래로 내리려면 column-reverse */
+        grid-template-columns: 1fr; 
+        display: flex;              
+        flex-direction: column-reverse; 
         gap: 40px;
     }
 
-    /* 최신 게시물 영역 너비 100% */
     .board-bottom-current-contents {
         max-width: 100%;
         width: 100%;
     }
 
-    /* 사이드바(글쓰기, 인기검색어) 영역 */
     .board-bottom-popular-box {
         width: 100%;
     }
 
-    /* 글쓰기 버튼 카드 높이 조정 (모바일에서 너무 크지 않게) */
     .board-bottom-side-card {
         height: 60px;
     }
-    @media screen and (max-width: 768px) {
+}
 
-    /* 1. ★핵심★ Flex를 해제하고 Block으로 변경 */
-    /* id와 class를 함께 써서 우선순위를 높임 */
+/* ========================= */
+/* 모바일 반응형 (768px 이하) */
+/* ========================= */
+@media screen and (max-width: 768px) {
+
+    /* 1. 컨테이너 초기화 (Flex 해제) */
     #board-top-wrapper .board-top-container {
-        display: block !important; /* flex 절대 금지 */
+        display: block !important; 
         width: 100%;
-        min-width: 0;
-        padding: 10px 20px 50px 20px;
+        padding: 20px 0 50px 0; /* 좌우 패딩 제거 (슬라이더가 화면 꽉 차게) */
         box-sizing: border-box;
-        overflow: hidden; /* 가로 스크롤 방지 */
+        overflow: hidden; 
     }
 
+    /* 2. 텍스트 말줄임표 처리 등 기존 로직 유지 */
     .board-list-item-main-box { 
         width: 100%;
         display: flex;
-        flex-direction: column; /* 혹은 row */
-        overflow: hidden; /* ★중요: 카드 밖으로 나가는 건 일단 잘라냄 */
+        flex-direction: column; 
     }
-
-    /* 2. 텍스트가 들어있는 박스 (Title, Content를 감싸는 부모) */
-    /* Flex 자식일 경우 줄어들 수 있게 허용하는 것이 핵심입니다 */
     .board-list-item-write-box {
         width: 100%;
-        min-width: 0; /* ★핵심★: 이게 없으면 flex 안에서 말줄임표가 안 먹힘 */
-        flex: 1;      /* 남은 공간 차지 */
+        min-width: 0; 
+        flex: 1;      
     }
-
-    /* 3. 제목과 내용에 말줄임표(...) 적용 */
     .board-list-item-title,
     .board-list-item-content {
-        display: block;         /* 블록 요소로 동작 */
-        width: 100%;            /* 부모 너비에 맞춤 */
-        
-        /* 한 줄로 자르기 위한 3대장 */
-        white-space: nowrap;    /* 줄바꿈 금지 */
-        overflow: hidden;       /* 넘치는 부분 숨김 */
-        text-overflow: ellipsis;/* ... 으로 표시 */
-    }
-    /* 2. 슬라이더 자체도 블록으로 강제 설정 */
-    .slick-slider {
-        width: 100% !important;
-        display: block !important;
-    }
-    
-    /* 3. 슬라이드 트랙(기차 레일)이 끊기지 않게 */
-    .slick-track {
-        display: flex !important; /* 트랙 내부는 옆으로 서야 함 */
-        width: 100% !important;
+        display: block; width: 100%;            
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
 
-    /* 4. 개별 슬라이드 카드 */
-    .slick-slide {
-        padding: 0 1px; 
-        box-sizing: border-box;
-        height: auto !important; /* 높이 강제 조정 */
+    /* ========================================= */
+    /* 🔴 [Slick Slider 긴급 수선] */
+    /* 트랙 너비 제한을 풀고, 패딩으로 카드 크기 조절 */
+    /* ========================================= */
+    
+    .slick-slider {
+        width: 100%;
+        display: block;
     }
     
-    /* (옵션) 슬라이더 하단 점(Dots) 위치 조정 */
+    .slick-list {
+        overflow: hidden;
+        margin: 0; padding: 0;
+    }
+
+    /* ★핵심 1: 트랙은 무조건 자유롭게 놔둡니다. (width 설정 절대 금지) */
+    .slick-track {
+        display: flex !important;
+        width: auto !important; /* JS가 계산한 값을 존중 */
+        /* width: 100% !important; <--- 이 코드가 있으면 절대 안 됩니다! */
+    }
+
+    /* ★핵심 2: 카드를 작게 보이게 만드는 건 '패딩'입니다. */
+    .slick-slide {
+        /* 상하 0, 좌우 30px 패딩을 줍니다. */
+        /* 이 값이 클수록 카드는 홀쭉해지고, 카드 사이 간격은 멀어집니다. */
+        padding: 0 30px; 
+        
+        box-sizing: border-box; /* 패딩이 너비에 포함되도록 설정 */
+        height: auto; /* 높이 자동 */
+    }
+    
+    /* 점 위치 조정 */
     .slick-dots {
         bottom: -20px !important;
     }
-    .slick-list {
-        overflow: hidden; /* 창 밖으로 나가는 건 절대 안 보이게 */
-        margin: 0 -5px;   /* 위에서 준 패딩(5px) 때문에 전체가 좁아 보이는 걸 보정 (선택사항) */
-    }   
-}
+    /* ... 기존 스타일 생략 ... */
+
+/* 인기 검색어 헤더 (타이틀과 토글 버튼 가로 배치용) */
+.board-bottom-popular-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-/* 480px 이하 (작은 스마트폰) */
+/* 기본적으로(데스크탑) 토글 버튼 숨김 */
+.board-bottom-popular-card-toggle-button {
+    display: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: rgba(0, 0, 0, 0.5);
+}
+
+.board-bottom-popular-card-contents {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+/* ... 기존 pagination 등 스타일 생략 ... */
+
+
+/* ========================= */
+/* 모바일 반응형 (1024px 이하) */
+/* ========================= */
+    
+    /* ... (기존 1024px 반응형 스타일 유지) ... */
+
+    /* ▼ 인기 검색어 토글 기능 스타일 추가 */
+    
+    /* 토글 버튼 표시 */
+    .board-bottom-popular-card-toggle-button {
+        display: block;
+    }
+
+    /* 기본적으로 리스트 숨김 */
+    .board-bottom-popular-card-contents {
+        display: none;
+        margin-top: 10px; /* 열렸을 때 간격 */
+    }
+
+    /* 열림 상태일 때 표시 (index.tsx에서 조건부 클래스 부여) */
+    .board-bottom-popular-card-contents.mobile-open {
+        display: flex;
+        animation: fadeIn 0.3s ease-in-out;
+    }
+}
+
+/* 부드러운 전환 효과 (선택 사항) */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+
+/* 480px 이하 */
 @media screen and (max-width: 480px) {
     .board-top-wrapper, 
     .board-bottom-wrapper {
-        padding-top: 80px; /* 상단 여백 축소 */
+        padding-top: 80px; 
     }
     
     .board-top-contents-title,
     .board-bottom-title {
-        font-size: 20px; /* 소제목 크기 축소 */
+        font-size: 20px; 
     }
 }

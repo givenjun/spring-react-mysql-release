@@ -19,6 +19,8 @@ interface Place {
   road_address_name?: string;
   category_name?: string;
   phone?: string;
+  /** 🔥 카카오 place URL (미니뷰어/상세 이동용) */
+  place_url?: string;
 }
 
 export interface CoordsPick { lat: number; lng: number; name: string; }
@@ -51,6 +53,9 @@ interface SearchSidebarProps {
 
   // 일반 검색
   onSearch: (keyword: string) => void;
+
+  /** 🔥 탐색 탭: 리스트에서 미니뷰어 열기용 (선택) */
+  onOpenExploreMiniViewer?: (place: Place) => void;
 
   // 길찾기
   onRouteByCoords?: (start: CoordsPick, end: CoordsPick) => void;
@@ -128,6 +133,7 @@ export default function SearchSidebar({
   onClickItem,
   selectedIndex,
   onSearch,
+  onOpenExploreMiniViewer,
   onRouteByCoords,
   onRouteSearch,
   routePlaces,
@@ -338,7 +344,7 @@ export default function SearchSidebar({
       {/* 사이드바 본체 */}
       <div className={`slideContainer ${isOpen ? 'active' : ''}`}>
         <div className="sidebar-content" ref={containerRef}>
-          <div className="sidebar-title" />
+          <div className="sidebar-title" onClick={() => window.location.reload()}/>
 
           {/* 탭 */}
           <div className="button-group">
@@ -395,7 +401,7 @@ export default function SearchSidebar({
                 <div className="search-input-wrapper">
                   <input
                     type="text"
-                    placeholder="장소, 주소 검색"
+                    placeholder="장소, 주소 검색(Enter를 누르면 초기화됩니다)"
                     value={keyword}
                     onChange={(e) => setKeyword(e.target.value)}
                     onKeyDown={(e) => {
@@ -418,12 +424,23 @@ export default function SearchSidebar({
                       <div
                         key={place.id || `${place.place_name}-${index}`}
                         className={`search-result-item ${selectedIndex === index ? 'selected' : ''}`}
-                        onClick={() => onClickItem(place)}
-                        onDoubleClick={() => onClickItem(place)}
+                        onClick={() => {
+                          onClickItem(place);
+                          onOpenExploreMiniViewer?.(place);
+                        }}
+                        onDoubleClick={() => {
+                          onClickItem(place);
+                          onOpenExploreMiniViewer?.(place);
+                        }}
                         onMouseDown={(e) => e.preventDefault()}
                         role="button"
                         tabIndex={0}
-                        onKeyDown={(e) => { if (e.key === 'Enter') onClickItem(place); }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            onClickItem(place);
+                            onOpenExploreMiniViewer?.(place);
+                          }
+                        }}
                       >
                         <div className="place-name">{place.place_name}</div>
                         <div className="place-address">{place.road_address_name || place.address_name}</div>
@@ -448,15 +465,7 @@ export default function SearchSidebar({
                     value={routeQuery.start}
                     onChange={(e) => onRouteChange('start', e.target.value)}
                     onKeyDown={onKeyDownInput('start')}
-                    style={{
-                      width: '100%',
-                      height: ROW_HEIGHT,
-                      borderRadius: 12,
-                      border: '1px solid #e5e7eb',
-                      background: '#fff',
-                      padding: `0 ${PADDING_RIGHT}px 0 12px`,
-                      outline: 'none',
-                    }}
+                    className="route-input"          // ✅ 이 한 줄만 남기고
                   />
                   {/* 엔터 후 자동완성 */}
                   {openDrop.start && suggestions.start.length > 0 && (
@@ -525,15 +534,7 @@ export default function SearchSidebar({
                     value={routeQuery.end}
                     onChange={(e) => onRouteChange('end', e.target.value)}
                     onKeyDown={onKeyDownInput('end')}
-                    style={{
-                      width: '100%',
-                      height: ROW_HEIGHT,
-                      borderRadius: 12,
-                      border: '1px solid #e5e7eb',
-                      background: '#fff',
-                      padding: `0 ${PADDING_RIGHT}px 0 12px`,
-                      outline: 'none',
-                    }}
+                    className="route-input"          // ✅ 동일
                   />
                   {/* 엔터 후 자동완성 */}
                   {openDrop.end && suggestions.end.length > 0 && (
