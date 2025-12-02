@@ -16,8 +16,8 @@ public class AdminSeedConfig implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        String adminEmail = "djemals@routepick.net";
-        String sub_adminEmail = "tjqmdjemals@routepick.net";
+        String adminEmail = "rtp_admin@routepick.net";
+        String sub_adminEmail = "rtp_subadmin@routepick.net";
         if (userRepository.existsById(adminEmail) && userRepository.existsById(sub_adminEmail)) return;
 
         if (!userRepository.existsById(adminEmail)) {
