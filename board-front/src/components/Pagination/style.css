@@ -59,13 +59,13 @@
 @media screen and (max-width: 768px) {
     
     #pagination-wrapper {
-        gap: 5px; /* 전체 간격 좁힘 */
+        gap: 8px; /* 전체 간격 좁힘 */
         width: 100%;
     }
 
     .pagination-list {
-        gap: 8px; /* 숫자 사이 간격 좁힘 (20px -> 8px) */
-    }
+        gap: 12px;  /* 숫자 사이 간격 좁힘 (20px -> 8px)*/
+    } 
 
     /* 폰트 사이즈 살짝 조절 (선택 사항) */
     .pagination-change-link-text,
