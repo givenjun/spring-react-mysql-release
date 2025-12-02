@@ -19,6 +19,7 @@ import './style.css';
 import 'components/Map/marker-label.css';
 import MenuButton from 'components/Menu/MenuButton';
 import useRelativeStore from 'stores/relativeStore';
+import { useAiSearchStore } from 'hooks/Map/useKakaoSearch.hook';
 
 // ✅ 카테고리별 PNG 마커 컴포넌트
 import CategoryMarker from 'components/Map/CategoryMarker';
@@ -205,6 +206,28 @@ function complexityScore(path: LL[]): number {
 export default function Main() {
   const { setSelectedPlaceName } = useRelativeStore();
   const { searchResults, center, searchPlaces } = useKakaoSearch();
+  const { aiSearchResults } = useAiSearchStore();
+
+  useEffect(() => {
+    // 챗봇 데이터가 들어왔고, 내용이 있다면
+    if (aiSearchResults && aiSearchResults.length > 0) {
+      console.log("🤖 챗봇 데이터 감지! 마커를 표시합니다.");
+      
+      // 1. 마커 렌더링 잠금 해제
+      setHasUserSearched(true); 
+      
+      // 2. (선택사항) 첫 번째 장소로 지도 이동
+      const firstPlace = aiSearchResults[0] as any;
+      const lat = Number(firstPlace.y || firstPlace.lat);
+      const lng = Number(firstPlace.x || firstPlace.lng);
+      if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+        // panToPlace 함수가 아래에 정의되어 있으므로, 
+        // useEffect 순서상 panToPlace 정의보다 아래에 두거나 useCallback 의존성을 확인하세요.
+        // 만약 정의 전이라 에러가 난다면 이 부분은 생략해도 됩니다.
+        // (보통 Main 컴포넌트 내 함수들은 호이스팅되거나 아래에 있어도 호출 가능합니다)
+      }
+    }
+  }, [aiSearchResults]);
 
   const [map, setMap] = useState<kakao.maps.Map | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);

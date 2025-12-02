@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import ChatList from 'components/ChatBot/ChatList/index'; 
 import ChatWindow from 'components/ChatBot/ChatWindow/index';
+import { useAiSearchStore } from 'hooks/Map/useKakaoSearch.hook';
 
 interface Place {
   id: string; place_name: string; x: string; y: string;
@@ -197,7 +198,7 @@ export default function MobileSearchSidebar({
 
   const fmtTime = (sec: number) => Math.round(sec / 60) + '분';
   const fmtDist = (m: number) => m < 1000 ? `${m}m` : `${(m/1000).toFixed(1)}km`;
-
+  const { aiSearchResults } = useAiSearchStore();
   // ✨ [수정] 세션 선택 핸들러 구현
   const handleSelectSession = (sessionId: string) => {
     console.log("세션 선택됨:", sessionId);
@@ -208,7 +209,23 @@ export default function MobileSearchSidebar({
   const handleBackToChatList = () => {
     setSelectedSessionId(null);
   };
-
+  useEffect(() => {
+      // 1. 현재 '채팅' 탭을 보고 있고
+      // 2. AI 검색 결과가 들어왔다면 (길이가 0보다 크다면)
+      if (activeTab === 'chat' && aiSearchResults.length > 0) {
+          
+          console.log("챗봇 마커 감지! 지도로 이동합니다.");
+          
+          // 탭을 'search'(탐색)로 변경하여 지도가 보이게 함
+          setActiveTab('search'); 
+          
+          // 지도 모드도 'explore'(탐색)로 변경 요청
+          onChangeMapMode?.('explore');
+          
+          // 시트 높이를 'mid'(중간)로 줄여서 지도가 시원하게 보이도록 설정
+          setSheetMode('mid'); 
+      }
+    }, [aiSearchResults]);
   const handleNewChat = () => {
     const newSessionId = uuidv4(); // 1. 고유 ID 생성
     setSelectedSessionId(newSessionId); // 2. 상태 업데이트 -> ChatWindow로 화면 전환됨
