@@ -269,7 +269,7 @@ export default function MobileSearchSidebar({
                 <div className="input-icon-wrap">
                   <span className="input-icon"><SearchIcon /></span>
                   <input 
-                    type="text" className="mobile-input-style" placeholder="장소, 주소 검색"
+                    type="text" className="mobile-input-style" placeholder="장소, 주소 검색(Enter를 누르면 초기화됩니다)"
                     value={keyword} onChange={(e) => setKeyword(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()} onFocus={onInputFocus} 
                   />

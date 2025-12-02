@@ -1,4 +1,4 @@
-// board-front/src/views/Main/index.tsx
+// board-front/src/views/Main/index.tsx (1/2)
 import React, {
   useEffect, useMemo, useState, useCallback, useRef, useDeferredValue,
 } from 'react';
@@ -202,6 +202,102 @@ function complexityScore(path: LL[]): number {
   return turnSum / perKm + 0.5 * shortRate + 0.3 * zigzagRate;
 }
 
+const FOOD_TABS = ['전체', '한식', '중식', '일식', '피자', '패스트푸드', '치킨', '분식', '카페', '족발/보쌈', '기타'] as const;
+type FoodTab = typeof FOOD_TABS[number];
+
+const normalize = (s: string) => s.toLowerCase().replace(/[\s>/·ㆍ,|-]+/g, '');
+
+const classifyPlace = (p: any): FoodTab => {
+  const group = ((p?.category_group_code || p?.categoryGroupCode || p?.group) || '').toUpperCase();
+  const name = (p?.name || p?.place_name || '').toLowerCase();
+  const cat = (p?.category_name || '').toLowerCase();
+
+  const text = `${name} ${cat}`;
+  const textNS = normalize(name) + normalize(cat);
+
+  const has = (words: string[]) =>
+    words.some((w) => {
+      const lw = w.toLowerCase();
+      return text.includes(lw) || textNS.includes(normalize(lw));
+    });
+
+  if (group === 'CE7') return '카페';
+
+  if (has([
+    '족발', '왕족발', '족발보쌈', '보쌈정식', '마늘보쌈', '수육',
+    '가장맛있는족발', '가장 맛있는 족발', '원할머니보쌈', '장충동왕족발', '족발야시장', '미쓰족발', '삼대족발',
+  ])) return '족발/보쌈';
+
+  if (has(['피자', 'pizza', '도미노', '파파존스', '피자헛'])) return '피자';
+  if (has(['맥도날드', '버거킹', '롯데리아', 'kfc', '서브웨이', '버거'])) return '패스트푸드';
+  if (has(['치킨', 'bbq', '교촌', 'bhc', '푸라닭', '네네', '굽네'])) return '치킨';
+  if (has(['분식', '떡볶이', '김밥', '라볶이', '순대', '핫도그'])) return '분식';
+  if (has(['중식', '짜장', '짬뽕', '탕수육', '마라'])) return '중식';
+  if (has(['일식', '스시', '초밥', '라멘', '돈카츠', '우동'])) return '일식';
+
+  if (has(['한식', '국밥', '백반', '비빔밥', '설렁탕', '갈비', '냉면', '칼국수', '삼겹살', '곱창', '감자탕'])) return '한식';
+
+  return '기타';
+};
+
+const JOKBAL_KEYWORDS = [
+  '족발', '보쌈', '왕족발', '족발보쌈', '보쌈정식', '마늘보쌈', '수육',
+  '가장맛있는족발', '원할머니보쌈', '장충동왕족발', '족발야시장', '미쓰족발', '삼대족발',
+];
+
+const makeAdaptiveStep = (path?: LL[]) => {
+  if (!path || path.length < 2) return 150;
+  const cum = buildCumulativeDist(path);
+  return Math.max(100, Math.min(300, Math.round((cum[cum.length - 1] || 0) / 400)));
+};
+
+const pathKm = (p?: LL[]) => {
+  if (!p || p.length < 2) return 0;
+  const cum = buildCumulativeDist(p);
+  return (cum[cum.length - 1] || 0) / 1000;
+};
+
+const calcBudget = (path?: LL[]) => {
+  const km = pathKm(path);
+  return Math.min(1200, Math.max(400, Math.round(120 + 60 * km)));
+};
+
+const optsForTab = (tab: typeof FOOD_TABS[number], path?: LL[]) => {
+  const km = pathKm(path);
+  const adaptiveStep = makeAdaptiveStep(path);
+  const useFull = km >= 5;
+  const budget = calcBudget(path);
+  const timeBudgetMs = useFull
+    ? Math.min(9000, 3500 + Math.round(400 * km))
+    : 2000;
+
+  const modeVal: 'fast' | 'full' = useFull ? 'full' : 'full'; // 🔥 이제 항상 full로 사용
+
+  const base = {
+    stepMeters: adaptiveStep,
+    radius: 350,
+    includeCafe: true,
+    maxTotal: budget,
+    mode: modeVal,
+    timeBudgetMs,
+    maxSamples: Number.POSITIVE_INFINITY,
+    coverage: 'sweep' as const,
+  };
+
+  if (tab === '족발/보쌈') {
+    return {
+      ...base,
+      stepMeters: Math.min(adaptiveStep, 150),
+      radius: 450,
+      includeCafe: false,
+      categoryGroupCodes: ['FD6'],
+      keywords: JOKBAL_KEYWORDS,
+      maxTotal: Math.max(base.maxTotal, 600),
+    };
+  }
+  return base;
+};
+
 /* ===== 메인 ===== */
 export default function Main() {
   const { setSelectedPlaceName } = useRelativeStore();
@@ -209,22 +305,14 @@ export default function Main() {
   const { aiSearchResults } = useAiSearchStore();
 
   useEffect(() => {
-    // 챗봇 데이터가 들어왔고, 내용이 있다면
     if (aiSearchResults && aiSearchResults.length > 0) {
-      console.log("🤖 챗봇 데이터 감지! 마커를 표시합니다.");
-      
-      // 1. 마커 렌더링 잠금 해제
-      setHasUserSearched(true); 
-      
-      // 2. (선택사항) 첫 번째 장소로 지도 이동
+      console.log('🤖 챗봇 데이터 감지! 마커를 표시합니다.');
+      setHasUserSearched(true);
       const firstPlace = aiSearchResults[0] as any;
       const lat = Number(firstPlace.y || firstPlace.lat);
       const lng = Number(firstPlace.x || firstPlace.lng);
       if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
-        // panToPlace 함수가 아래에 정의되어 있으므로, 
-        // useEffect 순서상 panToPlace 정의보다 아래에 두거나 useCallback 의존성을 확인하세요.
-        // 만약 정의 전이라 에러가 난다면 이 부분은 생략해도 됩니다.
-        // (보통 Main 컴포넌트 내 함수들은 호이스팅되거나 아래에 있어도 호출 가능합니다)
+        // 필요하면 여기서 panToPlace 호출 가능
       }
     }
   }, [aiSearchResults]);
@@ -262,7 +350,7 @@ export default function Main() {
   const setMapType = (type: 'roadmap' | 'skyview') => {
     if (!map) return;
     const roadmapId = kakao.maps.MapTypeId.ROADMAP;
-    const skyviewId = kakao.maps.MapTypeId.HYBRID; // 스카이뷰(하이브리드)
+    const skyviewId = kakao.maps.MapTypeId.HYBRID;
 
     if (type === 'roadmap') {
       map.setMapTypeId(roadmapId);
@@ -276,7 +364,6 @@ export default function Main() {
   const [distancePoints, setDistancePoints] = useState<kakao.maps.LatLng[]>([]);
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
 
-  // 수동(지도 찍어서) 경로
   const [isRouteMode, setIsRouteMode] = useState(false);
   const [routeSelectPoints, setRouteSelectPoints] = useState<kakao.maps.LatLng[]>([]);
   const [routePath, setRoutePath] = useState<LL[]>([]);
@@ -284,7 +371,6 @@ export default function Main() {
   const [routeLoading, setRouteLoading] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
 
-  // 자동 3경로 + 맛집
   const [autoRoutePath, setAutoRoutePath] = useState<LL[]>([]);
   const [autoRouteInfo, setAutoRouteInfo] = useState<{ totalDistance?: number; totalTime?: number } | null>(null);
   const [autoRouteEndpoints, setAutoRouteEndpoints] = useState<{ start?: LL; end?: LL } | null>(null);
@@ -294,12 +380,9 @@ export default function Main() {
   type DistanceBase = 'origin' | 'destination' | null;
   const [distanceBase, setDistanceBase] = useState<DistanceBase>(null);
 
-  // 🔥 경로 위에서 사용자가 찍은 기준 지점 (출발/도착 대신 이걸 기준으로 정렬)
   const [routePivot, setRoutePivot] = useState<LL | null>(null);
-  // 🔥 "경로에서 클릭 지점 기준 정렬" 모드 ON/OFF
   const [isPivotSelectMode, setIsPivotSelectMode] = useState(false);
 
-  // 더블클릭 추가 경로(출발지 or pivot → 선택 맛집) + 라벨용 정보
   const [extraPlacePath, setExtraPlacePath] = useState<LL[]>([]);
   const [extraPlaceTarget, setExtraPlaceTarget] = useState<{ lat: number; lng: number; name: string; category?: string } | null>(null);
   const [extraPlaceETAsec, setExtraPlaceETAsec] = useState<number | null>(null);
@@ -307,13 +390,16 @@ export default function Main() {
   const [onlySelectedMarker, setOnlySelectedMarker] = useState(false);
   const [hasUserSearched, setHasUserSearched] = useState(false);
 
-  // 🔥 미니뷰어에 넘길 데이터
-  const [miniViewerPlace, setMiniViewerPlace] = useState<{
+  // 🔥 탐색 / 길찾기 미니뷰어 상태를 분리
+  type MiniViewerPlace = {
     name: string;
     lat: number;
     lng: number;
     placeUrl?: string;
-  } | null>(null);
+  };
+
+  const [exploreMiniViewerPlace, setExploreMiniViewerPlace] = useState<MiniViewerPlace | null>(null);
+  const [routeMiniViewerPlace, setRouteMiniViewerPlace] = useState<MiniViewerPlace | null>(null);
 
   type RouteOption = {
     id: string;
@@ -337,7 +423,6 @@ export default function Main() {
   const [placeCardOpen, setPlaceCardOpen] = useState(false);
   const [routeTargetPlace, setRouteTargetPlace] = useState<PlaceDetail | null>(null);
 
-  // 🔥 초기 진입 시 기본 장소 검색 (초기 리스트)
   useEffect(() => { (searchPlaces as any)('한밭대학교'); }, []); // eslint-disable-line
 
   const panToPlace = useCallback((lat: number, lng: number, targetLevel: number | null = 3) => {
@@ -347,11 +432,12 @@ export default function Main() {
       try {
         const cur = (map as any).getLevel?.() ?? null;
         if (cur == null || cur > targetLevel) (map as any).setLevel(targetLevel, { animate: true });
-      } catch { (map as any).setLevel(targetLevel as number); }
+      } catch {
+        (map as any).setLevel(targetLevel as number);
+      }
     }
     (map as any).panTo(pos);
   }, [map]);
-  
 
   const runManualRoute = (sLL: kakao.maps.LatLng, eLL: kakao.maps.LatLng) => {
     setIsRouteMode(true);
@@ -384,7 +470,6 @@ export default function Main() {
 
   const handleRouteByCoords = useCallback(
     async (start: { lat: number; lng: number; name: string }, end: { lat: number; lng: number; name: string }) => {
-      // 🔥 마커 로딩 중에는 새로운 경로 보기를 막음
       if (routePlacesLoading) return;
 
       setMapMode('route');
@@ -401,7 +486,7 @@ export default function Main() {
       setExtraPlacePath([]); setExtraPlaceTarget(null); setExtraPlaceETAsec(null);
       setOnlySelectedMarker(false);
       setDistanceBase(null);
-      setMiniViewerPlace(null);
+      setRouteMiniViewerPlace(null);
       setRoutePivot(null);
       setIsPivotSelectMode(false);
 
@@ -452,6 +537,7 @@ export default function Main() {
 
           allCandidates.push({
             id: `via-${Math.random().toString(36).slice(2, 8)}`,
+// board-front/src/views/Main/index.tsx (2/2)
             name: '권장길',
             path,
             timeSec: Math.round(t),
@@ -561,16 +647,13 @@ export default function Main() {
           finalRoutes.push({ ...fastRoute, name: '빠른길' });
         }
 
-         const trimmed = finalRoutes.slice(0, 3);
+        const trimmed = finalRoutes.slice(0, 3);
         const ord = { 빠른길: 0, 권장길: 1, 쉬운길: 2 } as const;
         trimmed.sort((a, b) => ord[a.name] - ord[b.name]);
 
         setRouteOptions(trimmed);
-
-        // ✅ 기본 선택 없음: 사용자가 카드 클릭할 때까지는 "선택" 표시 X
         setSelectedRouteIdx(null);
 
-        // 여전히 지도에는 기본으로 빠른길(0번)을 그려줌
         setAutoRoutePath(trimmed[0].path);
         setAutoRouteInfo({
           totalDistance: trimmed[0].distanceM,
@@ -651,44 +734,7 @@ export default function Main() {
     [autoRoutePath, autoCum, autoPhase],
   );
 
-  const FOOD_TABS = ['전체', '한식', '중식', '일식', '피자', '패스트푸드', '치킨', '분식', '카페', '족발/보쌈', '기타'] as const;
-  type FoodTab = typeof FOOD_TABS[number];
   const [foodTab, setFoodTab] = useState<FoodTab>('전체');
-
-  const normalize = (s: string) => s.toLowerCase().replace(/[\s>/·ㆍ,|-]+/g, '');
-
-  const classifyPlace = (p: any): FoodTab => {
-    const group = ((p?.category_group_code || p?.categoryGroupCode || p?.group) || '').toUpperCase();
-    const name = (p?.name || p?.place_name || '').toLowerCase();
-    const cat = (p?.category_name || '').toLowerCase();
-
-    const text = `${name} ${cat}`;
-    const textNS = normalize(name) + normalize(cat);
-
-    const has = (words: string[]) =>
-      words.some((w) => {
-        const lw = w.toLowerCase();
-        return text.includes(lw) || textNS.includes(normalize(lw));
-      });
-
-    if (group === 'CE7') return '카페';
-
-    if (has([
-      '족발', '왕족발', '족발보쌈', '보쌈정식', '마늘보쌈', '수육',
-      '가장맛있는족발', '가장 맛있는 족발', '원할머니보쌈', '장충동왕족발', '족발야시장', '미쓰족발', '삼대족발',
-    ])) return '족발/보쌈';
-
-    if (has(['피자', 'pizza', '도미노', '파파존스', '피자헛'])) return '피자';
-    if (has(['맥도날드', '버거킹', '롯데리아', 'kfc', '서브웨이', '버거'])) return '패스트푸드';
-    if (has(['치킨', 'bbq', '교촌', 'bhc', '푸라닭', '네네', '굽네'])) return '치킨';
-    if (has(['분식', '떡볶이', '김밥', '라볶이', '순대', '핫도그'])) return '분식';
-    if (has(['중식', '짜장', '짬뽕', '탕수육', '마라'])) return '중식';
-    if (has(['일식', '스시', '초밥', '라멘', '돈카츠', '우동'])) return '일식';
-
-    if (has(['한식', '국밥', '백반', '비빔밥', '설렁탕', '갈비', '냉면', '칼국수', '삼겹살', '곱창', '감자탕'])) return '한식';
-
-    return '기타';
-  };
 
   const filteredRoutePlaces = useMemo(() => {
     const list = Array.isArray(routePlaces) ? routePlaces : [];
@@ -738,65 +784,6 @@ export default function Main() {
     return () => { cancelled = true; };
   }, [filteredRoutePlaces]);
 
-  const JOKBAL_KEYWORDS = [
-    '족발', '보쌈', '왕족발', '족발보쌈', '보쌈정식', '마늘보쌈', '수육',
-    '가장맛있는족발', '원할머니보쌈', '장충동왕족발', '족발야시장', '미쓰족발', '삼대족발',
-  ];
-
-  const makeAdaptiveStep = (path?: LL[]) => {
-    if (!path || path.length < 2) return 150;
-    const cum = buildCumulativeDist(path);
-    return Math.max(100, Math.min(300, Math.round((cum[cum.length - 1] || 0) / 400)));
-  };
-
-  const pathKm = (p?: LL[]) => {
-    if (!p || p.length < 2) return 0;
-    const cum = buildCumulativeDist(p);
-    return (cum[cum.length - 1] || 0) / 1000;
-  };
-
-  const calcBudget = (path?: LL[]) => {
-    const km = pathKm(path);
-    return Math.min(1200, Math.max(400, Math.round(120 + 60 * km)));
-  };
-
-  const optsForTab = (tab: typeof FOOD_TABS[number], path?: LL[]) => {
-    const km = pathKm(path);
-    const adaptiveStep = makeAdaptiveStep(path);
-    const useFull = km >= 5;
-    const budget = calcBudget(path);
-    const timeBudgetMs = useFull
-      ? Math.min(9000, 3500 + Math.round(400 * km))
-      : 2000;
-
-    const modeVal: 'fast' | 'full' = useFull ? 'full' : 'full'; // 🔥 이제 항상 full로 사용
-
-    const base = {
-      stepMeters: adaptiveStep,
-      radius: 350,
-      includeCafe: true,
-      maxTotal: budget,
-      mode: modeVal,
-      timeBudgetMs,
-      maxSamples: Number.POSITIVE_INFINITY,
-      coverage: 'sweep' as const,
-    };
-
-    if (tab === '족발/보쌈') {
-      return {
-        ...base,
-        stepMeters: Math.min(adaptiveStep, 150),
-        radius: 450,
-        includeCafe: false,
-        categoryGroupCodes: ['FD6'],
-        keywords: JOKBAL_KEYWORDS,
-        maxTotal: Math.max(base.maxTotal, 600),
-      };
-    }
-    return base;
-  };
-
-  // 🔥 fast/full 2단계 대신, 항상 full 한 번만 호출해서 "한 번에" 보여주기
   const runAlongPathOnce = useCallback((path: LL[]) => {
     if (!Array.isArray(path) || path.length < 2) return;
     const fullOpts = { ...optsForTab(foodTab, path), mode: 'full' as const };
@@ -805,7 +792,6 @@ export default function Main() {
 
   const selectRoute = useCallback(async (i: number) => {
     if (!routeOptions[i]) return;
-    // 🔥 마커 로딩 중일 때는 빠른길/권장길/쉬운길 전환 막기
     if (routePlacesLoading) return;
 
     const r = routeOptions[i];
@@ -827,7 +813,6 @@ export default function Main() {
 
   const openRouteDetail = useCallback(async (i: number) => {
     if (!routeOptions[i]) return;
-    // 🔥 마커 로딩 중일 때는 상세 보기 전환도 막기
     if (routePlacesLoading) return;
 
     const r = routeOptions[i];
@@ -848,6 +833,7 @@ export default function Main() {
 
   const tabToIconCategory = (tab: FoodTab): string =>
     tab === '카페' ? '카페' : (tab === '족발/보쌈' ? '족발' : tab);
+
   const onFocus = useCallback(
     async (p: {
       lat: number | string;
@@ -867,9 +853,6 @@ export default function Main() {
       const name = (p?.name || p?.place_name)?.toString();
       if (name) setSelectedPlaceName(name);
 
-      // 🔥 추가 경로 시작점:
-      // pivot 모드 + pivot 존재 → pivot 기준
-      // 아니면 기존처럼 출발지 기준
       const startLL: LL | undefined =
         (isPivotSelectMode && routePivot)
           ? routePivot
@@ -903,16 +886,9 @@ export default function Main() {
           // ignore
         }
       }
-
-      // // 🔥 미니뷰어 열기
-      // setMiniViewerPlace({
-      //   name: (p?.name || p?.place_name || '선택한 장소') as string,
-      //   lat,
-      //   lng,
-      //   placeUrl: (p as any).place_url || (p as any).placeUrl,
-      // });
     }, [autoRouteEndpoints?.start, isPivotSelectMode, routePivot, panToPlace, setSelectedPlaceName],
   );
+
   const onFocusOrDoubleToRoute = useCallback(
     async (p: {
       lat: number | string;
@@ -932,9 +908,6 @@ export default function Main() {
       const name = (p?.name || p?.place_name)?.toString();
       if (name) setSelectedPlaceName(name);
 
-      // 🔥 추가 경로 시작점:
-      // pivot 모드 + pivot 존재 → pivot 기준
-      // 아니면 기존처럼 출발지 기준
       const startLL: LL | undefined =
         (isPivotSelectMode && routePivot)
           ? routePivot
@@ -969,8 +942,7 @@ export default function Main() {
         }
       }
 
-      // 🔥 미니뷰어 열기
-      setMiniViewerPlace({
+      setRouteMiniViewerPlace({
         name: (p?.name || p?.place_name || '선택한 장소') as string,
         lat,
         lng,
@@ -984,7 +956,6 @@ export default function Main() {
     const clickedLatLng = mouseEvent.latLng;
     if (!clickedLatLng) return;
 
-    // 1) 거리 재기 모드
     if (isDistanceMode) {
       const next = [...distancePoints, clickedLatLng];
       if (next.length <= 2) {
@@ -1001,7 +972,6 @@ export default function Main() {
       return;
     }
 
-    // 2) 수동 경로 모드(두 점 찍어서 경로 보기)
     if (isRouteMode) {
       const next = [...routeSelectPoints, clickedLatLng];
       if (next.length === 1) {
@@ -1022,7 +992,6 @@ export default function Main() {
       return;
     }
 
-    // 3) 길찾기 탭 + pivot 선택 모드일 때만 클릭 지점을 기준점으로 사용
     if (mapMode === 'route' && isPivotSelectMode) {
       setRoutePivot({
         lat: clickedLatLng.getLat(),
@@ -1035,7 +1004,6 @@ export default function Main() {
   const isExploreMode = mapMode === 'explore';
   const isRouteModeView = mapMode === 'route';
 
-  // 🔥 정렬 기준 포인트: pivot 모드 ON + pivot 존재 시 가장 우선
   const basePoint = useMemo<LL | null>(() => {
     if (isPivotSelectMode && routePivot) return routePivot;
 
@@ -1114,176 +1082,179 @@ export default function Main() {
   const placeDetailGap = 16;
   const placeDetailWidth = 520;
 
+  // ✅ 사이드바 오른쪽에 붙어 있는 슬라이드 버튼(+그림자) 폭 + 여유 간격
+  const SLIDE_BTN_AND_GAP = 40;
+  const PANEL_AND_VIEWER_GAP = 16;
+
   // 패널의 left = 사이드바 폭 + gap
   const placeDetailLeft = leftSidebarWidthValue + placeDetailGap;
 
-  // 미니뷰어는 패널 오른쪽에 딱 붙게: 패널 left + 패널 width + gap
-  const miniViewerLeft = placeDetailLeft + placeDetailWidth + 16;
+  // 🔥 미니뷰어 위치
+  const miniViewerLeft = placeCardOpen
+    ? placeDetailLeft + placeDetailWidth + PANEL_AND_VIEWER_GAP
+    : leftSidebarWidthValue + SLIDE_BTN_AND_GAP;
+
   const placeDetailContent = (
-      <>
-        {/* 1. 상단 정렬 버튼들 */}
-        <div style={{
-          marginBottom: 8,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 8,
-        }}>
-          <div style={{ fontSize: 13, color: '#555', whiteSpace: 'nowrap' }}>
-            정렬 기준:
-          </div>
-          <div style={{ display: 'flex', gap: 6, fontSize: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={() => {
-                setIsPivotSelectMode(false);
-                setRoutePivot(null);
-                setDistanceBase((prev) => (prev === 'origin' ? null : 'origin'));
-              }}
-              disabled={!autoRouteEndpoints?.start || routePlacesLoading}
-              style={{
-                padding: '4px 8px',
-                borderRadius: 999,
-                border: '1px solid',
-                borderColor: distanceBase === 'origin' && !isPivotSelectMode ? '#8a2ea1' : '#e5e7eb',
-                background: distanceBase === 'origin' && !isPivotSelectMode ? '#f5ecff' : '#fff',
-                cursor: (!autoRouteEndpoints?.start || routePlacesLoading) ? 'not-allowed' : 'pointer',
-                opacity: (!autoRouteEndpoints?.start || routePlacesLoading) ? 0.4 : 1,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              출발지 기준 정렬
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setIsPivotSelectMode(false);
-                setRoutePivot(null);
-                setDistanceBase((prev) => (prev === 'destination' ? null : 'destination'));
-              }}
-              disabled={!autoRouteEndpoints?.end || routePlacesLoading}
-              style={{
-                padding: '4px 8px',
-                borderRadius: 999,
-                border: '1px solid',
-                borderColor: distanceBase === 'destination' && !isPivotSelectMode ? '#8a2ea1' : '#e5e7eb',
-                background: distanceBase === 'destination' && !isPivotSelectMode ? '#f5ecff' : '#fff',
-                cursor: (!autoRouteEndpoints?.end || routePlacesLoading) ? 'not-allowed' : 'pointer',
-                opacity: (!autoRouteEndpoints?.end || routePlacesLoading) ? 0.4 : 1,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              도착지 기준 정렬
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                if (routePlacesLoading) return;
-                const next = !isPivotSelectMode;
-                setIsPivotSelectMode(next);
-                if (!next) {
-                  setRoutePivot(null);
-                }
-                setDistanceBase(null);
-              }}
-              style={{
-                padding: '4px 8px',
-                borderRadius: 999,
-                border: '1px solid',
-                borderColor: isPivotSelectMode ? '#8a2ea1' : '#e5e7eb',
-                background: isPivotSelectMode ? '#f5ecff' : '#fff',
-                cursor: routePlacesLoading ? 'not-allowed' : 'pointer',
-                opacity: routePlacesLoading ? 0.4 : 1,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              경로에서 클릭 지점 기준 정렬
-            </button>
-
-            {routePlacesLoading && (
-              <div
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: 999,
-                  border: '1px dashed #8a2ea1',
-                  background: '#faf5ff',
-                  color: '#6b21a8',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                경로 주변 맛집 로딩 중...
-              </div>
-            )}
-
-            {isPivotSelectMode && routePivot && !routePlacesLoading && (
-              <div
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: 999,
-                  border: '1px dashed #8a2ea1',
-                  background: '#faf5ff',
-                  color: '#6b21a8',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                경로 클릭 지점 기준 정렬 중
-              </div>
-            )}
-          </div>
+    <>
+      <div style={{
+        marginBottom: 8,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: 8,
+      }}>
+        <div style={{ fontSize: 13, color: '#555', whiteSpace: 'nowrap' }}>
+          정렬 기준:
         </div>
-
-        {/* 2. 음식 카테고리 탭 */}
-        <div className="pd-tabs">
-          {FOOD_TABS.map((t) => (
-            <button
-              key={t}
-              className={`pd-tab ${foodTab === t ? 'active' : ''}`}
-              onClick={() => { if (!routePlacesLoading) { setFoodTab(t as any); setOnlySelectedMarker(false); } }}
-              disabled={routePlacesLoading}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-
-        {/* 3. 리스트 영역 */}
-        {routePlacesLoading ? (
-          <div style={{ padding: 12, fontWeight: 700 }}>로딩 중입니다…</div>
-        ) : (
-          <>
-            <div className="pd-list-summary">
-              경로 주변 맛집 <b>총 {Array.isArray(placesWithEta) ? placesWithEta.length : 0}곳</b>
-            </div>
-            <PlaceList
-              places={placesWithEta as any}
-              isLoading={routePlacesLoading}
-              hiddenWhileLoading
-              onItemClick={(p) => onFocus(p)}
-              onItemDoubleClick={(p) => onFocusOrDoubleToRoute(p)}
-              onDetailClick={(p) => {
-             const lat = Number(p.lat || p.y);
-             const lng = Number(p.lng || p.x);
-             
-             // 미니 뷰어 데이터 설정 -> 팝업 뜸
-             setMiniViewerPlace({
-               name: (p?.name || p?.place_name || '선택한 장소') as string,
-               lat,
-               lng,
-               placeUrl: (p as any).place_url || (p as any).placeUrl,
-             });
+        <div style={{ display: 'flex', gap: 6, fontSize: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => {
+              setIsPivotSelectMode(false);
+              setRoutePivot(null);
+              setDistanceBase((prev) => (prev === 'origin' ? null : 'origin'));
             }}
-            />
-            {extraPlaceTarget && extraPlacePath.length > 1 && (
-              <div style={{ marginTop: 8, fontSize: 13 }}>
-                추가 경로 표시 중: <b>{extraPlaceTarget.name}</b>
-                {typeof extraPlaceETAsec === 'number' && <> · 예상 {Math.round(extraPlaceETAsec / 60)} min</>}
-              </div>
-            )}
-          </>
-        )}
-      </>
-    );
+            disabled={!autoRouteEndpoints?.start || routePlacesLoading}
+            style={{
+              padding: '4px 8px',
+              borderRadius: 999,
+              border: '1px solid',
+              borderColor: distanceBase === 'origin' && !isPivotSelectMode ? '#8a2ea1' : '#e5e7eb',
+              background: distanceBase === 'origin' && !isPivotSelectMode ? '#f5ecff' : '#fff',
+              cursor: (!autoRouteEndpoints?.start || routePlacesLoading) ? 'not-allowed' : 'pointer',
+              opacity: (!autoRouteEndpoints?.start || routePlacesLoading) ? 0.4 : 1,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            출발지 기준 정렬
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setIsPivotSelectMode(false);
+              setRoutePivot(null);
+              setDistanceBase((prev) => (prev === 'destination' ? null : 'destination'));
+            }}
+            disabled={!autoRouteEndpoints?.end || routePlacesLoading}
+            style={{
+              padding: '4px 8px',
+              borderRadius: 999,
+              border: '1px solid',
+              borderColor: distanceBase === 'destination' && !isPivotSelectMode ? '#8a2ea1' : '#e5e7eb',
+              background: distanceBase === 'destination' && !isPivotSelectMode ? '#f5ecff' : '#fff',
+              cursor: (!autoRouteEndpoints?.end || routePlacesLoading) ? 'not-allowed' : 'pointer',
+              opacity: (!autoRouteEndpoints?.end || routePlacesLoading) ? 0.4 : 1,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            도착지 기준 정렬
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (routePlacesLoading) return;
+              const next = !isPivotSelectMode;
+              setIsPivotSelectMode(next);
+              if (!next) {
+                setRoutePivot(null);
+              }
+              setDistanceBase(null);
+            }}
+            style={{
+              padding: '4px 8px',
+              borderRadius: 999,
+              border: '1px solid',
+              borderColor: isPivotSelectMode ? '#8a2ea1' : '#e5e7eb',
+              background: isPivotSelectMode ? '#f5ecff' : '#fff',
+              cursor: routePlacesLoading ? 'not-allowed' : 'pointer',
+              opacity: routePlacesLoading ? 0.4 : 1,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            경로에서 클릭 지점 기준 정렬
+          </button>
+
+          {routePlacesLoading && (
+            <div
+              style={{
+                padding: '4px 8px',
+                borderRadius: 999,
+                border: '1px dashed #8a2ea1',
+                background: '#faf5ff',
+                color: '#6b21a8',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              경로 주변 맛집 로딩 중...
+            </div>
+          )}
+
+          {isPivotSelectMode && routePivot && !routePlacesLoading && (
+            <div
+              style={{
+                padding: '4px 8px',
+                borderRadius: 999,
+                border: '1px dashed #8a2ea1',
+                background: '#faf5ff',
+                color: '#6b21a8',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              경로 클릭 지점 기준 정렬 중
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="pd-tabs">
+        {FOOD_TABS.map((t) => (
+          <button
+            key={t}
+            className={`pd-tab ${foodTab === t ? 'active' : ''}`}
+            onClick={() => { if (!routePlacesLoading) { setFoodTab(t as any); setOnlySelectedMarker(false); } }}
+            disabled={routePlacesLoading}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {routePlacesLoading ? (
+        <div style={{ padding: 12, fontWeight: 700 }}>로딩 중입니다…</div>
+      ) : (
+        <>
+          <div className="pd-list-summary">
+            경로 주변 맛집 <b>총 {Array.isArray(placesWithEta) ? placesWithEta.length : 0}곳</b>
+          </div>
+          <PlaceList
+            places={placesWithEta as any}
+            isLoading={routePlacesLoading}
+            hiddenWhileLoading
+            onItemClick={(p) => onFocus(p)}
+            onItemDoubleClick={(p) => onFocusOrDoubleToRoute(p)}
+            onDetailClick={(p) => {
+              const lat = Number(p.lat || p.y);
+              const lng = Number(p.lng || p.x);
+              setRouteMiniViewerPlace({
+                name: (p?.name || p?.place_name || '선택한 장소') as string,
+                lat,
+                lng,
+                placeUrl: (p as any).place_url || (p as any).placeUrl,
+              });
+            }}
+          />
+          {extraPlaceTarget && extraPlacePath.length > 1 && (
+            <div style={{ marginTop: 8, fontSize: 13 }}>
+              추가 경로 표시 중: <b>{extraPlaceTarget.name}</b>
+              {typeof extraPlaceETAsec === 'number' && <> · 예상 {Math.round(extraPlaceETAsec / 60)} min</>}
+            </div>
+          )}
+        </>
+      )}
+    </>
+  );
+
   return (
     <div className="main-wrapper">
       <SearchSidebar
@@ -1302,23 +1273,35 @@ export default function Main() {
         onSearch={(kw: string) => {
           setMapMode('explore');
           routeQueryVerRef.current++;
-          resetRoutePlaces?.();
-          setMiniViewerPlace(null);
+          // resetRoutePlaces?.();
+          setExploreMiniViewerPlace(null);
+          // setRouteMiniViewerPlace(null);
           setRoutePivot(null);
           setIsPivotSelectMode(false);
           setDistanceBase(null);
 
           const trimmed = kw.trim();
 
-          // ✅ 공백 + 엔터 → 초기 상태로 되돌리기 (프론트 처음 켰을 때 리스트, 마커는 숨김)
           if (!trimmed) {
-            setHasUserSearched(false);           // 기본 마커 숨기기
-            (searchPlaces as any)('한밭대학교'); // 초기 리스트만 다시 불러오기
+            setHasUserSearched(false);
+            (searchPlaces as any)('한밭대학교');
             return;
           }
 
           setHasUserSearched(true);
           (searchPlaces as any)(trimmed);
+        }}
+        onOpenExploreMiniViewer={(place: any) => {
+          const lat = Number(place?.y ?? place?.lat);
+          const lng = Number(place?.x ?? place?.lng);
+          if (Number.isNaN(lat) || Number.isNaN(lng)) return;
+
+          setExploreMiniViewerPlace({
+            name: (place?.place_name || place?.name || '선택한 장소') as string,
+            lat,
+            lng,
+            placeUrl: (place as any).place_url || (place as any).placeUrl,
+          });
         }}
         onRouteByCoords={handleRouteByCoords}
         routePlaces={sortedRoutePlacesForList as any}
@@ -1341,223 +1324,82 @@ export default function Main() {
         onChangeMapMode={(mode: 'explore' | 'route') => {
           setMapMode(mode);
           if (mode === 'explore') {
+            // 🔹 탐색 모드로 갈 때: 경로 관련 상태/패널 잠깐 닫기
             setRoutePivot(null);
             setIsPivotSelectMode(false);
             setDistanceBase(null);
+            setPlaceCardOpen(false);
+          } else {
+            // 🔹 길찾기 모드로 다시 돌아왔을 때:
+            //    예전에 열어둔 "두 경로 사이 맛집리스트" 대상이 있다면 패널 다시 열기
+            if (routeTargetPlace) {
+              setPlaceCardOpen(true);
+            }
           }
         }}
       />
+
       <MobileSearchSidebar
         searchResults={searchResults as any}
         onClickItem={(place: any) => {
-           const lat = Number(place?.y); const lng = Number(place?.x);
-           if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
-             panToPlace(lat, lng, 3);
-           }
-           if (place?.place_name) setSelectedPlaceName(place.place_name);
+          const lat = Number(place?.y); const lng = Number(place?.x);
+          if (!Number.isNaN(lat) || !Number.isNaN(lng)) {
+            panToPlace(lat, lng, 3);
+          }
+          if (place?.place_name) setSelectedPlaceName(place.place_name);
         }}
         onSearch={(kw: string) => {
           setMapMode('explore');
-          
-          // PC 버전과 동일한 초기화 로직
+
           routeQueryVerRef.current++;
-          resetRoutePlaces?.();
-          setMiniViewerPlace(null);
+          // resetRoutePlaces?.();
+          setExploreMiniViewerPlace(null);
+          // setRouteMiniViewerPlace(null);
           setRoutePivot(null);
           setIsPivotSelectMode(false);
           setDistanceBase(null);
 
           const trimmed = kw.trim();
 
-          // 1. 검색어가 없을 때 (초기화)
           if (!trimmed) {
-            setHasUserSearched(false);           
-            (searchPlaces as any)('한밭대학교'); 
+            setHasUserSearched(false);
+            (searchPlaces as any)('한밭대학교');
             return;
           }
 
-          // 2. 🔥 핵심: 이 값이 true여야 마커가 렌더링됩니다!
           setHasUserSearched(true);
-          
-          // 3. 검색 실행
           (searchPlaces as any)(trimmed);
         }}
-        // 길찾기 관련 Props 전달
         onRouteByCoords={handleRouteByCoords}
         routeOptions={routeOptions}
         onSelectRoute={selectRoute}
         onChangeMapMode={(mode) => setMapMode(mode)}
-      // placeCardOpen이 true일 때만 내용을 보내고, 아니면 null을 보냅니다.
-        detailContent={placeCardOpen ? placeDetailContent : null}
+        detailContent={isRouteModeView && placeCardOpen ? placeDetailContent : null}
         onCloseDetail={() => setPlaceCardOpen(false)}
       />
+
       <div className="pc-only-menu">
-      {routeTargetPlace && placeCardOpen && (
-        <PlaceDetailCard
-          open
-          place={routeTargetPlace}
-          onClose={() => { setPlaceCardOpen(false); }}
-          leftSidebarWidth={leftSidebarWidthValue}
-          gap={placeDetailGap}
-          topOffset={64}
-          width={placeDetailWidth}
-        >
-          <div style={{
-            marginBottom: 8,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: 8,
-          }}
+        {isRouteModeView && routeTargetPlace && placeCardOpen && (
+          <PlaceDetailCard
+            open
+            place={routeTargetPlace}
+            onClose={() => { setPlaceCardOpen(false); }}
+            leftSidebarWidth={leftSidebarWidthValue}
+            gap={placeDetailGap}
+            topOffset={64}
+            width={placeDetailWidth}
           >
-            <div style={{ fontSize: 13, color: '#555', whiteSpace: 'nowrap' }}>
-              정렬 기준:
-            </div>
-            <div style={{ display: 'flex', gap: 6, fontSize: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsPivotSelectMode(false);
-                  setRoutePivot(null);
-                  setDistanceBase((prev) => (prev === 'origin' ? null : 'origin'));
-                }}
-                disabled={!autoRouteEndpoints?.start || routePlacesLoading}
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: 999,
-                  border: '1px solid',
-                  borderColor: distanceBase === 'origin' && !isPivotSelectMode ? '#8a2ea1' : '#e5e7eb',
-                  background: distanceBase === 'origin' && !isPivotSelectMode ? '#f5ecff' : '#fff',
-                  cursor: (!autoRouteEndpoints?.start || routePlacesLoading) ? 'not-allowed' : 'pointer',
-                  opacity: (!autoRouteEndpoints?.start || routePlacesLoading) ? 0.4 : 1,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                출발지 기준 정렬
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsPivotSelectMode(false);
-                  setRoutePivot(null);
-                  setDistanceBase((prev) => (prev === 'destination' ? null : 'destination'));
-                }}
-                disabled={!autoRouteEndpoints?.end || routePlacesLoading}
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: 999,
-                  border: '1px solid',
-                  borderColor: distanceBase === 'destination' && !isPivotSelectMode ? '#8a2ea1' : '#e5e7eb',
-                  background: distanceBase === 'destination' && !isPivotSelectMode ? '#f5ecff' : '#fff',
-                  cursor: (!autoRouteEndpoints?.end || routePlacesLoading) ? 'not-allowed' : 'pointer',
-                  opacity: (!autoRouteEndpoints?.end || routePlacesLoading) ? 0.4 : 1,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                도착지 기준 정렬
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (routePlacesLoading) return;
-                  const next = !isPivotSelectMode;
-                  setIsPivotSelectMode(next);
-                  if (!next) {
-                    setRoutePivot(null);
-                  }
-                  setDistanceBase(null);
-                }}
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: 999,
-                  border: '1px solid',
-                  borderColor: isPivotSelectMode ? '#8a2ea1' : '#e5e7eb',
-                  background: isPivotSelectMode ? '#f5ecff' : '#fff',
-                  cursor: routePlacesLoading ? 'not-allowed' : 'pointer',
-                  opacity: routePlacesLoading ? 0.4 : 1,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                경로에서 클릭 지점 기준 정렬
-              </button>
-
-              {routePlacesLoading && (
-                <div
-                  style={{
-                    padding: '4px 8px',
-                    borderRadius: 999,
-                    border: '1px dashed #8a2ea1',
-                    background: '#faf5ff',
-                    color: '#6b21a8',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  경로 주변 맛집 로딩 중...
-                </div>
-              )}
-
-              {isPivotSelectMode && routePivot && !routePlacesLoading && (
-                <div
-                  style={{
-                    padding: '4px 8px',
-                    borderRadius: 999,
-                    border: '1px dashed #8a2ea1',
-                    background: '#faf5ff',
-                    color: '#6b21a8',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  경로 클릭 지점 기준 정렬 중
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="pd-tabs">
-            {FOOD_TABS.map((t) => (
-              <button
-                key={t}
-                className={`pd-tab ${foodTab === t ? 'active' : ''}`}
-                onClick={() => { if (!routePlacesLoading) { setFoodTab(t as any); setOnlySelectedMarker(false); } }}
-                disabled={routePlacesLoading}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-
-          {routePlacesLoading ? (
-            <div style={{ padding: 12, fontWeight: 700 }}>로딩 중입니다…</div>
-          ) : (
-            <>
-              <div className="pd-list-summary">
-                경로 주변 맛집 <b>총 {Array.isArray(placesWithEta) ? placesWithEta.length : 0}곳</b>
-              </div>
-              <PlaceList
-                places={placesWithEta as any}
-                isLoading={routePlacesLoading}
-                hiddenWhileLoading
-                onItemDoubleClick={(p) => onFocusOrDoubleToRoute(p)}
-              />
-              {extraPlaceTarget && extraPlacePath.length > 1 && (
-                <div style={{ marginTop: 8, fontSize: 13 }}>
-                  추가 경로 표시 중: <b>{extraPlaceTarget.name}</b>
-                  {typeof extraPlaceETAsec === 'number' && <> · 예상 {Math.round(extraPlaceETAsec / 60)} min</>}
-                </div>
-              )}
-            </>
-          )}
-        </PlaceDetailCard>
-      )}
+            {placeDetailContent}
+          </PlaceDetailCard>
+        )}
       </div>
 
       {isDistanceMode && distanceKm !== null && (
         <div className="distance-overlay">
-          선택된 두 지점 사이의 직선 거리는 약 {(distanceKm < 1 ? `${(distanceKm * 1000).toFixed(0)} m` : `${distanceKm.toFixed(2)} km`)} 입니다.
+          선택된 두 지점 사이의 직선 거리는 약 {distanceKm < 1 ? `${(distanceKm * 1000).toFixed(0)} m` : `${distanceKm.toFixed(2)} km`} 입니다.
         </div>
       )}
-      {isRouteMode && (routeLoading || routeError || routeInfo) && (
+      {isRouteModeView && isRouteMode && (routeLoading || routeError || routeInfo) && (
         <div className="distance-overlay">
           {routeLoading && '경로를 불러오는 중...'}
           {!routeLoading && routeError && routeError}
@@ -1596,29 +1438,26 @@ export default function Main() {
         }}
         className="map"
       >
-        {/* <MapTypeControl position="TOPRIGHT" /> */}
-        {/* <ZoomControl position="RIGHT" /> */}
         <div className="map-control-group">
-            {/* 1. 지도/스카이뷰 토글 버튼 */}
-            <button 
-                className={`map-btn-box map-type-toggle-btn ${mapType === 'skyview' ? 'active-sky' : ''}`}
-                onClick={() => setMapType(mapType === 'roadmap' ? 'skyview' : 'roadmap')}
-                title={mapType === 'roadmap' ? "스카이뷰로 전환" : "지도로 전환"}
-            >
-                <IconLayers />
-            </button>
+          <button
+            className={`map-btn-box map-type-toggle-btn ${mapType === 'skyview' ? 'active-sky' : ''}`}
+            onClick={() => setMapType(mapType === 'roadmap' ? 'skyview' : 'roadmap')}
+            title={mapType === 'roadmap' ? '스카이뷰로 전환' : '지도로 전환'}
+          >
+            <IconLayers />
+          </button>
 
-            {/* 2. 줌 컨트롤 (+/-) */}
-            <div className="zoom-control-group">
-                <button className="zoom-btn plus" onClick={zoomIn} title="확대">
-                    <IconPlus />
-                </button>
-                <button className="zoom-btn minus" onClick={zoomOut} title="축소">
-                    <IconMinus />
-                </button>
-            </div>
+          <div className="zoom-control-group">
+            <button className="zoom-btn plus" onClick={zoomIn} title="확대">
+              <IconPlus />
+            </button>
+            <button className="zoom-btn minus" onClick={zoomOut} title="축소">
+              <IconMinus />
+            </button>
+          </div>
         </div>
 
+        {/* 🔍 탐색 탭 전용 검색 결과 마커 */}
         {isExploreMode && hasUserSearched && Array.isArray(searchResults) && searchResults.map((place: any, index: number) => {
           const lat = Number(place?.y);
           const lng = Number(place?.x);
@@ -1662,7 +1501,8 @@ export default function Main() {
           );
         })}
 
-        {isRouteMode && routeSelectPoints.map((p, idx) => (
+        {/* 🧭 길찾기 탭: 수동 경로 선택 마커 */}
+        {isRouteModeView && isRouteMode && routeSelectPoints.map((p, idx) => (
           <MapMarker
             key={`routepick-${idx}`}
             position={{ lat: p.getLat(), lng: p.getLng() }}
@@ -1674,7 +1514,8 @@ export default function Main() {
           />
         ))}
 
-        {isRouteMode && routePath.length > 1 && (
+        {/* 수동 경로 개미행렬: 길찾기 탭에서만 */}
+        {isRouteModeView && isRouteMode && routePath.length > 1 && (
           <>
             <Polyline
               path={routePath}
@@ -1705,7 +1546,8 @@ export default function Main() {
           </>
         )}
 
-        {routeOptions.map((r, i) => {
+        {/* 후보 경로(점선)도 길찾기 탭에서만 */}
+        {isRouteModeView && routeOptions.map((r, i) => {
           const selected = i === selectedRouteIdx;
           if (selected) return null;
           return (
@@ -1721,7 +1563,8 @@ export default function Main() {
           );
         })}
 
-        {autoRoutePath.length > 1 && (
+        {/* 자동 경로 개미행렬: 길찾기 탭에서만 */}
+        {isRouteModeView && autoRoutePath.length > 1 && (
           <>
             <Polyline
               path={autoRoutePath}
@@ -1752,21 +1595,21 @@ export default function Main() {
           </>
         )}
 
-        {/* 🔥 pivot 모드 + pivot 있을 때만 깃발 마커 표시 */}
-        {isPivotSelectMode && routePivot && (
+        {isRouteModeView && isPivotSelectMode && routePivot && (
           <MapMarker
             position={{ lat: routePivot.lat, lng: routePivot.lng }}
             image={{
               src: '/assets/markers/기본마커.png',
-              size: { width: 32, height: 40 },
+              size: { width: 62, height: 70 },
               options: {
-                offset: { x: 16, y: 40 },
+                offset: { x: 26, y: 50 },
               },
             }}
             zIndex={200}
           />
         )}
 
+        {/* 길찾기 탭의 경로 주변 맛집 마커 */}
         {isRouteModeView && !onlySelectedMarker && Array.isArray(markerItems) && markerItems.map((p: any, idx: number) => {
           const lat = typeof p.lat === 'string' ? parseFloat(p.lat) : p.lat;
           const lng = typeof p.lng === 'string' ? parseFloat(p.lng) : p.lng;
@@ -1790,6 +1633,7 @@ export default function Main() {
           );
         })}
 
+        {/* 길찾기 탭: 추가 지점 경로 & 마커 */}
         {isRouteModeView && extraPlacePath.length > 1 && (
           <Polyline
             path={extraPlacePath}
@@ -1821,16 +1665,25 @@ export default function Main() {
         )}
       </Map>
 
-      {/* 🔥 두 경로사이 맛집리스트 패널 오른쪽에 딱 붙어서 같이 이동하는 카카오맵 미니뷰어 */}
-      {miniViewerPlace && (
+      {/* 🔍 탐색 탭에서만 탐색 미니뷰어 표시 */}
+      {isExploreMode && exploreMiniViewerPlace && (
         <PlaceMiniViewer
-          place={miniViewerPlace}
-          onClose={() => setMiniViewerPlace(null)}
+          place={exploreMiniViewerPlace}
+          onClose={() => setExploreMiniViewerPlace(null)}
           anchorLeft={miniViewerLeft}
         />
       )}
 
-      <div className='pc-only-menu'><MenuButton /></div>
+      {/* 🧭 길찾기 탭에서만 길찾기 미니뷰어 표시 */}
+      {isRouteModeView && routeMiniViewerPlace && (
+        <PlaceMiniViewer
+          place={routeMiniViewerPlace}
+          onClose={() => setRouteMiniViewerPlace(null)}
+          anchorLeft={miniViewerLeft}
+        />
+      )}
+
+      <div className="pc-only-menu"><MenuButton /></div>
     </div>
   );
 }
