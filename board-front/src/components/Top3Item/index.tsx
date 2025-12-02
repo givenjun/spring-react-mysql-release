@@ -43,7 +43,6 @@ export default function Top3Item({  top3ListItem  } : Props) {
         <div className='top3-list-item-main-box'>
             <div className='top-3-list-item-top'>
                 <div className='top-3-list-item-profile-box'>
-                    
                     <div className='top-3-list-item-profile-image' style={{ backgroundImage: `url(${writerProfileImage ? writerProfileImage : defaultProfileImage})`}}></div>
                 </div>
                 <div className='top-3-list-item-write-box'>

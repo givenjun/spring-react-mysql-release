@@ -106,6 +106,7 @@ export default function Board() {
     //          state: 인기 검색어 리스트 상태          //
     const [popularWordList, setPopularWordList] = useState<string[]>([]);
 
+    const [isPopularOpen, setIsPopularOpen] = useState<boolean>(false);
     //          function: get latest board list response 처리 함수          //
     const getLatestBoardListResponse = (responseBody: GetLatestBoardListResponseDto | ResponseDto | null) => {
       if (!responseBody) return;
@@ -117,6 +118,9 @@ export default function Board() {
       setTotalList(latestList);
     };
 
+    const onPopularWordToggleClickHandler = () => {
+      setIsPopularOpen(!isPopularOpen);
+    }
     //          function: get popular list response 처리 함수           //
     const getPopularListRespone = (responseBody: GetPopularListResponseDto | ResponseDto | null) => {
       if (!responseBody) return;
@@ -167,7 +171,16 @@ export default function Board() {
                 </div>
               <div className='board-bottom-popular-card'>
                 <div className='board-bottom-popular-card-box'>
-                  <div className='board-bottom-popular-card-title'>{'인기 검색어'}</div>
+                  <div className='board-bottom-popular-card-header'>
+                      <div className='board-bottom-popular-card-title'>{'인기 검색어'}</div>
+                      {/* ▼ 모바일용 토글 버튼 추가 */}
+                      <div className='board-bottom-popular-card-toggle-button' onClick={onPopularWordToggleClickHandler}>
+                        {isPopularOpen ? '접기 ▲' : '펼치기 ▼'}
+                      </div>
+                  </div>
+                  <div className={`board-bottom-popular-card-contents ${isPopularOpen ? 'mobile-open' : ''}`}>
+                    {popularWordList.map(word => <div key={word} className='word-badge' onClick={() => onPopularWordClickHandler(word)}>{word}</div>)}
+                  </div>
                   <div className='board-bottom-popular-card-contents'>
                     {popularWordList.map(word => <div className='word-badge' onClick={() => onPopularWordClickHandler(word)}>{word}</div>)}
                   </div>
