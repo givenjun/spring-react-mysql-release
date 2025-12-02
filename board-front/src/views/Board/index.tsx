@@ -38,17 +38,19 @@ export default function Board() {
       autoplaySpeed: 4000,
       responsive: [
         {
-          breakpoint: 1024, // 화면 너비 1024px 이하일 때
+          breakpoint: 1024,
           settings: {
-            slidesToShow: 2, // 2개 보여주기
+            slidesToShow: 2,
             slidesToScroll: 1,
           }
         },
         {
-          breakpoint: 768, // 화면 너비 768px 이하일 때 (모바일)
+          breakpoint: 768, // 모바일 설정 수정
           settings: {
-            slidesToShow: 1, // 1개만 보여주기
+            slidesToShow: 1,
             slidesToScroll: 1,
+            centerMode: true,     // ✨ [추가] 슬라이드를 강제로 중앙에 배치
+            centerPadding: '0px', // ✨ [추가] 양옆에 잘린 카드가 보이지 않게 0으로 설정
           }
         }
       ]

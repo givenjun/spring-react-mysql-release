@@ -253,14 +253,6 @@
     display: none;
 }
 
-/* ========================= */
-/* 모바일 반응형        */
-/* ========================= */
-
-/* 1024px 이하 (태블릿 및 모바일) */
-/* ========================= */
-/* 모바일 반응형 (1024px 이하) */
-/* ========================= */
 @media screen and (max-width: 1024px) {
     
     /* 전체 컨테이너 너비 유동적으로 변경 */
@@ -298,74 +290,66 @@
     }
 }
 
-/* ========================= */
-/* 모바일 반응형 (768px 이하) */
-/* ========================= */
+/* =========================================
+   📱 모바일 반응형 스타일 (768px 이하)
+   ========================================= */
 @media screen and (max-width: 768px) {
 
-    /* 1. 컨테이너 초기화 (Flex 해제) */
+    /* 1. 컨테이너 패딩 정리 */
     #board-top-wrapper .board-top-container {
-        display: block !important; 
-        width: 100%;
-        padding: 20px 0 50px 0; /* 좌우 패딩 제거 (슬라이더가 화면 꽉 차게) */
-        box-sizing: border-box;
-        overflow: hidden; 
+        padding: 20px 0 50px 0 !important;
+        width: 100% !important;
+        overflow: hidden; /* 넘치는 것 숨김 */
     }
 
-    /* 2. 텍스트 말줄임표 처리 등 기존 로직 유지 */
-    .board-list-item-main-box { 
-        width: 100%;
-        display: flex;
-        flex-direction: column; 
-    }
-    .board-list-item-write-box {
-        width: 100%;
-        min-width: 0; 
-        flex: 1;      
-    }
-    .board-list-item-title,
-    .board-list-item-content {
-        display: block; width: 100%;            
-        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    /* 2. 슬라이드 개별 아이템 중앙 정렬 */
+    /* react-slick은 슬라이드 사이에 div를 하나 더 만듭니다. 이걸 공략해야 합니다. */
+    .slick-slide > div {
+        margin: 0 10px; /* 카드 사이 간격 (양옆 10px씩) */
     }
 
-    /* ========================================= */
-    /* 🔴 [Slick Slider 긴급 수선] */
-    /* 트랙 너비 제한을 풀고, 패딩으로 카드 크기 조절 */
-    /* ========================================= */
-    
-    .slick-slider {
-        width: 100%;
-        display: block;
-    }
-    
-    .slick-list {
-        overflow: hidden;
-        margin: 0; padding: 0;
-    }
-
-    /* ★핵심 1: 트랙은 무조건 자유롭게 놔둡니다. (width 설정 절대 금지) */
-    .slick-track {
-        display: flex !important;
-        width: auto !important; /* JS가 계산한 값을 존중 */
-        /* width: 100% !important; <--- 이 코드가 있으면 절대 안 됩니다! */
-    }
-
-    /* ★핵심 2: 카드를 작게 보이게 만드는 건 '패딩'입니다. */
-    .slick-slide {
-        /* 상하 0, 좌우 30px 패딩을 줍니다. */
-        /* 이 값이 클수록 카드는 홀쭉해지고, 카드 사이 간격은 멀어집니다. */
-        padding: 0 30px; 
+    /* 3. 카드 크기 및 스타일 */
+    .top-3-list-item {
+        /* 너비는 화면 꽉 차게 하되, 양옆 마진 고려 */
+        width: 100% !important; 
+        max-width: none !important; /* 기존 제한 해제 */
         
-        box-sizing: border-box; /* 패딩이 너비에 포함되도록 설정 */
-        height: auto; /* 높이 자동 */
+        height: 380px !important;
+        
+        /* ⭐️ 중요: 중앙 정렬 */
+        margin: 0 auto !important;
+        
+        padding: 20px !important;
+        box-sizing: border-box;
+    }
+
+    /* 폰트 및 내부 레이아웃 (기존 유지) */
+    .top3-list-item-main-box {
+        padding: 0;
+        gap: 10px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
     }
     
-    /* 점 위치 조정 */
-    .slick-dots {
-        bottom: -20px !important;
+    .top-3-list-item-title {
+        font-size: 16px;
+        margin-bottom: 8px;
     }
-    /* ... 기존 스타일 생략 ... */
+
+    .top-3-list-item-content {
+        font-size: 13px;
+        -webkit-line-clamp: 4;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    /* 점(Dots) 위치 조정 */
+    .slick-dots {
+        bottom: -25px !important;
+    }
+}
 
 /* 인기 검색어 헤더 (타이틀과 토글 버튼 가로 배치용) */
 .board-bottom-popular-card-header {
@@ -415,7 +399,7 @@
         display: flex;
         animation: fadeIn 0.3s ease-in-out;
     }
-}
+
 
 /* 부드러운 전환 효과 (선택 사항) */
 @keyframes fadeIn {
