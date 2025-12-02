@@ -401,7 +401,7 @@ export default function SearchSidebar({
                 <div className="search-input-wrapper">
                   <input
                     type="text"
-                    placeholder="장소, 주소 검색"
+                    placeholder="장소, 주소 검색(Enter를 누르면 초기화됩니다)"
                     value={keyword}
                     onChange={(e) => setKeyword(e.target.value)}
                     onKeyDown={(e) => {

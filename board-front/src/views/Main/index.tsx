@@ -1273,9 +1273,9 @@ export default function Main() {
         onSearch={(kw: string) => {
           setMapMode('explore');
           routeQueryVerRef.current++;
-          resetRoutePlaces?.();
+          // resetRoutePlaces?.();
           setExploreMiniViewerPlace(null);
-          setRouteMiniViewerPlace(null);
+          // setRouteMiniViewerPlace(null);
           setRoutePivot(null);
           setIsPivotSelectMode(false);
           setDistanceBase(null);
@@ -1324,10 +1324,17 @@ export default function Main() {
         onChangeMapMode={(mode: 'explore' | 'route') => {
           setMapMode(mode);
           if (mode === 'explore') {
+            // 🔹 탐색 모드로 갈 때: 경로 관련 상태/패널 잠깐 닫기
             setRoutePivot(null);
             setIsPivotSelectMode(false);
             setDistanceBase(null);
-            setPlaceCardOpen(false);     // 🔥 탐색으로 돌아올 때 패널 닫기
+            setPlaceCardOpen(false);
+          } else {
+            // 🔹 길찾기 모드로 다시 돌아왔을 때:
+            //    예전에 열어둔 "두 경로 사이 맛집리스트" 대상이 있다면 패널 다시 열기
+            if (routeTargetPlace) {
+              setPlaceCardOpen(true);
+            }
           }
         }}
       />
@@ -1345,9 +1352,9 @@ export default function Main() {
           setMapMode('explore');
 
           routeQueryVerRef.current++;
-          resetRoutePlaces?.();
+          // resetRoutePlaces?.();
           setExploreMiniViewerPlace(null);
-          setRouteMiniViewerPlace(null);
+          // setRouteMiniViewerPlace(null);
           setRoutePivot(null);
           setIsPivotSelectMode(false);
           setDistanceBase(null);
