@@ -298,6 +298,17 @@ const optsForTab = (tab: typeof FOOD_TABS[number], path?: LL[]) => {
   return base;
 };
 
+// 🔥 여러 형태의 카카오 장소 URL 중에서 하나를 뽑아서 https로 정규화
+const extractPlaceUrl = (p: any): string | undefined => {
+  const raw =
+    (p && (p.place_url || p.placeUrl || p.kakaoUrl || p.kakao_url || p.url)) || '';
+
+  if (typeof raw === 'string' && raw.trim().length > 0) {
+    return raw.replace(/^http:\/\//, 'https://');
+  }
+  return undefined;
+};
+
 /* ===== 메인 ===== */
 export default function Main() {
   const { setSelectedPlaceName } = useRelativeStore();
@@ -946,7 +957,8 @@ export default function Main() {
         name: (p?.name || p?.place_name || '선택한 장소') as string,
         lat,
         lng,
-        placeUrl: (p as any).place_url || (p as any).placeUrl,
+        // 🔥 동일하게 공통 헬퍼 사용
+        placeUrl: extractPlaceUrl(p),
       });
     },
     [autoRouteEndpoints?.start, isPivotSelectMode, routePivot, panToPlace, setSelectedPlaceName],
@@ -1236,11 +1248,14 @@ export default function Main() {
             onDetailClick={(p) => {
               const lat = Number(p.lat || p.y);
               const lng = Number(p.lng || p.x);
+              const name = (p?.name || p?.place_name || '선택한 장소') as string;
+
               setRouteMiniViewerPlace({
-                name: (p?.name || p?.place_name || '선택한 장소') as string,
+                name,
                 lat,
                 lng,
-                placeUrl: (p as any).place_url || (p as any).placeUrl,
+                // 🔥 여기서도 공통 헬퍼 사용
+                placeUrl: extractPlaceUrl(p),
               });
             }}
           />
@@ -1296,11 +1311,14 @@ export default function Main() {
           const lng = Number(place?.x ?? place?.lng);
           if (Number.isNaN(lat) || Number.isNaN(lng)) return;
 
+          const name = (place?.place_name || place?.name || '선택한 장소') as string;
+
           setExploreMiniViewerPlace({
-            name: (place?.place_name || place?.name || '선택한 장소') as string,
+            name,
             lat,
             lng,
-            placeUrl: (place as any).place_url || (place as any).placeUrl,
+            // 🔥 place_url, placeUrl, kakaoUrl, url 등 아무거나 있어도 다 처리
+            placeUrl: extractPlaceUrl(place),
           });
         }}
         onRouteByCoords={handleRouteByCoords}
