@@ -196,7 +196,6 @@ const BoardDetailBottom = memo(function BoardDetailBottom({ boardNumber, viewCou
   const [showFloatingHeart, setShowFloatingHeart] = useState(false);
   const [heartActive, setHeartActive] = useState(false);
   const [floatingTilt, setFloatingTilt] = useState<'tilt-left' | 'tilt-right'>('tilt-left');  
-  const tiltClass = Math.random() > 0.5 ? 'tilt-left' : 'tilt-right';
   
   // 댓글 삭제
   const handleDeleteComment = (commentNumber: number) => {
@@ -252,7 +251,6 @@ const BoardDetailBottom = memo(function BoardDetailBottom({ boardNumber, viewCou
     const isFav = favoriteList.findIndex((favorite) => favorite.email === loginUser.email) !== -1;
     setFavorite(isFav);
     setShowFavorite(isFav);
-    setFloatingTilt(tiltClass);
   };
 
   // 댓글 리스트 응답 처리
@@ -312,25 +310,48 @@ const BoardDetailBottom = memo(function BoardDetailBottom({ boardNumber, viewCou
   // };
 
   const onFavoriteClickHandler = () => {
-  if (!loginUser || !cookies.accessToken) return;
+    if (!loginUser || !cookies.accessToken) return;
 
-  // ➤ 좋아요 추가할 때만 애니메이션
-  if (!isFavorite) {
-    setAnimate(true);
-    setShowFloatingHeart(true);
-    setTimeout(() => setAnimate(false), 300);
-    setTimeout(() => setShowFloatingHeart(false), 1500);
+    const prevFavorite = isFavorite;
+    const prevList = favoriteList;
 
-    // (선택) 하트 톡 튀는 효과
-    if (!heartActive) {
-      setHeartActive(true);
-      setTimeout(() => setHeartActive(false), 600);
+    const newFavorite = !isFavorite;
+    setFavorite(newFavorite);
+
+    if (newFavorite) {
+      setAnimate(true);
+      setShowFloatingHeart(true);
+
+      const tilt = Math.random() > 0.5 ? "tilt-left" : "tilt-right";
+      setFloatingTilt(tilt);
+
+      setTimeout(() => setAnimate(false), 300);
+      setTimeout(() => setShowFloatingHeart(false), 1500);
+
+      if (!heartActive) {
+        setHeartActive(true);
+        setTimeout(() => setHeartActive(false), 600);
+      }
     }
-  }
 
-  // 좋아요 API 호출
-  putFavoriteRequest(boardNumber, cookies.accessToken).then(putFavoriteResponse);
-};
+    putFavoriteRequest(boardNumber, cookies.accessToken)
+      .then((response) => {
+        if (!response || response.code !== "SU") {
+          // ❌ 실패 → 롤백
+          setFavorite(prevFavorite);
+          setFavoriteList(prevList);
+          customErrToast("좋아요 처리 실패");
+        }
+      })
+      .catch(() => {
+        // ❌ 에러 → 롤백
+        setFavorite(prevFavorite);
+        setFavoriteList(prevList);
+        customErrToast("서버 오류");
+      }
+    );
+  };
+
 
   const onShowFavoriteClickHandler = () => setShowFavorite((p) => !p);
   const onShowCommentClickHandler = () => setShowComment((p) => !p);
