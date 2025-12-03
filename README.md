@@ -1,5 +1,3 @@
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/5a7be343-4d0e-4d39-bfbe-b02f9c3a0051" /># RoutePick
-
 <div align="center">
 <img width="329" alt="image" src="board-front\src\assets\image\routepick-logo-icon.png">
 
@@ -22,14 +20,13 @@
 
 ## 프로젝트 소개
 
-RoutePick은 위치 기반 커뮤니티 웹 서비스로,
-사용자가 경로를 기준으로 주변 장소를 탐색하고,
+RoutePick은 위치 기반 커뮤니티 웹 서비스로  
+사용자가 경로를 기준으로 주변 장소를 탐색하고  
 게시판을 통해 지역 커뮤니티 활동을 할 수 있는 웹 플랫폼입니다.
 
-전국 어디서든 접근 가능하며,
 지도 기반 장소 검색과 커뮤니티 기능을 결합해 실사용 가능한 로컬 서비스를 목표로 개발되었습니다.
 
-RoutePick의 핵심 기능:
+### RoutePick의 핵심 기능:
 - Kakao 지도 기반 장소 검색 및 마커 표시
 - 현재 위치 기반 명소·식당 탐색
 - 경로 기반(출발지 → 도착지) 주변 장소 추천
@@ -82,6 +79,7 @@ REACT_APP_API_URL=http://localhost:4000
 $ cd infra
 $ docker compose -f docker-compose.local.yml up --build -d
 ```
+
 #### CI/CD 배포
 ##### GIT ACTION
 
@@ -265,18 +263,80 @@ jobs:
 ![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)
 
 ---
-## 화면 구성 📺
-|  PC 화면 |
-| 지도 페이지  |  게시물 페이지   |
-| :------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------: | 
-|  <img width="329" height="185" alt="Image" src="https://github.com/user-attachments/assets/d80bd754-cb15-472d-b8a7-9ee03ac23b40" /> |  <img width="329" height="185" alt="Image" src="https://github.com/user-attachments/assets/2ca848ad-b01a-4558-987f-6bad3dbb9c00" />|  
-| 공지사항 페이지   |  로그인 페이지   |  
-| <img width="329" height="185" alt="Image" src="https://github.com/user-attachments/assets/a2d6ba0e-b3a6-453a-a39e-ee84528d377d" />  |  <img width="329" height="185" alt="Image" src="https://github.com/user-attachments/assets/4010366c-185d-40b1-89b8-e71528796cd7" />|
-| 마이 페이지   |  어드민 페이지   |  
-| <img width="329" height="185" alt="Image" src="https://github.com/user-attachments/assets/4010366c-185d-40b1-89b8-e71528796cd7" />   |  <img width="329" height="185" alt="Image" src="https://github.com/user-attachments/assets/507e6c91-05fb-46f9-9b75-1e9cf8f78ee5" /> |
-|    모바일 화면     |
-| 지도 페이지   |  어드민 페이지   | 마이 페이지   |  어드민 페이지   | 
-| :----------------------------------------: | :-------------------------------------------------------------------: | :----------------------------------------: | :-------------------------------------------------------------------: | 
+<table style="width:100%; border-collapse:collapse;">
+
+  <tr>
+    <th colspan="2" style="text-align:center; padding:12px; background:#f5f5f5; font-size:22px;">
+      PC 화면
+    </th>
+  </tr>
+
+  <tr>
+    <td align="center" style="padding:14px;">
+      <strong>지도 페이지</strong><br/>
+      <img width="360" src="https://github.com/user-attachments/assets/d80bd754-cb15-472d-b8a7-9ee03ac23b40" />
+    </td>
+    <td align="center" style="padding:14px;">
+      <strong>게시물 페이지</strong><br/>
+      <img width="360" src="https://github.com/user-attachments/assets/2ca848ad-b01a-4558-987f-6bad3dbb9c00" />
+    </td>
+  </tr>
+
+  <tr>
+    <td align="center" style="padding:14px;">
+      <strong>공지사항 페이지</strong><br/>
+      <img width="360" src="https://github.com/user-attachments/assets/a2d6ba0e-b3a6-453a-a39e-ee84528d377d" />
+    </td>
+    <td align="center" style="padding:14px;">
+      <strong>로그인 페이지</strong><br/>
+      <img width="360" src="https://github.com/user-attachments/assets/4010366c-185d-40b1-89b8-e71528796cd7" />
+    </td>
+  </tr>
+
+  <tr>
+    <td align="center" style="padding:14px;">
+      <strong>마이 페이지</strong><br/>
+      <img width="360" src="https://github.com/user-attachments/assets/4010366c-185d-40b1-89b8-e71528796cd7" />
+    </td>
+    <td align="center" style="padding:14px;">
+      <strong>어드민 페이지</strong><br/>
+      <img width="360" src="https://github.com/user-attachments/assets/507e6c91-05fb-46f9-9b75-1e9cf8f78ee5" />
+    </td>
+  </tr>
+
+</table>
+
+<table style="width:100%; border-collapse:collapse;">
+
+  <tr>
+    <th colspan="4" style="text-align:center; padding:12px; background:#f5f5f5; font-size:22px;">
+      모바일 화면
+    </th>
+  </tr>
+
+  <tr>
+    <td align="center" style="padding:14px;">
+      <strong>지도 페이지</strong><br/>
+      <img width="167" src="https://github.com/user-attachments/assets/c8a7ef6e-d23e-4941-8983-5f887698defe" />
+    </td>
+    <td align="center" style="padding:14px;">
+      <strong>게시물 페이지</strong><br/>
+      <img width="167" src="https://github.com/user-attachments/assets/dd293545-a39f-49e8-b21a-aa16839f6493" />
+    </td>
+    <td align="center" style="padding:14px;">
+      <strong>마이 페이지</strong><br/>
+      <img width="167" src="https://github.com/user-attachments/assets/d5ce94b3-0551-41e1-8359-b0b51ba89a1a" />
+    </td>
+    <td align="center" style="padding:14px;">
+      <strong>어드민 페이지</strong><br/>
+      <img width="166" src="https://github.com/user-attachments/assets/ae8064da-74a3-4bf9-88ef-b3eb1a8673e4" />
+    </td>
+  </tr>
+
+</table>
+
+
+
 
 ---
 ## 주요 기능 📦
