@@ -168,7 +168,7 @@ export default function MobileSearchSidebar({
   };
   const handleRouteKeyDown = async (e: React.KeyboardEvent, field: 'start' | 'end') => {
  
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' || e.key === 'Tab') {
       e.preventDefault();
   
       const q = routeQueryRef.current[field].trim();
