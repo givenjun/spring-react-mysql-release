@@ -293,7 +293,7 @@
 /* =========================================
    📱 모바일 반응형 스타일 (768px 이하)
    ========================================= */
-@media screen and (max-width: 768px) {
+@media screen and (max-width: 768px), (max-height: 512px) {
 
     /* 1. 컨테이너 패딩 정리 */
     #board-top-wrapper .board-top-container {

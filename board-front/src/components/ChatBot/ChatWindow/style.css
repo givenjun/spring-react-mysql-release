@@ -136,7 +136,7 @@
 .route-pick-button:hover {
   background-color: #1558b3;
 }
-@media (max-width: 768px) {
+@media (max-width: 768px), (max-height: 512px) {
   .mobile-chat-override .chat-window-container {
       height: 100% !important;      /* 무조건 부모 높이만큼 꽉 채움 */
       width: 100% !important;       /* 가로도 꽉 채움 */

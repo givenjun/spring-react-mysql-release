@@ -57,7 +57,7 @@
 }
 
 /* 반응형 (필요 시) */
-@media (max-width: 900px) {
+@media (max-width: 900px), (max-height: 512px) {
   .badword-grid {
     grid-template-columns: 1fr;
   }
