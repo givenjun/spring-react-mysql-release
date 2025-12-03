@@ -367,15 +367,13 @@ export default function MobileSearchSidebar({
                </div>
             ) : (
                <>
-                {/* ... (기존 탐색/길찾기 결과 렌더링 코드 유지) ... */}
                 {activeTab === 'search' && searchResults.map((place, i) => (
-                  <div key={i} className="search-result-item" onClick={() => { onClickItem(place); setSheetMode('min'); }}>
+                  <div key={i} className="search-result-item" onClick={() => { onClickItem(place); }}>
                     <div className="place-name" style={{fontSize:16, fontWeight:600, marginBottom:4}}>{place.place_name}</div>
                     <div className="place-address" style={{fontSize:13, color:'#888'}}>{place.road_address_name || place.address_name}</div>
                   </div>
                 ))}
                 
-                {/* ... (생략된 부분들 유지) ... */}
 
                 {activeTab === 'route' && focusedField && suggestions[focusedField].map((place, i) => (
                     <div key={i} className="search-result-item" onClick={() => selectSuggestion(focusedField, place)}>
