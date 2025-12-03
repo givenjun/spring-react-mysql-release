@@ -318,6 +318,21 @@ const BoardDetailBottom = memo(function BoardDetailBottom({ boardNumber, viewCou
     const newFavorite = !isFavorite;
     setFavorite(newFavorite);
 
+      // 좋아요 수 즉시 변화
+    setFavoriteList((prev) =>
+      newFavorite
+        ? [
+            ...prev,
+            {
+              email: loginUser.email,
+              nickname: loginUser.nickname,
+              profileImage: loginUser.profileImage ?? null,
+            },
+          ]
+        : prev.filter((item) => item.email !== loginUser.email)
+    );
+
+
     if (newFavorite) {
       setAnimate(true);
       setShowFloatingHeart(true);
