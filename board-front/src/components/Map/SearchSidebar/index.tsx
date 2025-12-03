@@ -533,7 +533,7 @@ export default function SearchSidebar({
                 <div className="route-field" style={{ position: 'relative', marginBottom: GAP_BETWEEN }}>
                   <input
                     type="text"
-                    placeholder="출발지를 입력하면 자동으로 목록이 나옵니다"
+                    placeholder="출발지"
                     value={routeQuery.start}
                     onChange={(e) => onRouteChange('start', e.target.value)}
                     onKeyDown={onKeyDownInput('start')}
@@ -606,7 +606,7 @@ export default function SearchSidebar({
                 <div className="route-field" style={{ position: 'relative' }}>
                   <input
                     type="text"
-                    placeholder="도착지를 입력하면 자동으로 목록이 나옵니다"
+                    placeholder="도착지"
                     value={routeQuery.end}
                     onChange={(e) => onRouteChange('end', e.target.value)}
                     onKeyDown={onKeyDownInput('end')}
