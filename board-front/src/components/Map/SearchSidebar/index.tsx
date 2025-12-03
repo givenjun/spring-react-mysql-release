@@ -279,11 +279,11 @@ export default function SearchSidebar({
     debouncedSearch(field, v);
   };
 
-  // ⌨️ 엔터 입력 시: 폼 제출만 막고, 별도 검색은 하지 않음(자동완성으로 대체)
+  // ⌨️ 엔터 입력 시: 아무 동작도 하지 않도록 완전 차단
   const onKeyDownInput = (field: Field) => (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      e.preventDefault();
-      // 기존: 엔터로 목록을 열던 로직은 제거
+      e.preventDefault(); // 모바일 "다음" 키도 여기로 들어옴
+      return;
     }
   };
 
@@ -556,10 +556,10 @@ export default function SearchSidebar({
             </>
           )}
 
-          {/* 길찾기 탭 */}
+                    {/* 길찾기 탭 */}
           {mode === 'route' && (
             <div className="route-only-wrap">
-              <form className="route-form" onSubmit={submitRoute}>
+              <div className="route-form">
                 {/* 출발지 */}
                 <div className="route-field" style={{ position: 'relative', marginBottom: GAP_BETWEEN }}>
                   <input
@@ -707,14 +707,16 @@ export default function SearchSidebar({
                 </div>
 
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={submitRoute}
                   className="route-submit"
                   disabled={!canSubmit}
                   style={{ marginTop: 10 }}
                 >
                   경로 보기
                 </button>
-              </form>
+              </div>
+
 
               {/* ▼ 경로보기 아래 3경로 리스트 */}
               {routeOptions && routeOptions.length > 0 && (

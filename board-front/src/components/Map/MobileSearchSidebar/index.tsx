@@ -34,6 +34,8 @@ interface MobileSearchSidebarProps {
   
   detailContent?: React.ReactNode | null;
   onCloseDetail?: () => void;
+  // ✅ 초기화 시 Main 쪽 경로 상태까지 모두 리셋
+  onResetRouteAll?: () => void;
 }
 
 const SearchIcon = () => (
@@ -47,6 +49,7 @@ export default function MobileSearchSidebar({
   searchResults, onClickItem, onSearch, onRouteByCoords,
   routeOptions = [], onSelectRoute, onChangeMapMode,
   detailContent, onCloseDetail,
+  onResetRouteAll,
   onDetailClick,
 }: MobileSearchSidebarProps) {
   const navigate = useNavigate();
@@ -70,6 +73,12 @@ export default function MobileSearchSidebar({
   const [picked, setPicked] = useState<{ start: CoordsPick | null; end: CoordsPick | null }>({ start: null, end: null });
   const [suggestions, setSuggestions] = useState<{ start: Place[]; end: Place[] }>({ start: [], end: [] });
   const [focusedField, setFocusedField] = useState<'start' | 'end' | null>(null);
+
+  // 🔥 출발지/도착지 각각 디바운스 타이머
+  const debounceRef = useRef<{ start: number | null; end: number | null }>({
+    start: null,
+    end: null,
+  });
 
   const { searchManyOnce } = useKakaoSearch();
   const routeQueryRef = useRef(routeQuery);
@@ -173,42 +182,94 @@ export default function MobileSearchSidebar({
     setSheetMode('mid'); 
   };
 
-  const handleRouteInput = (field: 'start' | 'end', val: string) => {
-    setRouteQuery(prev => ({ ...prev, [field]: val }));
-    setPicked(prev => ({ ...prev, [field]: null }));
-  };
-  const handleRouteKeyDown = async (e: React.KeyboardEvent, field: 'start' | 'end') => {
- 
-    if (e.key === 'Enter' || e.key === 'Tab') {
-      e.preventDefault();
-  
-      const q = routeQueryRef.current[field].trim();
-      if (q.length < 2) return;
+  // 🔥 입력값으로 자동완성 검색 (디바운스)
+  const debouncedRouteSearch = (field: 'start' | 'end', val: string) => {
+    // 이전 타이머 제거
+    const prevTimer = debounceRef.current[field];
+    if (prevTimer !== null) {
+      window.clearTimeout(prevTimer);
+    }
+
+    const q = val.trim();
+
+    // 2글자 미만이면 목록 닫기
+    if (q.length < 2) {
+      setSuggestions(prev => ({ ...prev, [field]: [] }));
+      setFocusedField(null);
+      debounceRef.current[field] = null;
+      return;
+    }
+
+    const timeoutId = window.setTimeout(async () => {
       const list = await searchManyOnce(q, 10);
       setSuggestions(prev => ({ ...prev, [field]: list }));
       setFocusedField(field);
-      setSheetMode('mid'); 
+      setSheetMode('mid'); // 리스트 보이도록 중간 높이로
+    }, 300); // 300ms 디바운스
+
+    debounceRef.current[field] = timeoutId;
+  };
+
+  const handleRouteInput = (field: 'start' | 'end', val: string) => {
+    setRouteQuery(prev => ({ ...prev, [field]: val }));
+    setPicked(prev => ({ ...prev, [field]: null }));
+
+    // ✨ 입력할 때마다 자동완성 검색
+    debouncedRouteSearch(field, val);
+  };
+
+  // ⌨️ 엔터/탭은 그냥 막기만 하고, 검색은 입력 디바운스로 처리
+  const handleRouteKeyDown = (e: React.KeyboardEvent, field: 'start' | 'end') => {
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      return;
     }
   };
   
   const selectSuggestion = (field: 'start' | 'end', place: Place) => {
-    const pick: CoordsPick = { name: place.place_name, lat: parseFloat(place.y), lng: parseFloat(place.x) };
-    setPicked(prev => ({ ...prev, [field]: pick }));
-    setRouteQuery(prev => ({ ...prev, [field]: place.place_name }));
-    setSuggestions(prev => ({ ...prev, [field]: [] }));
+  // 🔥 1) 이 필드에 걸려 있던 디바운스 타이머 제거
+  const prevTimer = debounceRef.current[field];
+  if (prevTimer !== null) {
+    window.clearTimeout(prevTimer);
+    debounceRef.current[field] = null;
+  }
+
+  // 2) 선택한 장소를 확정
+  const pick: CoordsPick = {
+    name: place.place_name,
+    lat: parseFloat(place.y),
+    lng: parseFloat(place.x),
+  };
+  setPicked(prev => ({ ...prev, [field]: pick }));
+  setRouteQuery(prev => ({ ...prev, [field]: place.place_name }));
+
+  // 3) 추천 목록/포커스 정리
+  setSuggestions(prev => ({ ...prev, [field]: [] }));
+  setFocusedField(null);
+};
+
+// 🔥 출발지/도착지/추천목록 모두 초기화
+const handleRouteReset = () => {
+  setRouteQuery({ start: '', end: '' });
+  setPicked({ start: null, end: null });
+  setSuggestions({ start: [], end: [] });
+  setFocusedField(null);
+  // Main 쪽 경로 상태까지 초기화
+  onResetRouteAll?.();
+};
+
+const handleRouteSubmit = () => {
+  if (picked.start && picked.end && onRouteByCoords) {
+    onRouteByCoords(picked.start, picked.end);
     setFocusedField(null);
-  };
-  const handleRouteSubmit = () => {
-    if (picked.start && picked.end && onRouteByCoords) {
-      onRouteByCoords(picked.start, picked.end);
-      setFocusedField(null);
-      setSheetMode('min');
-    }
-  };
-  const handleSwap = () => {
-    setRouteQuery(prev => ({ start: prev.end, end: prev.start }));
-    setPicked(prev => ({ start: picked.end, end: picked.start }));
-  };
+    setSheetMode('min');
+  }
+};
+
+const handleSwap = () => {
+  setRouteQuery(prev => ({ start: prev.end, end: prev.start }));
+  setPicked(prev => ({ start: picked.end, end: picked.start }));
+};
 
   const fmtTime = (sec: number) => Math.round(sec / 60) + '분';
   const fmtDist = (m: number) => m < 1000 ? `${m}m` : `${(m/1000).toFixed(1)}km`;
@@ -289,13 +350,61 @@ export default function MobileSearchSidebar({
               ) : (
                 <div className="mobile-route-inputs">
                   <div className="route-row">
-                    <input placeholder="출발지" value={routeQuery.start} onChange={(e)=>handleRouteInput('start',e.target.value)} onKeyDown={(e)=>handleRouteKeyDown(e,'start')} onFocus={onInputFocus}/>
-                    <div onClick={handleSwap} style={{padding:4}}><SwapIcon/></div>
+                    <input
+                      placeholder="출발지"
+                      value={routeQuery.start}
+                      onChange={(e)=>handleRouteInput('start',e.target.value)}
+                      onKeyDown={(e)=>handleRouteKeyDown(e,'start')}
+                      onFocus={onInputFocus}
+                    />
+                    <div onClick={handleSwap} style={{padding:4}}>
+                      <SwapIcon/>
+                    </div>
                   </div>
+
                   <div className="route-row">
-                    <input placeholder="도착지" value={routeQuery.end} onChange={(e)=>handleRouteInput('end',e.target.value)} onKeyDown={(e)=>handleRouteKeyDown(e,'end')} onFocus={onInputFocus}/>
-                    <button onClick={handleRouteSubmit} disabled={!picked.start||!picked.end} style={{border:'none',background:'transparent',color:(picked.start&&picked.end)?'#4f46e5':'#ccc',fontWeight:'bold',fontSize:13,whiteSpace:'nowrap'}}>길찾기</button>
+                    <input
+                      placeholder="도착지"
+                      value={routeQuery.end}
+                      onChange={(e)=>handleRouteInput('end',e.target.value)}
+                      onKeyDown={(e)=>handleRouteKeyDown(e,'end')}
+                      onFocus={onInputFocus}
+                    />
+                    {/* ✅ 초기화 버튼 */}
+                    <button
+                      type="button"
+                      onClick={handleRouteReset}
+                      style={{
+                        border: 'none',
+                        background: 'transparent',
+                        color: '#999',
+                        fontWeight: 'bold',
+                        fontSize: 13,
+                        whiteSpace: 'nowrap',
+                        marginRight: 6,
+                      }}
+                    >
+                      초기화
+                    </button>
+
+                    {/* 길찾기 버튼 */}
+                    <button
+                      type="button"
+                      onClick={handleRouteSubmit}
+                      disabled={!picked.start || !picked.end}
+                      style={{
+                        border: 'none',
+                        background: 'transparent',
+                        color: (picked.start && picked.end) ? '#4f46e5' : '#ccc',
+                        fontWeight: 'bold',
+                        fontSize: 13,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      길찾기
+                    </button>
                   </div>
+
                 </div>
               )}
             </div>

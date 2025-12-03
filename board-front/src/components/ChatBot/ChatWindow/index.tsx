@@ -128,10 +128,10 @@ import ReactMarkDown from 'react-markdown';
 import PlaceInfoCard from '../ChatBotRecommend';
 import { useAiSearchStore } from 'hooks/Map/useKakaoSearch.hook';
 import { searchPlaceOnMapRequest } from 'apis';
-import { toast } from 'react-toastify';
 
 // ✅ 미니뷰어에서 어떤 장소를 띄울지 알려줄 전역 상태
 import useRelativeStore from 'stores/relativeStore';
+import { customErrToast } from '../../../hooks';
 
 interface ChatWindowProps {
     sessionId: string;
@@ -212,7 +212,7 @@ export default function ChatWindow({ sessionId, onBack }: ChatWindowProps) {
                     setSelectedPlaceName(nameForMiniViewer);
                 }
 
-                toast("지도에 모든 마커를 표시했습니다");
+                customErrToast("지도에 모든 마커를 표시했습니다");
             } else {
                 alert("지도에 표시할 장소를 찾지 못했습니다.");
             }

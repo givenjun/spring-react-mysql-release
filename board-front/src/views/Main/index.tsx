@@ -679,6 +679,31 @@ export default function Main() {
     [resetRoutePlaces, routePlacesLoading],
   );
 
+  const resetRouteAll = useCallback(() => {
+  // 경로 관련 상태 전부 초기화
+  setRouteOptions([]);
+  setSelectedRouteIdx(null);
+
+  setAutoRoutePath([]);
+  setAutoRouteInfo(null);
+  setAutoRouteEndpoints(null);
+
+  resetRoutePlaces?.();
+
+  setExtraPlacePath([]);
+  setExtraPlaceTarget(null);
+  setExtraPlaceETAsec(null);
+
+  setOnlySelectedMarker(false);
+  setRoutePivot(null);
+  setIsPivotSelectMode(false);
+  setDistanceBase(null);
+
+  setPlaceCardOpen(false);
+  setRouteMiniViewerPlace(null);
+  setRouteTargetPlace(null);
+}, [resetRoutePlaces]);
+
   const DASH_LEN = 40;
   const GAP_LEN = 220;
   const OVERLAP = 40;
@@ -877,8 +902,12 @@ export default function Main() {
           } as any);
 
           const coords = route.path || [];
-          const etaSec =
-            typeof route.totalTime === 'number' ? route.totalTime : null;
+
+          // ✅ 리스트에서 쓰는 etaMinFromBase 그대로 사용
+          const etaFromBase =
+            typeof (p as any).etaMinFromBase === 'number'
+              ? (p as any).etaMinFromBase
+              : null;
 
           const tab = classifyPlace(p);
           const categoryForIcon = tabToIconCategory(tab);
@@ -890,7 +919,7 @@ export default function Main() {
             name: (p?.name || p?.place_name || '목적지') as string,
             category: categoryForIcon,
           });
-          setExtraPlaceETAsec(etaSec);
+          setExtraPlaceETAsec(etaFromBase);
 
           setOnlySelectedMarker(false);
         } catch {
@@ -932,8 +961,12 @@ export default function Main() {
           } as any);
 
           const coords = route.path || [];
-          const etaSec =
-            typeof route.totalTime === 'number' ? route.totalTime : null;
+
+          // ✅ 리스트에서 쓰는 etaMinFromBase 그대로 사용
+          const etaFromBase =
+            typeof (p as any).etaMinFromBase === 'number'
+              ? (p as any).etaMinFromBase
+              : null;
 
           const tab = classifyPlace(p);
           const categoryForIcon = tabToIconCategory(tab);
@@ -945,13 +978,14 @@ export default function Main() {
             name: (p?.name || p?.place_name || '목적지') as string,
             category: categoryForIcon,
           });
-          setExtraPlaceETAsec(etaSec);
+          setExtraPlaceETAsec(etaFromBase);
 
           setOnlySelectedMarker(false);
         } catch {
           // ignore
         }
       }
+
 
       setRouteMiniViewerPlace({
         name: (p?.name || p?.place_name || '선택한 장소') as string,
@@ -1268,7 +1302,7 @@ export default function Main() {
           {extraPlaceTarget && extraPlacePath.length > 1 && (
             <div style={{ marginTop: 8, fontSize: 13 }}>
               추가 경로 표시 중: <b>{extraPlaceTarget.name}</b>
-              {typeof extraPlaceETAsec === 'number' && <> · 예상 {Math.round(extraPlaceETAsec / 60)} min</>}
+              {typeof extraPlaceETAsec === 'number' && <> · 예상 {extraPlaceETAsec}분</>}
             </div>
           )}
         </>
@@ -1413,6 +1447,7 @@ export default function Main() {
         onChangeMapMode={(mode) => setMapMode(mode)}
         detailContent={isRouteModeView && placeCardOpen ? placeDetailContent : null}
         onCloseDetail={() => setPlaceCardOpen(false)}
+        onResetRouteAll={resetRouteAll}
       />
 
       <div className="pc-only-menu">
@@ -1695,7 +1730,7 @@ export default function Main() {
             <CustomOverlayMap position={{ lat: extraPlaceTarget.lat, lng: extraPlaceTarget.lng }} yAnchor={1.25} zIndex={135}>
               <div className="km-label">
                 {extraPlaceTarget.name}
-                {typeof extraPlaceETAsec === 'number' && <> · {Math.round(extraPlaceETAsec / 60)} min</>}
+                {typeof extraPlaceETAsec === 'number' && <> · {extraPlaceETAsec} min</>}
               </div>
             </CustomOverlayMap>
           </>
