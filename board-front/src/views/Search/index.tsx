@@ -32,6 +32,11 @@ export default function Search() {
   
   //          state: 연관 검색어 리스트 상태          //
   const [relativeWordList, setRelativeWordListt] = useState<string[]>([]);
+  const [isRelativeOpen, setIsRelativeOpen] = useState<boolean>(false);
+
+  const onRelativeWordToggleClickHandler = () => {
+      setIsRelativeOpen(!isRelativeOpen);
+    }
 
   //          event handler: 연관 검색어 클릭 이벤트 처리          //
   const onRelationWordClickHandler = (word: string) => {
@@ -86,17 +91,49 @@ export default function Search() {
           <div className='search-contents-nothing'>{`검색 결과가 없습니다.`}</div> :
           <div className='search-contents'>{viewList.map(boardListItem => <BoardItem boardListItem={boardListItem} />)}</div>
           }
-          <div className='search-relation-box'>
-            <div className='search-relation-card'>
-              <div className='search-relation-card-container'>
+          {/* -------- 연관 검색어 박스 -------- */}
+        <div className='search-relation-box'>
+          <div className='search-relation-card'>
+            <div className='search-relation-card-container'>
+              <div className='search-relation-card-title-box'>
                 <div className='search-relation-card-title'>{'연관 검색어'}</div>
-                {relativeWordList.length === 0 ?
-                <div className='search-relation-card-contents-nothing'>{`연관 검색어가 없습니다.`}</div> : 
-                <div className='search-relation-card-contents'>{relativeWordList.map(word => <div className='word-badge' onClick={() => onRelationWordClickHandler(word)}>{word}</div>)}</div>
-                }
+
+                {/* 🔥 펼치기 / 접기 버튼 */}
+                {relativeWordList.length !== 0 && (
+                  <div
+                    className='search-relation-toggle-button'
+                    onClick={() => setIsRelativeOpen(prev => !prev)}
+                  >
+                    {isRelativeOpen ? '접기 ▲' : '펼치기 ▼'}
+                  </div>
+                )}
               </div>
+
+              {relativeWordList.length === 0 ? (
+                <div className='search-relation-card-contents-nothing'>
+                  연관 검색어가 없습니다.
+                </div>
+              ) : (
+                <div
+                  className={`search-relation-card-contents ${
+                    isRelativeOpen ? 'open' : ''
+                  }`}
+                >
+                  {relativeWordList.map(word => (
+                    <div
+                      key={word}
+                      className='word-badge'
+                      onClick={() => onRelationWordClickHandler(word)}
+                    >
+                      {word}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
+        </div>
+        {/* -------- 연관 검색어 박스 끝 -------- */}
         </div>
         <div className='search-pagination-box'>
           {count !== 0 && 

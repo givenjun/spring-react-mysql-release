@@ -1,19 +1,24 @@
 #search-wrapper {
-    padding: 100px 0 40px;
+    background-image: url(../../assets/image/background-image.png);
+    background-position: 50% 50%;
+    padding: 134px 0 50px;
+
     min-height: 1080px;
 
     display: flex;
     justify-content: center;
-
-    background-color: #f2daff;
 }
 
 .search-container {
-    width: 1200px;
-    min-width: 1200px;
 
+    min-height: 600px;
     display: flex;
     flex-direction: column;
+    padding: 50px 30px;
+    width: 1200px;
+    background-color: rgba(255, 255, 255, 1);
+    box-shadow: 2px 0 6px rgba(0, 0, 0, 0.2);
+    border-radius: 20px;
 
     gap: 20px;
 }
@@ -57,6 +62,12 @@
     gap: 16px;
 }
 
+.search-contents > *:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+  transition: all 0.25s ease;
+}
+
 .search-contents-nothing {
     margin-top: 82px;
     height: 310px;
@@ -81,6 +92,7 @@
 
     background-color: rgba(255, 255, 255, 1);
     box-shadow: 2px 0 6px rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
 }
 
 .search-relation-card-container {
@@ -125,6 +137,7 @@
     display: flex;
     justify-content: center;
 }
+
 /* ========================================= */
 /* 검색 페이지 모바일 반응형 (768px 이하) */
 /* ========================================= */
@@ -132,13 +145,13 @@
     
     /* 1. 전체 래퍼 및 컨테이너: 너비 고정 해제 */
     #search-wrapper {
-        padding: 120px 0 40px; /* 헤더 높이 고려, 상단 여백 조정 */
+        padding: 134px 0 40px; /* 헤더 높이 고려, 상단 여백 조정 */
     }
 
     .search-container {
-        width: 100%;        /* 1200px -> 100% */
+        width: 97%;        /* 1200px -> 100% */
         min-width: 0;       /* 최소 너비 제한 해제 */
-        padding: 0 20px;    /* 좌우 여백 확보 */
+        padding: 20px 20px 0 20px;    /* 좌우 여백 확보 */
         box-sizing: border-box;
     }
 
@@ -189,4 +202,46 @@
     .search-pagination-box {
         margin-top: 40px;
     }
+}
+
+/* ===========================
+   연관 검색어 토글 버튼
+   =========================== */
+
+/* 제목 + 토글 버튼을 가로로 배치 */
+.search-relation-card-title-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* 데스크탑에서는 숨김 */
+.search-relation-toggle-button {
+    display: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: rgba(0, 0, 0, 0.5);
+}
+
+
+.search-relation-toggle-button {
+    display: block;
+}
+
+/* 기본 리스트는 숨김 */
+.search-relation-card-contents {
+    display: none;
+    margin-top: 10px;
+}
+
+/* JS에서 추가되는 open 클래스가 있을 때만 보여줌 */
+.search-relation-card-contents.open {
+    display: flex;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+/* 부드러운 열림 효과 */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
 }
