@@ -1,4 +1,4 @@
-# RoutePick
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/5a7be343-4d0e-4d39-bfbe-b02f9c3a0051" /># RoutePick
 
 <div align="center">
 <img width="329" alt="image" src="board-front\src\assets\image\routepick-logo-icon.png">
@@ -266,13 +266,17 @@ jobs:
 
 ---
 ## 화면 구성 📺
+|  PC 화면 |
 | 지도 페이지  |  게시물 페이지   |
 | :------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------: | 
 |  <img width="329" height="185" alt="Image" src="https://github.com/user-attachments/assets/d80bd754-cb15-472d-b8a7-9ee03ac23b40" /> |  <img width="329" height="185" alt="Image" src="https://github.com/user-attachments/assets/2ca848ad-b01a-4558-987f-6bad3dbb9c00" />|  
 | 공지사항 페이지   |  로그인 페이지   |  
-| <img width="329" src="board-front\src\assets\image\routepick-logo-icon.png"/>   |  <img width="329" src="board-front\src\assets\image\routepick-logo-icon.png"/>     |
+| <img width="329" height="185" alt="Image" src="https://github.com/user-attachments/assets/a2d6ba0e-b3a6-453a-a39e-ee84528d377d" />  |  <img width="329" height="185" alt="Image" src="https://github.com/user-attachments/assets/4010366c-185d-40b1-89b8-e71528796cd7" />|
 | 마이 페이지   |  어드민 페이지   |  
-| <img width="329" src="board-front\src\assets\image\routepick-logo-icon.png"/>   |  <img width="329" src="board-front\src\assets\image\routepick-logo-icon.png"/>     |
+| <img width="329" height="185" alt="Image" src="https://github.com/user-attachments/assets/4010366c-185d-40b1-89b8-e71528796cd7" />   |  <img width="329" height="185" alt="Image" src="https://github.com/user-attachments/assets/507e6c91-05fb-46f9-9b75-1e9cf8f78ee5" /> |
+|    모바일 화면     |
+| 지도 페이지   |  어드민 페이지   | 마이 페이지   |  어드민 페이지   | 
+| :----------------------------------------: | :-------------------------------------------------------------------: | :----------------------------------------: | :-------------------------------------------------------------------: | 
 
 ---
 ## 주요 기능 📦
