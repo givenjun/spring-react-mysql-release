@@ -50,6 +50,7 @@ export default function MobileSearchSidebar({
   routeOptions = [], onSelectRoute, onChangeMapMode,
   detailContent, onCloseDetail,
   onResetRouteAll,
+  onDetailClick,
 }: MobileSearchSidebarProps) {
   const navigate = useNavigate();
   
