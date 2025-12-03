@@ -1,7 +1,5 @@
-# RoutePick
-
 <div align="center">
-<img width="329" alt="image" src="board-front\src\assets\image\routepick-logo-icon.png">
+<img width="400" alt="Image" src="https://github.com/user-attachments/assets/d4691972-abee-4df8-98ee-db82325622cb" />
 
 </div>
 
@@ -22,14 +20,13 @@
 
 ## 프로젝트 소개
 
-RoutePick은 위치 기반 커뮤니티 웹 서비스로,
-사용자가 경로를 기준으로 주변 장소를 탐색하고,
+RoutePick은 위치 기반 커뮤니티 웹 서비스로  
+사용자가 경로를 기준으로 주변 장소를 탐색하고  
 게시판을 통해 지역 커뮤니티 활동을 할 수 있는 웹 플랫폼입니다.
 
-전국 어디서든 접근 가능하며,
 지도 기반 장소 검색과 커뮤니티 기능을 결합해 실사용 가능한 로컬 서비스를 목표로 개발되었습니다.
 
-RoutePick의 핵심 기능:
+### RoutePick의 핵심 기능:
 - Kakao 지도 기반 장소 검색 및 마커 표시
 - 현재 위치 기반 명소·식당 탐색
 - 경로 기반(출발지 → 도착지) 주변 장소 추천
@@ -83,12 +80,147 @@ $ cd infra
 $ docker compose -f docker-compose.local.yml up --build -d
 ```
 
-##### 도커 프로덕션 실행
+#### CI/CD 배포
+##### GIT ACTION
 
-(EC2 또는 서버 환경)
 ``` bash
-$ cd infra
-$ docker compose -f docker-compose.prod.yml up --build -d
+name: 🚀 Auto Deploy to EC2 (Backend + Frontend + Infra)
+
+on:
+  push:
+    branches:
+      - main
+       
+jobs:
+  deploy:
+    if: "contains(github.event.head_commit.message, '[ci/cd]')"
+    runs-on: ubuntu-latest
+ 
+    steps:
+    # 1. 체크아웃
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # 2. 환경 설정
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+
+    # ===============================
+    # Create .env.production (프론트 환경변수 생성)
+    # ===============================
+    - name: Create .env.production
+      run: |
+        cd board-front
+        echo "REACT_APP_KAKAO_MAPS_APP_KEY=${{ secrets.REACT_APP_KAKAO_MAPS_APP_KEY }}" >> .env.production
+        echo "REACT_APP_API_URL=${{ secrets.REACT_APP_API_URL }}" >> .env.production 
+
+    # ===============================
+    # Backend Build
+    # ===============================
+    - name: Build Backend
+      run: |
+        cd board-back
+        chmod +x ./gradlew
+        ./gradlew clean bootJar -x test
+
+    - name: Rename Backend Jar
+      run: |
+        cd board-back/build/libs
+        mv *.jar app.jar
+
+    # ===============================
+    # Frontend Build
+    # ===============================
+    - name: Build Frontend
+      run: |
+        cd board-front
+        npm ci
+        npm run build
+
+    # ===============================
+    # Clean Remote Directory (청소)
+    # ===============================
+    - name: Clean Remote Frontend Directory
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        script: rm -rf /home/ubuntu/routepick/frontend/*
+
+    # ===============================
+    # Upload Backend JAR
+    # ===============================
+    - name: Upload Backend Jar
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        source: "board-back/build/libs/app.jar"
+        target: "/home/ubuntu/routepick/backend/"
+        strip_components: 3 # 중요: 경로 떼고 파일만
+
+    # ===============================
+    # Upload Frontend Build
+    # ===============================
+    - name: Upload Frontend Build
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        source: "board-front/build/*"
+        target: "/home/ubuntu/routepick/frontend/"
+        strip_components: 2 # 중요: 경로 떼고 파일만
+
+    # ===============================
+    # [NEW] Upload Infra Files (Docker Compose, Nginx)
+    # ===============================
+    - name: Upload Infra Files
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        # 로컬의 infra 폴더 안에 있는 모든 파일(*.yml, *.conf 등)을 업로드
+        source: "infra/*"
+        target: "/home/ubuntu/routepick/infra/"
+        strip_components: 1
+
+    # ===============================
+    # Restart Docker
+    # ===============================
+    - name: Restart EC2 Docker Services
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        script: |
+          echo "📦 RoutePick 배포 시작"
+          cd /home/ubuntu/routepick/infra
+
+          echo "📌 기존 컨테이너 종료"
+          docker compose -f docker-compose.prod.yml down
+
+          echo "📌 컨테이너 재시작 (이미지 캐시 무시)"
+          # docker compose 파일이 바뀌었을 수도 있으니 --build 옵션은 상황에 따라 고려
+          docker compose -f docker-compose.prod.yml up -d
+          
+          echo "🧹 미사용 이미지 정리"
+          docker image prune -f
+
+          echo "🎉 배포 완료!"
 ```
 ---
 
@@ -116,7 +248,6 @@ $ docker compose -f docker-compose.prod.yml up --build -d
 ## 🎨 Frontend
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
 ![Axios](https://img.shields.io/badge/Axios-5A29E4?style=for-the-badge&logo=axios&logoColor=white)
 
 ---
@@ -132,14 +263,80 @@ $ docker compose -f docker-compose.prod.yml up --build -d
 ![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)
 
 ---
-## 화면 구성 📺
-| 지도 페이지  |  게시물 페이지   |
-| :-------------------------------------------: | :------------: |
-|  <img width="329" src="board-front\src\assets\image\routepick-logo-icon.png"/> |  <img width="329" src="board-front\src\assets\image\routepick-logo-icon.png"/>|  
-| 공지사항 페이지   |  로그인 페이지   |  
-| <img width="329" src="board-front\src\assets\image\routepick-logo-icon.png"/>   |  <img width="329" src="board-front\src\assets\image\routepick-logo-icon.png"/>     |
-| 마이 페이지   |  어드민 페이지   |  
-| <img width="329" src="board-front\src\assets\image\routepick-logo-icon.png"/>   |  <img width="329" src="board-front\src\assets\image\routepick-logo-icon.png"/>     |
+<table style="width:100%; border-collapse:collapse;">
+
+  <tr>
+    <th colspan="2" style="text-align:center; padding:12px; background:#f5f5f5; font-size:22px;">
+      PC 화면
+    </th>
+  </tr>
+
+  <tr>
+    <td align="center" style="padding:14px;">
+      <strong>지도 페이지</strong><br/>
+      <img width="360" src="https://github.com/user-attachments/assets/d80bd754-cb15-472d-b8a7-9ee03ac23b40" />
+    </td>
+    <td align="center" style="padding:14px;">
+      <strong>게시물 페이지</strong><br/>
+      <img width="360" src="https://github.com/user-attachments/assets/2ca848ad-b01a-4558-987f-6bad3dbb9c00" />
+    </td>
+  </tr>
+
+  <tr>
+    <td align="center" style="padding:14px;">
+      <strong>공지사항 페이지</strong><br/>
+      <img width="360" src="https://github.com/user-attachments/assets/a2d6ba0e-b3a6-453a-a39e-ee84528d377d" />
+    </td>
+    <td align="center" style="padding:14px;">
+      <strong>로그인 페이지</strong><br/>
+      <img width="360" src="https://github.com/user-attachments/assets/4010366c-185d-40b1-89b8-e71528796cd7" />
+    </td>
+  </tr>
+
+  <tr>
+    <td align="center" style="padding:14px;">
+      <strong>마이 페이지</strong><br/>
+      <img width="360" src="https://github.com/user-attachments/assets/4010366c-185d-40b1-89b8-e71528796cd7" />
+    </td>
+    <td align="center" style="padding:14px;">
+      <strong>어드민 페이지</strong><br/>
+      <img width="360" src="https://github.com/user-attachments/assets/507e6c91-05fb-46f9-9b75-1e9cf8f78ee5" />
+    </td>
+  </tr>
+
+</table>
+
+<table style="width:100%; border-collapse:collapse;">
+
+  <tr>
+    <th colspan="4" style="text-align:center; padding:12px; background:#f5f5f5; font-size:22px;">
+      모바일 화면
+    </th>
+  </tr>
+
+  <tr>
+    <td align="center" style="padding:14px;">
+      <strong>지도 페이지</strong><br/>
+      <img width="167" src="https://github.com/user-attachments/assets/c8a7ef6e-d23e-4941-8983-5f887698defe" />
+    </td>
+    <td align="center" style="padding:14px;">
+      <strong>게시물 페이지</strong><br/>
+      <img width="167" src="https://github.com/user-attachments/assets/dd293545-a39f-49e8-b21a-aa16839f6493" />
+    </td>
+    <td align="center" style="padding:14px;">
+      <strong>마이 페이지</strong><br/>
+      <img width="167" src="https://github.com/user-attachments/assets/d5ce94b3-0551-41e1-8359-b0b51ba89a1a" />
+    </td>
+    <td align="center" style="padding:14px;">
+      <strong>어드민 페이지</strong><br/>
+      <img width="166" src="https://github.com/user-attachments/assets/ae8064da-74a3-4bf9-88ef-b3eb1a8673e4" />
+    </td>
+  </tr>
+
+</table>
+
+
+
 
 ---
 ## 주요 기능 📦
