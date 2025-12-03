@@ -267,6 +267,7 @@ jobs:
 ---
 ## 화면 구성 📺
 | 지도 페이지  |  게시물 페이지   |
+| :------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------: | 
 |  <img width="329" height="185" alt="Image" src="https://github.com/user-attachments/assets/d80bd754-cb15-472d-b8a7-9ee03ac23b40" /> |  <img width="329" height="185" alt="Image" src="https://github.com/user-attachments/assets/2ca848ad-b01a-4558-987f-6bad3dbb9c00" />|  
 | 공지사항 페이지   |  로그인 페이지   |  
 | <img width="329" src="board-front\src\assets\image\routepick-logo-icon.png"/>   |  <img width="329" src="board-front\src\assets\image\routepick-logo-icon.png"/>     |
