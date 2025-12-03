@@ -73,6 +73,44 @@
   gap: 20px;
 }
 
+/* style.css */
+
+.detail-view-btn {
+  position: absolute; 
+  right: 12px;         /* 오른쪽 끝에서 12px 떨어짐 */
+  top: 50%;            /* 상단에서 50% 위치 */
+  transform: translateY(-50%); /* 버튼 자신의 높이 절반만큼 위로 올려서 '정확한 수직 중앙' 맞춤 */
+  
+  margin: 0;           /* 🔥 중요: 기존 margin-left: auto 제거 */
+  z-index: 5;          /* 다른 요소보다 위에 오도록 */
+  
+  background: none;
+  border: none;
+  color: #4b5563;
+  font-size: 0;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  
+  opacity: 0;              /* 평소에는 투명해서 안 보임 */
+  pointer-events: none;    /* 안 보일 때는 클릭도 안 되게 (뒤에 있는 텍스트 클릭 방해 X) */
+  transition: all 0.2s;
+}
+.search-result-item:hover .detail-view-btn {
+  opacity: 1;              /* 선명하게 보임 */
+  pointer-events: auto;    /* 클릭 가능하도록 변경 */
+}
+
+.detail-view-btn:hover {
+  background: #f3f4f6; /* 호버 시 연한 회색 배경 (보라색보다 무난함) */
+  color: #7c3aed;      /* 호버 시 아이콘 보라색 */
+}
+
 /* .sidebar-content input {
   font-size: 16px;
   width: 100%;
@@ -180,10 +218,17 @@
   scrollbar-width: thin;
 }
 .search-result-item {
-  padding: 12px 16px;
+  position: relative; 
+  
+  padding: 12px 50px 12px 16px; 
+  
   border-bottom: 1px solid #eee;
   cursor: pointer;
   transition: background-color 0.2s, transform 0.1s;
+  
+  box-sizing: border-box; 
+  width: 100%;
+  transform: none; 
 }
 .search-result-item:hover {
   background-color: rgba(79,70,229,0.06); /* 살짝 보라톤 */

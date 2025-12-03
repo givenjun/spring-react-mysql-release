@@ -63,12 +63,14 @@
     grid-template-columns: 1fr;
     gap: 12px;
   }
+}
 
+@media screen and (max-width: 1024px) {
   .notice-container {
-        width: 97%;        /* 1200px -> 100% */
-        min-width: 0;       /* 최소 너비 제한 해제 */
-        padding: 20px 20px 0 20px;    /* 좌우 여백 확보 */
-        box-sizing: border-box;
+    width: 97%;       
+    min-width: 0;       
+    padding: 20px;    
+    box-sizing: border-box;
   }
 }
 
