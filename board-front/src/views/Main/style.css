@@ -416,7 +416,7 @@
 /* =========================================================
    MOBILE RESPONSIVE (Bottom Sheet 스타일 적용)
    ========================================================= */
-@media (max-width: 768px) {
+@media (max-width: 768px), (max-height: 512px) {
 
   /* 1. PC UI 숨김 */
   .slideContainer, .slideBtnContainer, .pc-only-menu {
