@@ -70,7 +70,7 @@
   height: 100%;        /* 컨테이너(100vh) 꽉 채움 */
   overflow: hidden;    /* 바깥으로 스크롤 안 나가게 */
   box-sizing: border-box;
-  gap: 10px;
+  gap: 20px;
 }
 
 /* .sidebar-content input {
@@ -87,7 +87,6 @@
 /* ✅ 수정: 공통은 최소한만 두고, 실제 모양은
    .search-input-wrapper input / .route-input 에서 관리 */
 .sidebar-content input {
-  font-size: 16px;
   width: 100%;
   box-sizing: border-box;
   /* height / margin / padding / border / radius / outline 은 삭제 */
@@ -221,7 +220,7 @@
 .route-back { background: transparent; border: 0; color: #374151; cursor: pointer; }
 .route-title { text-align: center; font-weight: 700; }
 
-.route-form { display: grid; gap: 10px; }
+.route-form { display: grid; gap: 10px; margin-top: 2px; }
 .route-field { position: relative; }
 .route-input-wrap { position: relative; }
 .route-input-wrap input {
