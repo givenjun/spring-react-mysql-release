@@ -290,6 +290,14 @@
     }
 }
 
+@media screen and (max-width: 1024px) and (max-height: 512px) {
+    .board-top-container, .board-bottom-container {
+        width: 93%;
+        min-width: auto;
+        padding: 20px 16px;
+    }
+}
+
 /* =========================================
    📱 모바일 반응형 스타일 (768px 이하)
    ========================================= */

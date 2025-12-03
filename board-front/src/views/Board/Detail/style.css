@@ -21,6 +21,15 @@
     border-radius: 20px;
 }
 
+@media screen and (max-width: 1024px) {
+  .board-datail-container {
+    width: 97%;       
+    min-width: 0;       
+    padding: 20px;    
+    box-sizing: border-box;
+  }
+}
+
 #board-detail-top {
     display: flex;
     flex-direction: column;
