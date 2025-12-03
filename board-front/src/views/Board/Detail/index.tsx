@@ -8,6 +8,7 @@ import defaultProfileImage from 'assets/image/default-profile-image.png';
 import { useLoginUserStore } from 'stores';
 import { useNavigate, useParams } from 'react-router-dom';
 import { BOARD_PATH, BOARD_UPDATE_PATH, USER_PATH } from 'constant';
+import floatingHeartImg from 'assets/image/heart.png';
 import {
   deleteBoardRequest,
   deleteCommentRequest,
@@ -194,7 +195,9 @@ const BoardDetailBottom = memo(function BoardDetailBottom({ boardNumber, viewCou
   const [animate, setAnimate] = useState(false);
   const [showFloatingHeart, setShowFloatingHeart] = useState(false);
   const [heartActive, setHeartActive] = useState(false);
-
+  const [floatingTilt, setFloatingTilt] = useState<'tilt-left' | 'tilt-right'>('tilt-left');  
+  const tiltClass = Math.random() > 0.5 ? 'tilt-left' : 'tilt-right';
+  
   // 댓글 삭제
   const handleDeleteComment = (commentNumber: number) => {
     if (!boardNumber) {
@@ -245,9 +248,11 @@ const BoardDetailBottom = memo(function BoardDetailBottom({ boardNumber, viewCou
       setFavorite(false);
       return;
     }
+    
     const isFav = favoriteList.findIndex((favorite) => favorite.email === loginUser.email) !== -1;
     setFavorite(isFav);
     setShowFavorite(isFav);
+    setFloatingTilt(tiltClass);
   };
 
   // 댓글 리스트 응답 처리
@@ -290,21 +295,42 @@ const BoardDetailBottom = memo(function BoardDetailBottom({ boardNumber, viewCou
     getCommentListRequest(boardNumber).then(getCommentListResponse);
   };
 
-  // 좋아요 클릭
-  const onFavoriteClickHandler = () => {
-    if (!loginUser || !cookies.accessToken) return;
+  // // 좋아요 클릭
+  // const onFavoriteClickHandler = () => {
+  //   if (!loginUser || !cookies.accessToken) return;
 
+  //   setAnimate(true);
+  //   setShowFloatingHeart(true);
+  //   setTimeout(() => setAnimate(false), 300);
+  //   setTimeout(() => setShowFloatingHeart(false), 1500);
+
+  //   if (heartActive) return;
+  //   setHeartActive(true);
+  //   setTimeout(() => setHeartActive(false), 600);
+
+  //   putFavoriteRequest(boardNumber, cookies.accessToken).then(putFavoriteResponse);
+  // };
+
+  const onFavoriteClickHandler = () => {
+  if (!loginUser || !cookies.accessToken) return;
+
+  // ➤ 좋아요 추가할 때만 애니메이션
+  if (!isFavorite) {
     setAnimate(true);
     setShowFloatingHeart(true);
     setTimeout(() => setAnimate(false), 300);
     setTimeout(() => setShowFloatingHeart(false), 1500);
 
-    if (heartActive) return;
-    setHeartActive(true);
-    setTimeout(() => setHeartActive(false), 600);
+    // (선택) 하트 톡 튀는 효과
+    if (!heartActive) {
+      setHeartActive(true);
+      setTimeout(() => setHeartActive(false), 600);
+    }
+  }
 
-    putFavoriteRequest(boardNumber, cookies.accessToken).then(putFavoriteResponse);
-  };
+  // 좋아요 API 호출
+  putFavoriteRequest(boardNumber, cookies.accessToken).then(putFavoriteResponse);
+};
 
   const onShowFavoriteClickHandler = () => setShowFavorite((p) => !p);
   const onShowCommentClickHandler = () => setShowComment((p) => !p);
@@ -342,7 +368,11 @@ const BoardDetailBottom = memo(function BoardDetailBottom({ boardNumber, viewCou
             {isFavorite ? (
               <>
                 <div className={`icon favorite-fill-icon ${animate ? 'pop' : ''}`} onClick={onShowFavoriteClickHandler}></div>
-                {showFloatingHeart && <div className="floating-heart">❤️</div>}
+                {showFloatingHeart && (
+                  <div className={`floating-heart ${floatingTilt}`}>
+                    <img src={floatingHeartImg} className="floating-heart-img" />
+                  </div>
+                )}
               </>
             ) : (
               <div className={`icon favorite-light-icon ${animate ? 'pop' : ''}`} onClick={onShowFavoriteClickHandler}></div>
