@@ -28,9 +28,11 @@ interface Props {
   // 더블클릭: 지도 이동 + 추가경로 생성
   onItemDoubleClick?: (p: PlaceItem) => void;
 
+  // 우측 아이콘(상세보기 / 카카오맵 등)
   onDetailClick?: (place: any) => void;
 
   // ✅ 두 경로사이 맛집리스트에서 선택된 아이템 표시용
+  //   (부모에서 "현재 미니뷰어에 떠 있는 place"의 id 혹은 lat,lng 넘겨주기)
   selectedKey?: string | number | null;
 }
 
@@ -43,6 +45,7 @@ export default function PlaceList({
   onDetailClick,
   selectedKey = null,
 }: Props) {
+  // 로딩 / 빈 리스트 처리
   if (isLoading && hiddenWhileLoading) {
     return <div className="place-list loading">로딩 중…</div>;
   }
@@ -51,12 +54,18 @@ export default function PlaceList({
   }
 
   return (
-    <ul className="place-list" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+    <ul
+      className="place-list"
+      style={{ listStyle: "none", margin: 0, padding: 0 }}
+    >
       {places.map((p, idx) => {
         const title = p.name || p.place_name || "이름 없음";
 
-        // 🔑 선택 비교용 key( id 가 있으면 id, 없으면 lat,lng )
-        const rawKey = p.id ?? `${p.lat},${p.lng}`;
+        // 🔑 selectedKey 가 넘어온 경우에는 lat,lng 기준으로만 비교해준다
+        const useLatLngKey = selectedKey !== null && selectedKey !== undefined;
+        const rawKey = useLatLngKey
+          ? `${p.lat},${p.lng}`
+          : (p.id ?? `${p.lat},${p.lng}`);
         const key = `${rawKey}-${idx}`;
 
         const isSelected =
@@ -72,6 +81,7 @@ export default function PlaceList({
           <li
             key={key}
             className={`place-list-item ${isSelected ? "selected" : ""}`}
+            aria-selected={isSelected}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -90,19 +100,24 @@ export default function PlaceList({
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              backgroundColor: isSelected ? "#f5ecff" : "transparent", // 🔥 선택 시 연보라 배경
+              // 🔥 선택된 항목만 살짝 어둡게 – 반투명 명암 느낌
+              backgroundColor: isSelected
+                ? "rgba(15, 23, 42, 0.06)" // 매우 연한 딥그레이 오버레이
+                : "transparent",
+              transition: "background-color 0.18s ease",
             }}
           >
-            {/* 왼쪽: 이름 */}
+            {/* 왼쪽: 이름 영역 */}
             <div style={{ flex: "1 1 auto", minWidth: 0 }}>
               <div
+                className="place-title"
                 style={{
                   fontWeight: isSelected ? 700 : 600,
                   marginBottom: 4,
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
-                  color: isSelected ? "#4c1d95" : "#111", // 선택 시 보라색 텍스트
+                  color: "#111", // 텍스트 컬러는 유지(명암만 주는 느낌)
                 }}
               >
                 {title}
@@ -130,19 +145,31 @@ export default function PlaceList({
                 예상소요시간 {eta}분
               </div>
             )}
+
+            {/* 오른쪽: 상세 보기 아이콘 버튼 */}
             <button
-            className="place-action-btn"
-            onClick={(e) => {
-              e.stopPropagation(); // 👈 중요: 부모의 클릭(지도이동)을 막음
-              onDetailClick?.(p); // 팝업 띄우기 함수 실행
-            }}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="16" x2="12" y2="12"></line>
-              <line x1="12" y1="8" x2="12.01" y2="8"></line>
-            </svg>
-          </button>
+              className="place-action-btn"
+              onClick={(e) => {
+                e.stopPropagation(); // 상위 li 클릭(미니뷰어/지도 이동) 막기
+                onDetailClick?.(p);
+              }}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+            </button>
           </li>
         );
       })}

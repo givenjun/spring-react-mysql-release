@@ -187,48 +187,120 @@ export default function SearchSidebar({
     onSearch(q);
   };
 
-  // ====== 길찾기 탭 (엔터 시 리스트 노출, 클릭으로 확정) ======
+  // ====== 길찾기 탭 (자동완성: 입력 시 디바운스 검색, 클릭으로 확정) ======
   type Field = 'start' | 'end';
   const [routeQuery, setRouteQuery] = useState({ start: '', end: '' });
-  const [picked, setPicked] = useState<{ start: CoordsPick | null; end: CoordsPick | null }>({ start: null, end: null });
-  const [suggestions, setSuggestions] = useState<{ start: Place[]; end: Place[] }>({ start: [], end: [] });
+  const [picked, setPicked] = useState<{ start: CoordsPick | null; end: CoordsPick | null }>({
+    start: null,
+    end: null,
+  });
+  const [suggestions, setSuggestions] = useState<{ start: Place[]; end: Place[] }>({
+    start: [],
+    end: [],
+  });
   const [openDrop, setOpenDrop] = useState<{ start: boolean; end: boolean }>({ start: false, end: false });
 
   // ✅ 거리 제한 메시지 상태
   const [distanceInfo, setDistanceInfo] = useState<{ type: 'info' | 'error'; text: string } | null>(null);
 
-  const routeQueryRef = useRef(routeQuery); useEffect(() => { routeQueryRef.current = routeQuery; }, [routeQuery]);
-  const pickedRef = useRef(picked); useEffect(() => { pickedRef.current = picked; }, [picked]);
+  const routeQueryRef = useRef(routeQuery);
+  useEffect(() => { routeQueryRef.current = routeQuery; }, [routeQuery]);
+  const pickedRef = useRef(picked);
+  useEffect(() => { pickedRef.current = picked; }, [picked]);
 
   const { searchManyOnce } = useKakaoSearch();
+
+  // 🔥 디바운스 타이머 (출발/도착 각각)
+  const debounceRef = useRef<{ start: number | null; end: number | null }>({
+    start: null,
+    end: null,
+  });
+
+  // 언마운트 시 타이머 정리
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current.start !== null) window.clearTimeout(debounceRef.current.start);
+      if (debounceRef.current.end !== null) window.clearTimeout(debounceRef.current.end);
+    };
+  }, []);
+
+  // 실제 검색 실행 함수
+  const triggerSuggestions = async (field: Field, keyword: string) => {
+    const q = keyword.trim();
+    if (q.length < 2) {
+      // 2글자 미만이면 목록 닫기
+      setSuggestions(prev => ({ ...prev, [field]: [] }));
+      setOpenDrop(prev => ({ ...prev, [field]: false }));
+      return;
+    }
+    const list = await searchManyOnce(q, 12);
+    setSuggestions(prev => ({ ...prev, [field]: list }));
+    setOpenDrop(prev => ({ ...prev, [field]: list.length > 0 }));
+  };
+
+  // 입력 시 디바운스 검색
+  const debouncedSearch = (field: Field, value: string) => {
+    // 이전 타이머 제거
+    const prevTimer = debounceRef.current[field];
+    if (prevTimer !== null) {
+      window.clearTimeout(prevTimer);
+    }
+
+    const trimmed = value.trim();
+
+    // 2글자 미만이면 바로 목록 정리
+    if (trimmed.length < 2) {
+      setSuggestions(prev => ({ ...prev, [field]: [] }));
+      setOpenDrop(prev => ({ ...prev, [field]: false }));
+      debounceRef.current[field] = null;
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      triggerSuggestions(field, trimmed);
+    }, 300); // 300ms 디바운스
+    debounceRef.current[field] = timeoutId;
+  };
 
   const onRouteChange = (field: Field, v: string) => {
     setRouteQuery((q) => ({ ...q, [field]: v }));
     setPicked((p) => ({ ...p, [field]: null }));
     setDistanceInfo(null);
+
+    // 🔥 입력만 해도 자동으로 추천 목록 검색
+    debouncedSearch(field, v);
   };
 
-  // ⌨️ 엔터 → 해당 필드에 대해 1회 검색, 목록 열기
-  const openSuggestionsByEnter = async (field: Field) => {
-    const q = routeQueryRef.current[field].trim();
-    if (q.length < 2) return;
-    const list = await searchManyOnce(q, 12);
-    setSuggestions((s) => ({ ...s, [field]: list }));
-    setOpenDrop((o) => ({ ...o, [field]: list.length > 0 }));
-  };
-
+  // ⌨️ 엔터 입력 시: 폼 제출만 막고, 별도 검색은 하지 않음(자동완성으로 대체)
   const onKeyDownInput = (field: Field) => (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      openSuggestionsByEnter(field);
+      // 기존: 엔터로 목록을 열던 로직은 제거
     }
   };
 
   // 목록에서 클릭하면 “확정”
   const pickSuggestion = (field: Field, p: Place) => {
-    const item: CoordsPick = { name: p.place_name, lat: parseFloat(p.y), lng: parseFloat(p.x) };
+    // 🔥 1) 이 필드에 걸려 있던 디바운스 타이머 제거
+    const prevTimer = debounceRef.current[field];
+    if (prevTimer !== null) {
+      window.clearTimeout(prevTimer);
+      debounceRef.current[field] = null;
+    }
+
+    // 2) 선택한 장소를 확정 값으로 반영
+    const item: CoordsPick = {
+      name: p.place_name,
+      lat: parseFloat(p.y),
+      lng: parseFloat(p.x),
+    };
     setPicked(prev => ({ ...prev, [field]: item }));
-    setRouteQuery(q => ({ ...q, [field]: `${p.place_name} (${p.road_address_name || p.address_name || ''})` }));
+    setRouteQuery(q => ({
+      ...q,
+      [field]: `${p.place_name} (${p.road_address_name || p.address_name || ''})`,
+    }));
+
+    // 3) 기존 추천 목록/드롭다운 정리
     setSuggestions(s => ({ ...s, [field]: [] }));
     setOpenDrop(o => ({ ...o, [field]: false }));
     setDistanceInfo(null);
@@ -251,14 +323,14 @@ export default function SearchSidebar({
     if (distKm > allowedKm) {
       setDistanceInfo({
         type: 'error',
-        text: `거리가 너무 멉니다! 제한 ${baseLimit.toFixed(1)}km (허용오차 +${Math.round(tol * 100)}% → ${allowedKm.toFixed(1)}km), 현재 ${distKm.toFixed(1)}km (＋${(distKm - baseLimit).toFixed(1)}km 초과)`
+        text: `거리가 너무 멉니다! 제한 ${baseLimit.toFixed(1)}km (허용오차 +${Math.round(tol * 100)}% → ${allowedKm.toFixed(1)}km), 현재 ${distKm.toFixed(1)}km (＋${(distKm - baseLimit).toFixed(1)}km 초과)`,
       });
       return;
     }
     if (distKm > baseLimit && distKm <= allowedKm) {
       setDistanceInfo({
         type: 'info',
-        text: `거리 제한 ${baseLimit.toFixed(1)}km를 살짝 초과했지만(현재 ${distKm.toFixed(1)}km), 허용오차 +${Math.round(tol * 100)}% 이내여서 계속 진행합니다.`
+        text: `거리 제한 ${baseLimit.toFixed(1)}km를 살짝 초과했지만(현재 ${distKm.toFixed(1)}km), 허용오차 +${Math.round(tol * 100)}% 이내여서 계속 진행합니다.`,
       });
     } else {
       setDistanceInfo(null);
@@ -344,7 +416,7 @@ export default function SearchSidebar({
       {/* 사이드바 본체 */}
       <div className={`slideContainer ${isOpen ? 'active' : ''}`}>
         <div className="sidebar-content" ref={containerRef}>
-          <div className="sidebar-title" onClick={() => window.location.reload()}/>
+          <div className="sidebar-title" onClick={() => window.location.reload()} />
 
           {/* 탭 */}
           <div className="button-group">
@@ -461,13 +533,13 @@ export default function SearchSidebar({
                 <div className="route-field" style={{ position: 'relative', marginBottom: GAP_BETWEEN }}>
                   <input
                     type="text"
-                    placeholder="출발지를 입력하고 Enter로 목록 보기"
+                    placeholder="출발지를 입력하면 자동으로 목록이 나옵니다"
                     value={routeQuery.start}
                     onChange={(e) => onRouteChange('start', e.target.value)}
                     onKeyDown={onKeyDownInput('start')}
-                    className="route-input"          // ✅ 이 한 줄만 남기고
+                    className="route-input"
                   />
-                  {/* 엔터 후 자동완성 */}
+                  {/* 자동완성 목록 */}
                   {openDrop.start && suggestions.start.length > 0 && (
                     <ul
                       className="route-suggest"
@@ -475,7 +547,9 @@ export default function SearchSidebar({
                       style={{
                         position: 'absolute',
                         zIndex: 5,
-                        left: 0, right: 0, top: ROW_HEIGHT + 6,
+                        left: 0,
+                        right: 0,
+                        top: ROW_HEIGHT + 6,
                         background: '#fff',
                         border: '1px solid #e5e7eb',
                         borderRadius: 10,
@@ -492,7 +566,9 @@ export default function SearchSidebar({
                           style={{ padding: '10px 12px', cursor: 'pointer' }}
                         >
                           <div style={{ fontSize: 14 }}>{s.place_name}</div>
-                          <div style={{ fontSize: 12, opacity: .7 }}>{s.road_address_name || s.address_name}</div>
+                          <div style={{ fontSize: 12, opacity: 0.7 }}>
+                            {s.road_address_name || s.address_name}
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -530,13 +606,13 @@ export default function SearchSidebar({
                 <div className="route-field" style={{ position: 'relative' }}>
                   <input
                     type="text"
-                    placeholder="도착지를 입력하고 Enter로 목록 보기"
+                    placeholder="도착지를 입력하면 자동으로 목록이 나옵니다"
                     value={routeQuery.end}
                     onChange={(e) => onRouteChange('end', e.target.value)}
                     onKeyDown={onKeyDownInput('end')}
-                    className="route-input"          // ✅ 동일
+                    className="route-input"
                   />
-                  {/* 엔터 후 자동완성 */}
+                  {/* 자동완성 목록 */}
                   {openDrop.end && suggestions.end.length > 0 && (
                     <ul
                       className="route-suggest"
@@ -544,7 +620,9 @@ export default function SearchSidebar({
                       style={{
                         position: 'absolute',
                         zIndex: 5,
-                        left: 0, right: 0, top: ROW_HEIGHT + 6,
+                        left: 0,
+                        right: 0,
+                        top: ROW_HEIGHT + 6,
                         background: '#fff',
                         border: '1px solid #e5e7eb',
                         borderRadius: 10,
@@ -561,7 +639,9 @@ export default function SearchSidebar({
                           style={{ padding: '10px 12px', cursor: 'pointer' }}
                         >
                           <div style={{ fontSize: 14 }}>{s.place_name}</div>
-                          <div style={{ fontSize: 12, opacity: .7 }}>{s.road_address_name || s.address_name}</div>
+                          <div style={{ fontSize: 12, opacity: 0.7 }}>
+                            {s.road_address_name || s.address_name}
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -595,7 +675,12 @@ export default function SearchSidebar({
                   </button>
                 </div>
 
-                <button type="submit" className="route-submit" disabled={!canSubmit} style={{ marginTop: 10 }}>
+                <button
+                  type="submit"
+                  className="route-submit"
+                  disabled={!canSubmit}
+                  style={{ marginTop: 10 }}
+                >
                   경로 보기
                 </button>
               </form>
@@ -619,8 +704,9 @@ export default function SearchSidebar({
                         : '균형 추천';
 
                     const selected =
-                      selectedRouteIdx !== null && selectedRouteIdx !== undefined
-                      && i === selectedRouteIdx;
+                      selectedRouteIdx !== null &&
+                      selectedRouteIdx !== undefined &&
+                      i === selectedRouteIdx;
                     const isLoading = !!routeLoading;
 
                     // 기본 스타일
@@ -643,7 +729,7 @@ export default function SearchSidebar({
                     const selectedStyle: React.CSSProperties =
                       selected && !isLoading
                         ? {
-                            opacity: 0.75,   // ← 핵심 변경점
+                            opacity: 0.75,
                             borderColor: '#ccc',
                           }
                         : {};
@@ -724,7 +810,10 @@ export default function SearchSidebar({
                     );
                   })}
 
-                  <div className="muted" style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
+                  <div
+                    className="muted"
+                    style={{ fontSize: 12, color: '#888', marginTop: 2 }}
+                  >
                     * 경로를 클릭하면 오른쪽 상세/맛집 패널이 열립니다.
                   </div>
                 </div>
@@ -733,37 +822,65 @@ export default function SearchSidebar({
               {/* 주변 맛집 리스트 (좌측, 필요할 때만 사용) */}
               {showRoutePlacesInSidebar && (
                 <div className="route-places-wrap">
-                  {routeLoading && <div className="muted">경로 주변 맛집 검색 중…</div>}
-                  {!routeLoading && routeError && <div className="error">{routeError}</div>}
-                  {!routeLoading && !routeError && routePlaces && routePlaces.length > 0 && (
-                    <div className="list-rounded route-list">
-                      <div className="list-scroll route-list-scroll">
-                        {routePlaces.map((p, idx) => {
-                          const lat = typeof (p as any).lat === 'string' ? parseFloat((p as any).lat) : (p as any).lat;
-                          const lng = typeof (p as any).lng === 'string' ? parseFloat((p as any).lng) : (p as any).lng;
-                          const canFocus = Number.isFinite(lat) && Number.isFinite(lng);
-                          return (
-                            <div
-                              key={`${p.name}-${idx}`}
-                              className="search-result-item"
-                              onDoubleClick={() => canFocus && onFocusRoutePlace?.({ ...p, lat, lng })}
-                              onMouseDown={(e) => e.preventDefault()}
-                              role="button"
-                              tabIndex={0}
-                              onKeyDown={(e) => { if (e.key === 'Enter' && canFocus) onFocusRoutePlace?.({ ...p, lat, lng }); }}
-                            >
-                              <div className="place-name">{p.name}</div>
-                              <div className="place-address">{p.roadAddress || p.address || ''}</div>
-                              {p.phone && <div className="place-phone">{p.phone}</div>}
-                            </div>
-                          );
-                        })}
+                  {routeLoading && (
+                    <div className="muted">경로 주변 맛집 검색 중…</div>
+                  )}
+                  {!routeLoading && routeError && (
+                    <div className="error">{routeError}</div>
+                  )}
+                  {!routeLoading &&
+                    !routeError &&
+                    routePlaces &&
+                    routePlaces.length > 0 && (
+                      <div className="list-rounded route-list">
+                        <div className="list-scroll route-list-scroll">
+                          {routePlaces.map((p, idx) => {
+                            const lat =
+                              typeof (p as any).lat === 'string'
+                                ? parseFloat((p as any).lat)
+                                : (p as any).lat;
+                            const lng =
+                              typeof (p as any).lng === 'string'
+                                ? parseFloat((p as any).lng)
+                                : (p as any).lng;
+                            const canFocus =
+                              Number.isFinite(lat) && Number.isFinite(lng);
+                            return (
+                              <div
+                                key={`${p.name}-${idx}`}
+                                className="search-result-item"
+                                onDoubleClick={() =>
+                                  canFocus &&
+                                  onFocusRoutePlace?.({ ...p, lat, lng })
+                                }
+                                onMouseDown={(e) => e.preventDefault()}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && canFocus)
+                                    onFocusRoutePlace?.({ ...p, lat, lng });
+                                }}
+                              >
+                                <div className="place-name">{p.name}</div>
+                                <div className="place-address">
+                                  {p.roadAddress || p.address || ''}
+                                </div>
+                                {p.phone && (
+                                  <div className="place-phone">{p.phone}</div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  {!routeLoading && !routeError && (!routePlaces || routePlaces.length === 0) && (
-                    <div className="muted">경로 주변에서 표시할 맛집이 없습니다.</div>
-                  )}
+                    )}
+                  {!routeLoading &&
+                    !routeError &&
+                    (!routePlaces || routePlaces.length === 0) && (
+                      <div className="muted">
+                        경로 주변에서 표시할 맛집이 없습니다.
+                      </div>
+                    )}
                 </div>
               )}
             </div>
@@ -773,9 +890,16 @@ export default function SearchSidebar({
 
       {/* 🔹 열기/닫기 버튼: 사이드바 밖에서 항상 고정 */}
       <div className="slideBtnContainer">
-        <div className={`slideBtn ${isOpen ? 'active' : ''}`} onClick={toggleOpen}>
+        <div
+          className={`slideBtn ${isOpen ? 'active' : ''}`}
+          onClick={toggleOpen}
+        >
           <div className="icon-box">
-            <div className={`icon ${isOpen ? 'expand-left-icon' : 'expand-right-icon'}`} />
+            <div
+              className={`icon ${
+                isOpen ? 'expand-left-icon' : 'expand-right-icon'
+              }`}
+            />
           </div>
         </div>
       </div>
