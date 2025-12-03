@@ -1,5 +1,5 @@
 <div align="center">
-<img width="329" alt="image" src="board-front\src\assets\image\routepick-logo-icon.png">
+<img width="400" alt="Image" src="https://github.com/user-attachments/assets/d4691972-abee-4df8-98ee-db82325622cb" />
 
 </div>
 
