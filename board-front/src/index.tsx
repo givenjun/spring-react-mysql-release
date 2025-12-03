@@ -6,6 +6,7 @@ import reportWebVitals from './reportWebVitals';
 import { BrowserRouter } from 'react-router-dom';
 import { CookiesProvider } from 'react-cookie';
 import { ToastContainer } from 'react-toastify';
+import ScrollTop from './hooks/ScrollTop';
 
 
 const root = ReactDOM.createRoot(
@@ -15,6 +16,7 @@ root.render(
   <React.StrictMode>
     <CookiesProvider>
       <BrowserRouter>
+        <ScrollTop />
         <App />
         <ToastContainer />
       </BrowserRouter>

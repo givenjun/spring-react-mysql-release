@@ -23,6 +23,14 @@
   border-radius: 20px;
 }
 
+@media screen and (max-width: 1024px) {
+  .notice-detail-container {
+    width: 97%;       
+    min-width: 0;       
+    padding: 20px;    
+    box-sizing: border-box;
+  }
+}
 /* =============================== */
 /* 헤더 */
 /* =============================== */

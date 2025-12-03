@@ -1394,6 +1394,19 @@ export default function Main() {
           setHasUserSearched(true);
           (searchPlaces as any)(trimmed);
         }}
+        onDetailClick={(p) => {
+              const lat = Number(p.lat || p.y);
+              const lng = Number(p.lng || p.x);
+              const name = (p?.name || p?.place_name || '선택한 장소') as string;
+
+              setExploreMiniViewerPlace({
+                name,
+                lat,
+                lng,
+                placeUrl: extractPlaceUrl(p),
+              });
+            }
+        }
         onRouteByCoords={handleRouteByCoords}
         routeOptions={routeOptions}
         onSelectRoute={selectRoute}
