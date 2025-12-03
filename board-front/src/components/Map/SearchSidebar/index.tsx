@@ -163,6 +163,14 @@ export default function SearchSidebar({
   // 내부 탭 상태: search(탐색) | route(길찾기)
   const [mode, setMode] = useState<'search' | 'route'>('search');
 
+  const InfoIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"></circle>
+    <line x1="12" y1="16" x2="12" y2="12"></line>
+    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+  </svg>
+);
+
   // 🔥 탭 전환 헬퍼: 내부 mode + 부모 mapMode 동기화
   const switchMode = (next: 'search' | 'route') => {
     setMode(next);
@@ -498,7 +506,7 @@ export default function SearchSidebar({
                         className={`search-result-item ${selectedIndex === index ? 'selected' : ''}`}
                         onClick={() => {
                           onClickItem(place);
-                          onOpenExploreMiniViewer?.(place);
+                          // onOpenExploreMiniViewer?.(place);
                         }}
                         onDoubleClick={() => {
                           onClickItem(place);
@@ -514,6 +522,29 @@ export default function SearchSidebar({
                           }
                         }}
                       >
+                        <button
+                          className="detail-view-btn"
+                          onClick={(e) => {
+                            e.stopPropagation(); // 상위 li 클릭(미니뷰어/지도 이동) 막기
+                            onOpenExploreMiniViewer?.(place);
+                          }}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                          </svg>
+                        </button>
                         <div className="place-name">{place.place_name}</div>
                         <div className="place-address">{place.road_address_name || place.address_name}</div>
                         {place.phone && <div className="place-phone">{place.phone}</div>}

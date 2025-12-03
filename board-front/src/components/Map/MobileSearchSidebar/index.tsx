@@ -29,6 +29,8 @@ interface MobileSearchSidebarProps {
   routeOptions?: RouteOptionItem[];
   onSelectRoute?: (index: number) => void;
   onChangeMapMode?: (mode: 'explore' | 'route' | 'chat') => void;
+
+  onDetailClick?: (place: any) => void;
   
   detailContent?: React.ReactNode | null;
   onCloseDetail?: () => void;
@@ -44,7 +46,8 @@ const SwapIcon = () => (
 export default function MobileSearchSidebar({
   searchResults, onClickItem, onSearch, onRouteByCoords,
   routeOptions = [], onSelectRoute, onChangeMapMode,
-  detailContent, onCloseDetail
+  detailContent, onCloseDetail,
+  onDetailClick,
 }: MobileSearchSidebarProps) {
   const navigate = useNavigate();
   
@@ -143,6 +146,14 @@ export default function MobileSearchSidebar({
   };
 
   const onInputFocus = () => {};
+
+  const InfoIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="16" x2="12" y2="12"></line>
+      <line x1="12" y1="8" x2="12.01" y2="8"></line>
+    </svg>
+  );
 
   const toggleSheet = () => {
     if (sheetMode === 'hidden') setSheetMode('min');
@@ -368,12 +379,74 @@ export default function MobileSearchSidebar({
             ) : (
                <>
                 {activeTab === 'search' && searchResults.map((place, i) => (
-                  <div key={i} className="search-result-item" onClick={() => { onClickItem(place); }}>
-                    <div className="place-name" style={{fontSize:16, fontWeight:600, marginBottom:4}}>{place.place_name}</div>
-                    <div className="place-address" style={{fontSize:13, color:'#888'}}>{place.road_address_name || place.address_name}</div>
+                  <div 
+                    key={i} 
+                    className="search-result-item" 
+                    onClick={() => onClickItem(place)}
+                    style={{
+                      /* 🔥 PlaceList와 똑같은 Flex 구조 적용 */
+                      display: 'flex',             /* 가로 배치 */
+                      justifyContent: 'space-between', /* 양 끝으로 벌리기 */
+                      alignItems: 'center',        /* 수직 중앙 정렬 */
+                      padding: '12px 16px',
+                      borderBottom: '1px solid #eee',
+                      cursor: 'pointer',
+                      position: 'relative' /* 선택 효과 등을 위해 */
+                    }}
+                  >
+                    {/* 1. 왼쪽: 텍스트 영역 (flex-grow로 남은 공간 다 차지하게) */}
+                    <div style={{ flex: 1, minWidth: 0, marginRight: 10 }}>
+                      <div className="place-name" style={{
+                        fontSize: 16, 
+                        fontWeight: 600, 
+                        marginBottom: 4,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        {place.place_name}
+                      </div>
+                      <div className="place-address" style={{
+                        fontSize: 13, 
+                        color: '#888',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        {place.road_address_name || place.address_name}
+                      </div>
+                    </div>
+
+                    {/* 2. 오른쪽: 버튼 (PlaceList와 동일한 로직) */}
+                    <button 
+                      className="detail-view-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();           /* 🔥 지도 이동 막기 */
+                        onDetailClick?.(place);
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: '8px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0, /* 찌그러짐 방지 */
+                        color: '#4b5563',
+                        opacity: 1, 
+                        visibility: 'visible'
+                      }}
+                    >
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                      </svg>
+                    </button>
                   </div>
                 ))}
-                
+
 
                 {activeTab === 'route' && focusedField && suggestions[focusedField].map((place, i) => (
                     <div key={i} className="search-result-item" onClick={() => selectSuggestion(focusedField, place)}>
