@@ -289,7 +289,7 @@ jobs:
     </td>
     <td align="center" style="padding:14px;">
       <strong>로그인 페이지</strong><br/>
-      <img width="360" src="https://github.com/user-attachments/assets/4010366c-185d-40b1-89b8-e71528796cd7" />
+      <img width="360" src="https://github.com/user-attachments/assets/1666b86d-be8c-4fdd-a469-62569552ec82" />
     </td>
   </tr>
 
